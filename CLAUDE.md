@@ -14,14 +14,21 @@ La suite `tests/` est la spécification exécutable : on corrige l'application, 
 - Après ouverture, suivre la PR : corriger les échecs de CI qui relèvent de la PR et traiter les
   remarques de la relecture Claude. Ne jamais fusionner : la fusion revient à l'utilisatrice.
 
+## Économie de tokens pendant la surveillance
+
+- Pas de vérification programmée (check-in) : on ne réagit qu'aux événements GitHub.
+- Un échec déjà expliqué sur la PR, dont la cause n'a pas changé (ex. `app/` absent, clé Claude
+  manquante), ne demande ni nouvelle analyse des journaux, ni commentaire : réponse d'une ligne.
+- Tant que `app/` n'existe pas, les contrôles Pytest et déploiement sont rouges par construction.
+
 ## Contrôles automatiques à chaque PR
 
 | Workflow | Vérifie |
 |---|---|
-| `ci.yml` › Ruff + Mypy | style et typage strict |
+| `ci.yml` › Ruff, Mypy | style et typage strict |
 | `ci.yml` › Pytest (unit, integration, ai, e2e) | conformité au cahier des charges |
 | `ci.yml` › Vérification du déploiement | installation dans un environnement vierge, chargement des modules, parcours e2e sur le paquet installé (`scripts/verifier_deploiement.sh`) |
-| `claude-review.yml` | relecture du code par Claude (section ci-dessous) |
+| `claude-review.yml` | relecture du code par Claude (section ci-dessous), seulement si du code change |
 
 ## Relecture des PR
 

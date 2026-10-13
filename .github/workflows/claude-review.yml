@@ -3,6 +3,8 @@ name: Relecture Claude
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
+    # Relecture (payante) seulement quand du code change, pas pour la doc seule.
+    paths: ["app/**", "db/**", "tests/**", "scripts/**", ".github/workflows/**", "pyproject.toml"]
 
 jobs:
   review:

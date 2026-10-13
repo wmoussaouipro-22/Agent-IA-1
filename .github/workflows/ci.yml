@@ -6,8 +6,10 @@ on:
   pull_request:
 
 jobs:
-  lint:
-    name: Ruff + Mypy
+  # Un seul job (donc une seule notification par push) ; chaque contrôle reste une étape
+  # distincte, visible dans l'onglet Actions, et s'exécute même si la précédente a échoué.
+  controles:
+    name: Contrôles (qualité, tests, déploiement)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -15,39 +17,33 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements-dev.txt
-      - run: ruff check .
-      - run: ruff format --check .
+
+      - name: Ruff
+        if: ${{ !cancelled() }}
+        run: ruff check . && ruff format --check .
       - name: Mypy (tests + app si présent)
+        if: ${{ !cancelled() }}
         run: |
           targets="tests"
           if [ -d app ]; then targets="app tests"; fi
           mypy $targets
 
-  tests:
-    name: Pytest (${{ matrix.marker }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        marker: [unit, integration, ai, e2e]
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.11"
-      - run: pip install -r requirements-dev.txt
-      - name: pytest -m ${{ matrix.marker }}
+      - name: Pytest (unit)
+        if: ${{ !cancelled() }}
+        run: pytest -m unit
+      - name: Pytest (integration)
+        if: ${{ !cancelled() }}
         env:
           # Facultatif : si le secret est défini, les tests « live » appellent la vraie API.
           GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
-        run: pytest -m ${{ matrix.marker }}
+        run: pytest -m integration
+      - name: Pytest (ai)
+        if: ${{ !cancelled() }}
+        run: pytest -m ai
+      - name: Pytest (e2e)
+        if: ${{ !cancelled() }}
+        run: pytest -m e2e
 
-  deploiement:
-    name: Vérification du déploiement
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.11"
-      - run: ./scripts/verifier_deploiement.sh
+      - name: Vérification du déploiement
+        if: ${{ !cancelled() }}
+        run: ./scripts/verifier_deploiement.sh
