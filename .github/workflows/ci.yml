@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    name: Ruff + Mypy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: ruff format --check .
+      - name: Mypy (tests + app si présent)
+        run: |
+          targets="tests"
+          if [ -d app ]; then targets="app tests"; fi
+          mypy $targets
+
+  tests:
+    name: Pytest (${{ matrix.marker }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        marker: [unit, integration, ai, e2e]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements-dev.txt
+      - name: pytest -m ${{ matrix.marker }}
+        env:
+          # Facultatif : si le secret est défini, les tests « live » appellent la vraie API.
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+        run: pytest -m ${{ matrix.marker }}
