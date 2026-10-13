@@ -35,3 +35,6 @@ mypy_path = "app"
 
 [tool.ruff.lint.isort]
 known-first-party = ["conftest", "auth", "geoloc", "prospects", "scoring", "ai_email", "outlook", "stats"]
+
+[tool.setuptools.packages.find]
+where = ["app"]
