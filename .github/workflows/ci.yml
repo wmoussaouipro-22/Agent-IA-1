@@ -5,12 +5,26 @@ on:
     branches: [main]
   pull_request:
 
+# Jamais deux migrations de production en parallèle ; sur une PR, un nouveau push annule l'ancien.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # Un seul job (donc une seule notification par push) ; chaque contrôle reste une étape
   # distincte, visible dans l'onglet Actions, et s'exécute même si la précédente a échoué.
   controles:
     name: Contrôles (qualité, tests, déploiement)
     runs-on: ubuntu-latest
+    services:
+      # Base jetable pour vérifier les migrations avant de les appliquer à Supabase.
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -19,31 +33,73 @@ jobs:
       - run: pip install -r requirements-dev.txt
 
       - name: Ruff
+        id: ruff
         if: ${{ !cancelled() }}
         run: ruff check . && ruff format --check .
-      - name: Mypy (tests + app si présent)
+      - name: Mypy
+        id: mypy
         if: ${{ !cancelled() }}
         run: |
-          targets="tests"
-          if [ -d app ]; then targets="app tests"; fi
+          targets="tests db scripts"
+          if [ -d app ]; then targets="app $targets"; fi
           mypy $targets
 
       - name: Pytest (unit)
+        id: unit
         if: ${{ !cancelled() }}
         run: pytest -m unit
       - name: Pytest (integration)
+        id: integration
         if: ${{ !cancelled() }}
         env:
           # Facultatif : si le secret est défini, les tests « live » appellent la vraie API.
           GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
         run: pytest -m integration
       - name: Pytest (ai)
+        id: ai
         if: ${{ !cancelled() }}
         run: pytest -m ai
       - name: Pytest (e2e)
+        id: e2e
         if: ${{ !cancelled() }}
         run: pytest -m e2e
 
       - name: Vérification du déploiement
+        id: deploiement
         if: ${{ !cancelled() }}
         run: ./scripts/verifier_deploiement.sh
+
+      - name: Migrations (base de test, aller-retour)
+        id: migrations_test
+        if: ${{ !cancelled() }}
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:test@localhost:5432/postgres
+        run: |
+          alembic -c db/alembic.ini upgrade head
+          alembic -c db/alembic.ini downgrade base
+          alembic -c db/alembic.ini upgrade head
+
+      - name: Migrations Supabase (production)
+        id: migrations_prod
+        # Uniquement après fusion sur main, et seulement si les migrations ont passé le test.
+        if: >-
+          ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+          && steps.migrations_test.outcome == 'success' }}
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::Secret SUPABASE_DB_URL absent : migrations non appliquées à Supabase."
+            exit 1
+          fi
+          alembic -c db/alembic.ini upgrade head
+
+      - name: Journal Supabase
+        id: journal
+        if: always()
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          STEPS: ${{ toJSON(steps) }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python scripts/journaliser_controles.py

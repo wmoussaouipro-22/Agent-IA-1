@@ -28,7 +28,16 @@ La suite `tests/` est la spécification exécutable : on corrige l'application, 
 | `ci.yml` › Ruff, Mypy | style et typage strict |
 | `ci.yml` › Pytest (unit, integration, ai, e2e) | conformité au cahier des charges |
 | `ci.yml` › Vérification du déploiement | installation dans un environnement vierge, chargement des modules, parcours e2e sur le paquet installé (`scripts/verifier_deploiement.sh`) |
+| `ci.yml` › Migrations | aller-retour des migrations sur une base de test ; sur `main`, application à Supabase |
+| `ci.yml` / `claude-review.yml` › Journal | résultat de chaque contrôle écrit dans `prospection.controles_ci` |
 | `claude-review.yml` | relecture du code par Claude (section ci-dessous), seulement si du code change |
+
+## Base de données
+
+- Toute modification de structure passe par une migration Alembic dans `db/versions/`, jamais
+  par une modification manuelle dans Supabase. Schéma `prospection` uniquement : ne jamais toucher
+  aux tables Eco Locaux du schéma `public`.
+- Toute table créée active la RLS (Row Level Security).
 
 ## Relecture des PR
 
@@ -39,6 +48,7 @@ Bloquant :
 - Garde-fous de l'e-mail IA contournés ou lien de désabonnement absent.
 - RGPD : identité du gérant rendue obligatoire ; statistiques individuelles exposées (F7).
 - Fonctionnalité post-RDV (hors périmètre du MVP).
+- Migration non réversible (`downgrade` absent) ou modification du schéma `public`.
 - Code de `app/` sans test associé, ou non typé (`mypy --strict`).
 - Bug avéré : chemin d'exécution concret menant à un résultat faux ou à un plantage.
 

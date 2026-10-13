@@ -37,3 +37,19 @@ déboguer, corriger et dérouler les tests utilisateurs. Dans Claude Code :
 
 Règle centrale de l'agent : il corrige l'application, jamais les tests. Si un test lui semble
 contredire le besoin, il s'arrête et te demande de trancher.
+
+## Infrastructure
+
+| Élément | Où | Rôle |
+|---|---|---|
+| Supabase « Nouvelles tables Eco locaux SQL » | schéma `prospection` (séparé des tables Eco Locaux de `public`) | base de l'application et journal des contrôles `prospection.controles_ci` |
+| Railway « assistant-prospection » | service `Redis` (réseau privé uniquement) | cache / file d'attente de la future application |
+| Variables partagées Railway | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SCHEMA`, `REDIS_URL` | disponibles pour tout service ajouté au projet |
+
+Ce que GitHub écrit dans Supabase :
+- **à chaque PR et chaque fusion** : le résultat de chaque contrôle dans `prospection.controles_ci` ;
+- **à chaque fusion sur `main`** : les migrations de `db/versions/` (Alembic), après un aller-retour
+  réussi sur une base de test.
+
+Migrations en local : `SUPABASE_DB_URL=... alembic -c db/alembic.ini upgrade head`
+(modèle de variables dans `.env.example`).

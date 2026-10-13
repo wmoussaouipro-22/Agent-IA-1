@@ -16,7 +16,15 @@ jobs:
       pull-requests: write
       id-token: write
     steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
       - name: Vérifier la présence d'une clé Claude
+        id: cle
         env:
           API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -26,11 +34,8 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-
       - uses: anthropics/claude-code-action@v1
+        id: relecture
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -48,3 +53,15 @@ jobs:
             - Ne signale pas de problème de style que Ruff détecte déjà.
           claude_args: |
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+
+      - name: Journal Supabase
+        id: journal
+        if: always()
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          STEPS: ${{ toJSON(steps) }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          pip install --quiet "psycopg[binary]>=3.2"
+          python scripts/journaliser_controles.py
