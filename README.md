@@ -21,3 +21,19 @@ Aucune clé d'API n'est nécessaire : les services externes sont simulés. Le se
 vraie API Google Places est ignoré tant que `GOOGLE_PLACES_API_KEY` n'est pas définie.
 
 La recette terrain (UAT, 4 à 6 semaines) n'est pas automatisable et reste à suivre à part.
+
+## Agent de débogage et de recette
+
+L'agent `debug-testeur` (`.claude/agents/debug-testeur.md`) s'appuie sur cette suite de tests pour
+déboguer, corriger et dérouler les tests utilisateurs. Dans Claude Code :
+
+| Commande | Effet |
+|---|---|
+| `/debug` | lance tous les tests et corrige les échecs un par un |
+| `/debug le scoring classe mal les restaurants` | reproduit le bug, le corrige, ajoute un test de non-régression |
+| `/recette` | déroule tous les scénarios utilisateurs de `tests/recette/scenarios.md` |
+| `/recette R3` | automatise puis exécute le scénario R3 |
+| `/recette un commercial change d'avis après un RDV` | ajoute ce parcours aux scénarios et le teste |
+
+Règle centrale de l'agent : il corrige l'application, jamais les tests. Si un test lui semble
+contredire le besoin, il s'arrête et te demande de trancher.
