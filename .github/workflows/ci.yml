@@ -17,7 +17,7 @@ jobs:
     name: Contrôles (qualité, tests, déploiement)
     runs-on: ubuntu-latest
     services:
-      # Base jetable pour vérifier les migrations avant de les appliquer à Supabase.
+      # Base jetable pour vérifier les migrations avant de les appliquer à la base de production.
       postgres:
         image: postgres:17
         env:
@@ -73,32 +73,32 @@ jobs:
         id: migrations_test
         if: ${{ !cancelled() }}
         env:
-          SUPABASE_DB_URL: postgresql://postgres:test@localhost:5432/postgres
+          DATABASE_URL: postgresql://postgres:test@localhost:5432/postgres
         run: |
           alembic -c db/alembic.ini upgrade head
           alembic -c db/alembic.ini downgrade base
           alembic -c db/alembic.ini upgrade head
 
-      - name: Migrations Supabase (production)
+      - name: Migrations PostgreSQL Railway (production)
         id: migrations_prod
         # Uniquement après fusion sur main, et seulement si les migrations ont passé le test.
         if: >-
           ${{ !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main'
           && steps.migrations_test.outcome == 'success' }}
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          if [ -z "$SUPABASE_DB_URL" ]; then
-            echo "::error::Secret SUPABASE_DB_URL absent : migrations non appliquées à Supabase."
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Secret DATABASE_URL absent : migrations non appliquées à la base."
             exit 1
           fi
           alembic -c db/alembic.ini upgrade head
 
-      - name: Journal Supabase
+      - name: Journal base de données
         id: journal
         if: always()
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           STEPS: ${{ toJSON(steps) }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}

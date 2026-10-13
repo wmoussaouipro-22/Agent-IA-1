@@ -42,14 +42,15 @@ contredire le besoin, il s'arrête et te demande de trancher.
 
 | Élément | Où | Rôle |
 |---|---|---|
-| Supabase « Nouvelles tables Eco locaux SQL » | schéma `prospection` (séparé des tables Eco Locaux de `public`) | base de l'application et journal des contrôles `prospection.controles_ci` |
-| Railway « assistant-prospection » | service `Redis` (réseau privé uniquement) | cache / file d'attente de la future application |
-| Variables partagées Railway | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SCHEMA`, `REDIS_URL` | disponibles pour tout service ajouté au projet |
+| Railway « assistant-prospection-postgres » (Amsterdam) | service `Postgres` (schéma `prospection`) | base de l'application et journal des contrôles `prospection.controles_ci` ; accès public protégé par mot de passe pour GitHub |
+| | service `Redis` (réseau privé uniquement) | cache / file d'attente de la future application |
+| Variables partagées Railway | `DATABASE_URL`, `REDIS_URL` | disponibles pour tout service ajouté au projet |
+| Railway « assistant-prospection » + Supabase | conservés, plus alimentés par le dépôt | ancienne configuration |
 
-Ce que GitHub écrit dans Supabase :
+Ce que GitHub écrit dans PostgreSQL (secret `DATABASE_URL`) :
 - **à chaque PR et chaque fusion** : le résultat de chaque contrôle dans `prospection.controles_ci` ;
 - **à chaque fusion sur `main`** : les migrations de `db/versions/` (Alembic), après un aller-retour
   réussi sur une base de test.
 
-Migrations en local : `SUPABASE_DB_URL=... alembic -c db/alembic.ini upgrade head`
+Migrations en local : `DATABASE_URL=... alembic -c db/alembic.ini upgrade head`
 (modèle de variables dans `.env.example`).

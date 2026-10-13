@@ -1,4 +1,4 @@
-"""Journal des contrôles GitHub dans Supabase (scripts/journaliser_controles.py)."""
+"""Journal des contrôles GitHub dans la base PostgreSQL (scripts/journaliser_controles.py)."""
 
 from __future__ import annotations
 
@@ -69,9 +69,19 @@ def test_l_etape_journal_n_est_pas_journalisee(journal: ModuleType) -> None:
     assert "journal" not in json.loads(row["resultats"])
 
 
-def test_sans_supabase_le_script_n_echoue_pas(
+def test_sans_base_le_script_n_echoue_pas(
     journal: ModuleType, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.delenv("SUPABASE_DB_URL", raising=False)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
     assert journal.main() == 0
-    assert "SUPABASE_DB_URL absent" in capsys.readouterr().out
+    assert "DATABASE_URL absent" in capsys.readouterr().out
+
+
+def test_base_injoignable_le_script_n_echoue_pas(
+    journal: ModuleType, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgresql://x:y@127.0.0.1:1/z")
+    for key, value in {**ENV, "STEPS": _steps(ruff="success")}.items():
+        monkeypatch.setenv(key, value)
+    assert journal.main() == 0
+    assert "Journal non écrit" in capsys.readouterr().out

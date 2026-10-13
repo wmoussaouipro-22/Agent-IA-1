@@ -1,7 +1,7 @@
-"""Écrit le résultat d'une exécution GitHub Actions dans Supabase (prospection.controles_ci).
+"""Écrit le résultat d'une exécution GitHub Actions dans la base (prospection.controles_ci).
 
 Appelé en dernière étape des workflows avec `STEPS: ${{ toJSON(steps) }}`. Sans la variable
-SUPABASE_DB_URL (secret absent, PR venant d'un fork), le script signale l'absence et n'échoue pas :
+DATABASE_URL (secret absent, PR venant d'un fork), le script signale l'absence et n'échoue pas :
 le journal ne doit jamais faire échouer les contrôles eux-mêmes.
 """
 
@@ -55,17 +55,22 @@ def build_row(env: Mapping[str, str]) -> dict[str, Any]:
 
 
 def main() -> int:
-    url = os.getenv("SUPABASE_DB_URL")
+    url = os.getenv("DATABASE_URL")
     if not url:
-        print("::warning::SUPABASE_DB_URL absent : résultat non journalisé dans Supabase.")
+        print("::warning::DATABASE_URL absent : résultat non journalisé dans la base.")
         return 0
 
     import psycopg
 
     row = build_row(os.environ)
-    with psycopg.connect(url, connect_timeout=15) as conn:
-        conn.execute(INSERT, row)
-    print(f"Journalisé dans Supabase : {row['workflow']} → {row['conclusion']}")
+    try:
+        with psycopg.connect(url, connect_timeout=15) as conn:
+            conn.execute(INSERT, row)
+    except psycopg.Error as exc:
+        # Base injoignable ou table absente (migrations pas encore appliquées) : on signale.
+        print(f"::warning::Journal non écrit dans la base : {type(exc).__name__}")
+        return 0
+    print(f"Journalisé dans la base : {row['workflow']} → {row['conclusion']}")
     return 0
 
 

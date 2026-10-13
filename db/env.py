@@ -1,5 +1,5 @@
 """Environnement Alembic : toutes les tables de l'assistant vivent dans le schéma `prospection`,
-séparé des tables existantes du projet Supabase (schéma `public`)."""
+séparé du schéma `public`."""
 
 from __future__ import annotations
 
@@ -12,9 +12,9 @@ SCHEMA = "prospection"
 
 
 def _database_url() -> str:
-    url = os.getenv("SUPABASE_DB_URL")
+    url = os.getenv("DATABASE_URL")
     if not url:
-        raise RuntimeError("Variable SUPABASE_DB_URL absente (chaîne de connexion PostgreSQL).")
+        raise RuntimeError("Variable DATABASE_URL absente (chaîne de connexion PostgreSQL).")
     # Pilote psycopg 3 pour SQLAlchemy.
     return url.replace("postgresql://", "postgresql+psycopg://", 1).replace(
         "postgres://", "postgresql+psycopg://", 1
