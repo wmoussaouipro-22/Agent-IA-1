@@ -37,3 +37,9 @@ déboguer, corriger et dérouler les tests utilisateurs. Dans Claude Code :
 
 Règle centrale de l'agent : il corrige l'application, jamais les tests. Si un test lui semble
 contredire le besoin, il s'arrête et te demande de trancher.
+
+## Interface web des commerciaux (`web/`)
+
+Site Next.js hébergé sur Vercel, branché sur la base Supabase « Nouvelles tables Eco locaux SQL »
+(commerces, commerciaux, échanges, relances). Détails et lancement local : [`web/README.md`](web/README.md).
+Règles d'accès Supabase : `supabase/migrations/`. Contrôle à chaque PR : `.github/workflows/web.yml`.

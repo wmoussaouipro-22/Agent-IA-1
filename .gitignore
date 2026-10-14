@@ -6,3 +6,8 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .venv/
+node_modules/
+.next/
+.vercel
+*.tsbuildinfo
+next-env.d.ts
