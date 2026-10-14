@@ -241,6 +241,7 @@ table.grid .r { text-align: right; }
 .todo ul { margin: 0; padding: 0; }
 .when { font-size: 12px; font-weight: 600; text-align: center; border-radius: 6px; padding: 4px 0; background: var(--grey-bg); color: var(--grey-ink); font-variant-numeric: tabular-nums; }
 .when.late { background: var(--red-bg); color: var(--red); }
+.next-step { margin: 4px 20px 0; width: auto; cursor: default; }
 .when.soon { background: var(--amber-bg); color: var(--amber); }
 .when.stale { background: var(--sage); color: var(--ink-3); }
 .act.soon { background: var(--amber-bg); border-left-color: var(--amber); }
@@ -812,6 +813,7 @@ function viewFiche() {
       </section>
       <section class="card">
         <div class="card-head"><h2>Historique des échanges</h2><span class="hint">${hist.length} échange${hist.length > 1 ? "s" : ""}</span></div>
+        ${stopped(c) ? "" : nextStepBox(c)}
         <div class="card-body">${hist.length ? `<ul class="tl">${hist.map(i => `<li><span class="dot">${ms(CANAL_ICON[i.canal] || "chat")}</span><div>
           <div class="head"><b>${esc(i.canal)}</b><span class="muted">${fmt(i.date)}</span><span class="badge ${["RDV pris", "Signature", "Intéressé"].includes(i.resultat) ? "b-sage" : i.resultat === "À rappeler" ? "b-amber" : "b-grey"}">${esc(i.resultat)}</span></div>
           ${i.commentaire ? `<p>${esc(i.commentaire)}</p>` : ""}
@@ -1073,10 +1075,27 @@ function syncRdv() {
 }
 /* Règles de relance (jours ouvrés) — le commercial ne saisit plus de date */
 function addOuvres(iso, n) { const d = new Date(iso.slice(0, 10) + "T12:00:00"); let k = 0; while (k < n) { d.setDate(d.getDate() + 1); const w = d.getDay(); if (w !== 0 && w !== 6) k++; } return d.toISOString().slice(0, 10); }
-function autoRelance(c, res, date, rdvIso) {
+/* Prochaine étape d'un commerce : déduite du dernier échange et des règles J+X */
+function nextStep(c) {
+  const h = interOf(c.id), last = h[0];
+  if (!last) return { label: "Premier appel", rule: "nouveau prospect", date: null };
+  const ar = autoRelance(c, last.resultat, last.date, last.rdv, h.slice(1));
+  const date = last.relance || ar.date;
+  const rule = last.relance && last.relance !== ar.date ? (last.relanceOrig ? "date reportée" : last.resultat === "À rappeler" ? "date convenue avec le gérant" : "date planifiée") : ar.rule;
+  return { label: ar.label, rule, date, after: `« ${last.resultat} » (${last.canal.toLowerCase()} du ${fmt(last.date)})` };
+}
+function nextStepBox(c) {
+  const s = nextStep(c);
+  if (!s.date && s.label.startsWith("Aucune")) return "";
+  const late = s.date && s.date < TODAY, today = s.date === TODAY, n = s.date ? -diffDays(s.date, TODAY) : 0;
+  const tone = late ? (n <= 3 ? "soon" : n <= 14 ? "late" : "stale") : today ? "today" : "";
+  const quand = !s.date ? "à faire dès que possible" : late ? `date limite dépassée : ${fmt(s.date)} (J+${n})` : today ? "à faire aujourd'hui" : `avant le <b>${fmtLong(s.date)}</b>`;
+  return `<div class="next-step act ${tone}">${ms("flag")}<div><span class="act-k">Prochaine étape</span><b>${esc(s.label)}</b><small>${quand} · ${esc(s.rule)}${s.after ? ` · après ${esc(s.after)}` : ""}</small></div></div>`;
+}
+function autoRelance(c, res, date, rdvIso, hist) {
   const base = (date || TODAY).slice(0, 10);
   if (res === "Sans réponse") {
-    let k = 1; for (const i of interOf(c.id)) { if (i.resultat === "Sans réponse") k++; else break; }
+    let k = 1; for (const i of (hist || interOf(c.id))) { if (i.resultat === "Sans réponse") k++; else break; }
     if (k >= 5) return { date: addDays(base, 90), label: "Nouvel essai (injoignable)", rule: `${k}e sans réponse → J+90`, statut: "Injoignable" };
     if (k >= 3) return { date: addOuvres(base, 5), label: "Visite sur place", rule: `${k}e sans réponse → J+5 ouvrés` };
     return { date: addOuvres(base, 2), label: "Nouvelle tentative d'appel", rule: "J+2 ouvrés" };
