@@ -21,6 +21,9 @@ simulés, les scénarios Supabase annulent tout ce qu'ils créent, et n8n est co
 | P7 | Lancer une recherche Google Maps | Le workflow n8n actif reçoit ville, rayon, activités, commercial et 10 résultats maximum ; bouton bloqué pendant la recherche |
 | P8 | Ouvrir une fiche prospect | Potentiel affiché avec le détail du calcul ; ni section Synthèse, ni Relance, ni « suivi par » |
 | P9 | Tableau de bord d'illustration | Aucun prospect « Pas intéressé » dans les chiffres ni dans le pipeline |
+| P10 | Enregistrer un RDV (Diagnostic, Présentation devis, Signature) | Échange et statut enregistrés dans Supabase, brouillon d'e-mail demandé au workflow n8n IA, brouillon ouvert pour relecture |
+| P11 | Relire et envoyer un e-mail | Brouillon modifiable, enregistré, validé puis envoyé par le workflow n8n Gmail ; passe dans « Envoyés » |
+| P12 | Consulter l'agenda | Le RDV apparaît dans sa semaine, avec le repère Google Agenda et l'état de l'e-mail ; clic → fiche |
 
 ## Règles Supabase (`supabase/scenarios.sql`)
 

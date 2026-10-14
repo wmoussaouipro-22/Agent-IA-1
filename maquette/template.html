@@ -241,6 +241,20 @@ table.grid .r { text-align: right; }
 .todo ul { margin: 0; padding: 0; }
 .when { font-size: 12px; font-weight: 600; text-align: center; border-radius: 6px; padding: 4px 0; background: var(--grey-bg); color: var(--grey-ink); font-variant-numeric: tabular-nums; }
 .when.late { background: var(--red-bg); color: var(--red); }
+.mail-list { list-style: none; margin: 0; padding: 8px 8px 12px; display: flex; flex-direction: column; gap: 4px; }
+.mail-open { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.mail-open:hover { background: var(--surface-2); }
+.mail-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 8px; background: var(--sage); color: var(--sage-ink); flex: none; }
+.mail-t { display: flex; flex-direction: column; min-width: 0; flex: 1; } .mail-t b, .mail-t small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .mail-t small { color: var(--ink-3); }
+.ag-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; background: var(--line); overflow: hidden; }
+.ag-day { background: var(--surface); min-height: 180px; padding: 8px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ag-day.is-today { background: var(--surface-2); }
+.ag-h { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-3); text-transform: capitalize; } .ag-day.is-today .ag-h b { color: var(--sage-ink); }
+.ag-ev { display: flex; flex-direction: column; gap: 2px; text-align: left; border: 0; border-left: 3px solid var(--primary); background: var(--sage); border-radius: 6px; padding: 6px 8px; font: inherit; color: inherit; cursor: pointer; min-width: 0; }
+.ag-ev small { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ag-time { font-size: 12px; font-weight: 700; color: var(--sage-ink); }
+.ag-tags { display: flex; flex-wrap: wrap; gap: 6px; font-size: 11px; color: var(--ink-3); } .ag-tags span { display: inline-flex; align-items: center; gap: 2px; } .ag-tags .ms { font-size: 14px; }
+.ag-empty { color: var(--ink-3); font-size: 12px; }
+@media (max-width: 760px) { .ag-grid { grid-template-columns: 1fr; } .ag-day { min-height: 0; } }
 .next-step { margin: 4px 20px 0; width: auto; cursor: default; }
 .when.soon { background: var(--amber-bg); color: var(--amber); }
 .when.stale { background: var(--red); color: var(--surface); }
@@ -504,10 +518,11 @@ const MOTIFS = ["Hors cible", "Fermé définitivement", "Trop petit", "Déjà cl
 /* ---------- Données ---------- */
 function seed() {
   const commerces = RAW.commerces.map(c => ({ id: c[0], code: c[1], enseigne: c[2], type: c[3], ville: c[4], cp: c[5], zone: c[6], tel: c[7], email: c[8], contact: c[9], statut: c[10], potentiel: c[11], categorie: c[12], commercialId: c[13], siret: c[14], adresse: c[15], site: c[16], note: c[17], avis: c[18], opposition: c[19], horaires: c[20], heures: c[21] != null ? +c[21] : null }));
-  const interactions = RAW.interactions.map(i => ({ id: i[0], commerceId: i[1], commercialId: i[2], date: i[3], canal: i[4], resultat: i[5], commentaire: i[6], relance: i[7], rdv: i[8], rdvStatut: i[9], rdvObjet: i[10] }));
+  const interactions = RAW.interactions.map(i => ({ id: i[0], commerceId: i[1], commercialId: i[2], date: i[3], canal: i[4], resultat: i[5], commentaire: i[6], relance: i[7], rdv: i[8], rdvStatut: i[9], rdvObjet: i[10], agenda: i[11] || null }));
   const recherches = RAW.recherches.map(r => ({ id: r[0], code: r[1], date: r[2], source: r[3], commercialId: r[4], zone: r[5], types: r[6] || [], ville: r[7], cp: r[8], rayon: r[9], statut: r[10], commentaire: r[11], requete: RAW.gr[r[0]] || null }));
   const candidats = RAW.candidats.map(x => { const g = RAW.gx[x[0]] || []; return { id: x[0], rechercheId: x[1], enseigne: x[2], type: x[3], ville: x[4], zone: x[5], note: x[6], avis: x[7], potentiel: x[8], tri: x[9] === "Connu" ? "Doublon" : x[9], motif: x[10], known: x[11] ? { statut: x[11][0], stop: !!x[11][1], com: x[11][2] } : null, heures: x[12] != null ? +x[12] : null, tel: g[0] || null, site: g[1] || null, adresse: g[2] || null, cp: g[3] || null, horaires: g[4] || null, placeId: g[5] || null, commerceId: null }; });
-  return { commerces, interactions, recherches, candidats };
+  const mails = (RAW.mails || []).map(m => ({ id: m[0], commerceId: m[1], commercialId: m[2], interactionId: m[3], objet: m[4] || "", corps: m[5] || "", statut: m[6], dest: m[7], cree: m[8], envoye: m[9], type: m[10], modifie: !!m[11] }));
+  return { commerces, interactions, recherches, candidats, mails };
 }
 let S;
 try { const saved = localStorage.getItem(STORE_KEY); S = saved ? JSON.parse(saved) : seed(); } catch (e) { S = seed(); }
@@ -553,7 +568,7 @@ function nextAction(last) {
   if (!last) return { ic: "call", l: "Premier appel", canal: "Appel" };
   const r = last.resultat, ch = last.canal;
   if (r === "RDV pris" && last.rdv && last.rdv.slice(0, 10) === TODAY) return { ic: "event", l: `Rendez-vous aujourd'hui à ${fmtHeure(last.rdv)}${last.rdvObjet ? " · " + last.rdvObjet : ""}`, canal: "Visite" };
-  if (r === "RDV pris" && last.rdv && last.rdv.slice(0, 10) > TODAY) return { ic: "mail", l: `Confirmer le RDV du ${fmt(last.rdv)} par e-mail`, canal: "E-mail" };
+  if (r === "RDV pris" && last.rdv && last.rdv.slice(0, 10) > TODAY) { const mm = (S.mails || []).find(x => x.interactionId === last.id); return mm && mm.statut === "Envoyé" ? { ic: "event", l: `Rendez-vous le ${fmt(last.rdv)} à ${fmtHeure(last.rdv)} · confirmation envoyée`, canal: "Visite" } : mm ? { ic: "drafts", l: `Valider l'e-mail de confirmation du RDV du ${fmt(last.rdv)}`, canal: "E-mail" } : { ic: "mail", l: `Confirmer le RDV du ${fmt(last.rdv)} par e-mail`, canal: "E-mail" }; }
   if (r === "RDV pris") return { ic: "event", l: "Faire le suivi du rendez-vous", canal: "Visite" };
   if (r === "Intéressé") return ch === "E-mail" ? { ic: "mail", l: "Relancer après l'envoi de la documentation", canal: "E-mail" } : { ic: "event_available", l: "Proposer un rendez-vous", canal: "Appel", res: "RDV pris" };
   if (r === "À rappeler") return { ic: "call", l: "Rappeler le gérant", canal: "Appel" };
@@ -600,13 +615,13 @@ function go(view, id) {
 function fromHash() {
   const h = (location.hash || "").slice(1);
   if (h.startsWith("fiche-") && commerce(+h.slice(6))) { ui.view = "fiche"; ui.ficheId = +h.slice(6); }
-  else if (["recherches", "prospects"].includes(h)) ui.view = h;
+  else if (["recherches", "prospects", "emails", "agenda"].includes(h)) ui.view = h;
   else ui.view = "dashboard";
 }
 function renderNav() {
   const aExaminer = S.recherches.filter(r => S.candidats.some(x => x.rechercheId === r.id && x.tri === "À examiner")).length;
   const actifs = S.commerces.filter(c => !stopped(c)).length;
-  const items = [["dashboard", "space_dashboard", "Tableau de bord", ""], ["recherches", "travel_explore", "Recherche", aExaminer], ["prospects", "storefront", "Prospects", actifs], ["fiche", "assignment_ind", "Fiche prospect", ""]];
+  const items = [["dashboard", "space_dashboard", "Tableau de bord", ""], ["recherches", "travel_explore", "Recherche", aExaminer], ["prospects", "storefront", "Prospects", actifs], ["fiche", "assignment_ind", "Fiche prospect", ""], ["emails", "mail", "E-mails", (REAL_S || S).mails ? (REAL_S || S).mails.filter(m => m.statut === "Brouillon IA").length || "" : ""], ["agenda", "calendar_month", "Agenda", ""]];
   $("#nav").innerHTML = items.map(([v, ic, l, n]) => `<a href="#" data-go="${v}" ${ui.view === v ? 'aria-current="page"' : ""}>${ms(ic)}<span>${l}</span>${n !== "" ? `<span class="count">${n}</span>` : ""}</a>`).join("");
 }
 
@@ -1004,6 +1019,14 @@ function renderModal() {
     const c = commerce(ui.ficheId); h = "Enregistrer une opposition";
     body = `<div class="body"><p style="margin:0"><b>${esc(c.enseigne)}</b> ne sera plus sollicité : statut gelé, saisie d'échanges et e-mails bloqués. La date du jour est enregistrée comme preuve.</p></div>`;
     foot = `<button class="btn" data-close type="button">Annuler</button><button class="btn danger" data-action="confirm-oppose" type="button">${ms("block")}Confirmer l'opposition</button>`;
+  } else if (m.type === "maildraft") {
+    const mm = (S.mails || []).find(x => x.id === m.id), c = mm && commerce(mm.commerceId), lock = !mm || ["Envoyé", "Validé"].includes(mm.statut);
+    h = mm ? (lock ? "E-mail " + mm.statut.toLowerCase() : "Brouillon à valider") : "E-mail introuvable";
+    body = mm ? `<div class="body" style="display:flex;flex-direction:column;gap:12px">
+      <p class="note" style="margin:0">${ms("person")}À : <b>${esc(mm.dest || "adresse manquante")}</b> · ${esc(c ? c.enseigne : "")} · mode test : l'envoi part vers ton adresse, avec celle du client rappelée dans le sujet.</p>
+      <label class="field"><span>Sujet</span><input class="input" id="m-objet" value="${esc(mm.objet)}" ${lock ? "readonly" : ""}></label>
+      <label class="field"><span>Message ${mm.modifie ? '<small class="muted">· modifié par toi</small>' : '<small class="muted">· rédigé par l’IA</small>'}</span><textarea class="input" id="m-corps" rows="14" style="resize:vertical;line-height:1.5" ${lock ? "readonly" : ""}>${esc(mm.corps)}</textarea></label></div>` : `<div class="body">Cet e-mail n'existe plus.</div>`;
+    foot = lock ? `<button class="btn" data-close type="button">Fermer</button>` : `<button class="btn" data-close type="button">Fermer</button><button class="btn" data-action="mail-save" type="button" ${ui.busy ? "disabled" : ""}>${ms("save")}Enregistrer</button><button class="btn primary" data-action="mail-send" type="button" ${ui.busy ? "disabled" : ""}>${ms("send")}Valider et envoyer</button>`;
   } else if (m.type === "retire") {
     const cs = m.ids.map(commerce).filter(Boolean), one = cs.length === 1;
     h = one ? `${esc(cs[0].enseigne)} n'est pas intéressé ?` : `${cs.length} prospects pas intéressés ?`;
@@ -1052,7 +1075,7 @@ function render() {
   { const mz = $("#me-zone"); if (mz && ME) mz.textContent = `Commerciale · zone ${ME.zone}`; }
   if (onDemo()) S = demoS();
   $("#today-label").textContent = fmtLong(TODAY);
-  const v = { dashboard: viewDashboard, prospects: viewProspects, fiche: viewFiche, recherches: viewRecherches }[ui.view];
+  const v = { dashboard: viewDashboard, prospects: viewProspects, fiche: viewFiche, recherches: viewRecherches, emails: viewEmails, agenda: viewAgenda }[ui.view];
   $("#view").innerHTML = v();
   renderModal();
   const res = $("#i-res"); if (res) { res.addEventListener("change", syncRdv); ["i-rdv", "i-date", "i-rap"].forEach(k => { const el = $("#" + k); if (el) el.addEventListener("change", syncRdv); }); syncRdv(); }
@@ -1111,12 +1134,15 @@ function autoRelance(c, res, date, rdvIso, hist) {
 
 /* ---------- Interactions ---------- */
 document.addEventListener("click", e => {
-  const t = e.target.closest("[data-go],[data-open],[data-menu],[data-edit],[data-del],[data-page],[data-sel],[data-selall],[data-scope],[data-rech],[data-tri],[data-keep],[data-drop],[data-known],[data-undo],[data-relance],[data-range],[data-today],[data-act],[data-pot],[data-pin],[data-tour],[data-chip],[data-mapmode],[data-zoom],[data-todo],[data-copy],[data-panel],[data-result],[data-postpone],[data-stale],[data-action],[data-close],[data-veil]");
+  const t = e.target.closest("[data-go],[data-open],[data-menu],[data-edit],[data-del],[data-page],[data-sel],[data-selall],[data-scope],[data-rech],[data-tri],[data-keep],[data-drop],[data-known],[data-undo],[data-relance],[data-range],[data-today],[data-act],[data-pot],[data-pin],[data-tour],[data-chip],[data-mapmode],[data-zoom],[data-todo],[data-copy],[data-panel],[data-result],[data-postpone],[data-stale],[data-mail],[data-mailtab],[data-week],[data-action],[data-close],[data-veil]");
   if (!t) { if (ui.menu) { ui.menu = null; render(); } return; }
   const d = t.dataset;
   if (d.veil !== undefined && e.target !== t) return;
   if (t.tagName === "A") e.preventDefault();
   if (d.go) return go(d.go);
+  if (d.mail) { ui.modal = { type: "maildraft", id: +d.mail }; return render(); }
+  if (d.mailtab) { ui.mailTab = d.mailtab; return render(); }
+  if (d.week !== undefined) { ui.week = +d.week === 0 ? 0 : (ui.week || 0) + +d.week; return render(); }
   if (onDemo() && (d.open || d.act)) return toast("Tableau de bord d'illustration : fiche fictive, non disponible", "info");
   if (d.open) return go("fiche", +d.open);
   if (d.menu) { ui.menu = ui.menu === +d.menu ? null : +d.menu; return render(); }
@@ -1154,11 +1180,13 @@ document.addEventListener("click", e => {
   if (a === "new-prospect") { ui.modal = { type: "prospect" }; return renderModal(); }
   if (a === "launch") return launchSearch();
   if (a === "retry") { const r = S.recherches.find(x => x.id === ui.rechId); r.statut = "En cours"; r.commentaire = "Relancée depuis la maquette."; save(); toast("Recherche relancée", "refresh"); return render(); }
-  if (a === "mail") { ui.modal = { type: "mail" }; return renderModal(); }
+  if (a === "mail") { const mm = LIVE.on && (S.mails || []).find(x => x.commerceId === ui.ficheId && x.statut === "Brouillon IA"); ui.modal = mm ? { type: "maildraft", id: mm.id } : { type: "mail" }; return renderModal(); }
   if (a === "oppose") { ui.modal = { type: "oppose" }; return renderModal(); }
   if (a === "mail-validate") { ui.modal = null; toast("Brouillon validé : prêt à l'envoi par le commercial", "outgoing_mail"); return renderModal(); }
   if (a === "confirm-delete") { const id = ui.modal.id, c = commerce(id); S.commerces = S.commerces.filter(x => x.id !== id); S.interactions = S.interactions.filter(i => i.commerceId !== id); ui.sel.delete(id); ui.modal = null; save(); toast(`${c.enseigne} supprimé`, "delete"); if (ui.view === "fiche") return go("prospects"); return render(); }
   if (a === "confirm-oppose") { const c = commerce(ui.ficheId); c.opposition = TODAY; ui.modal = null; save(); toast("Opposition enregistrée", "block"); return render(); }
+  if (a === "mail-save") return saveMail(ui.modal.id, false);
+  if (a === "mail-send") return saveMail(ui.modal.id, true);
   if (a === "confirm-retire") return doRetire(ui.modal.ids);
   if (a === "confirm-keep") return liveTri(ui.modal.id, "Retenu", null);
   if (a === "confirm-drop" && LIVE.on) return liveTri(ui.modal.id, "Écarté", $("#d-motif").value);
@@ -1202,6 +1230,7 @@ document.addEventListener("submit", e => {
     it.relance = ar.date;
     S.interactions.push(it);
     applyResult(c, res); if (ar.statut) c.statut = ar.statut;
+    if (LIVE.on && !S.demo) { liveSaveInteraction(it, c); return render(); }
     save(); toast(`Échange enregistré · statut : ${c.statut}${ar.date ? ` · ${ar.label.toLowerCase()} le ${fmt(ar.date)}` : ""}`); return render();
   }
   if (id === "f-prospect") {
@@ -1226,6 +1255,7 @@ function quickResult(cid, res) {
   const ar = autoRelance(c, res, TODAY, null), relance = ar.date;
   S.interactions.push({ id: nextId(S.interactions), commerceId: cid, commercialId: ME_ID, date: TODAY, canal: "Appel", resultat: res, commentaire: null, relance, rdv: null, rdvStatut: null, rdvObjet: null });
   applyResult(c, res); if (ar.statut) c.statut = ar.statut; save();
+  if (LIVE.on && !S.demo) { liveSaveInteraction(S.interactions[S.interactions.length - 1], c); return render(); }
   toast(`${c.enseigne} : ${res}${relance ? ` · relance le ${fmt(relance)}` : ""}`); render();
 }
 function postpone(cid, n) {
@@ -1391,17 +1421,105 @@ async function doRetire(ids) {
   if (ui.view === "fiche") { ui.view = "prospects"; ui.ficheId = S.commerces[0] ? S.commerces[0].id : null; }
   render();
 }
+
+/* ---------- Échanges, e-mails et agenda enregistrés dans Supabase ---------- */
+const WAIT = ms => (window.__RECETTE_RAPIDE ? 5 : ms); /* attentes raccourcies pendant la recette automatique */
+const WF_BROUILLON = "PhjyhtFAAnD4Xog6", WF_ENVOI = "0YDc66J34yXL3ywe";
+const OBJETS_MAIL = ["Diagnostic", "Présentation devis", "Signature"];
+async function sqlLive(query) { return LIVE.mcp.callTool("Supabase", "execute_sql", { project_id: "kwbpsefdtbacdrilpviy", query }, { cache: false }); }
+async function liveSaveInteraction(it, c) {
+  const q = `with i as (insert into public.interaction (date_interaction, canal, resultat, commentaire, date_relance, commerce_id, commercial_id, rdv_date_heure, rdv_objet, rdv_statut)
+    values (${sqlTxt(it.date)}, ${sqlTxt(it.canal)}, ${sqlTxt(it.resultat)}, ${sqlTxt(it.commentaire)}, ${sqlTxt(it.relance)}, ${Number(c.id)}, ${Number(ME_ID)}, ${sqlTxt(it.rdv)}, ${sqlTxt(it.rdvObjet)}, ${sqlTxt(it.rdvStatut)}) returning id),
+    u as (update public.commerce set statut_prospection = ${sqlTxt(c.statut)} where id = ${Number(c.id)} returning id)
+    select i.id as interaction_id from i;`;
+  toast("Enregistrement de l'échange dans Supabase…", "sync");
+  try {
+    const r = await sqlLive(q), row = rowsOf(r, 0, "interaction_id");
+    const newId = row && row.interaction_id;
+    if (newId) it.id = newId;
+    toast(`Échange enregistré · statut : ${c.statut}${it.relance ? ` · prochaine étape le ${fmt(it.relance)}` : ""}`, "check_circle");
+    if (it.resultat === "RDV pris" && OBJETS_MAIL.includes(it.rdvObjet) && newId) return prepareDraft(newId, c);
+    await loadLive(true);
+  } catch (e) { toast(`Échange non enregistré dans Supabase (${(e && e.code) || "erreur"})`, "error"); render(); }
+}
+async function prepareDraft(interactionId, c) {
+  ui.drafting = interactionId; render();
+  toast(`L'IA rédige l'e-mail de confirmation pour ${c.enseigne}…`, "auto_awesome");
+  try {
+    await LIVE.mcp.callTool("n8n", "execute_workflow", { workflowId: WF_BROUILLON, executionMode: "manual", triggerNodeName: "RDV enregistré sur la plateforme", inputs: { webhookData: { method: "POST", body: { interaction_id: interactionId } } } }, { cache: false });
+  } catch (e) { ui.drafting = null; toast(`Brouillon non lancé (${(e && e.code) || "erreur"}) : n8n doit être autorisé pour cette page`, "error"); return render(); }
+  for (let n = 0; n < 8; n++) {
+    await new Promise(ok => setTimeout(ok, WAIT(n ? 5000 : 7000)));
+    await loadLive(true);
+    const m = (S.mails || []).find(x => x.interactionId === interactionId);
+    if (m) { ui.drafting = null; toast("Brouillon prêt : à relire dans E-mails", "mark_email_unread"); ui.modal = { type: "maildraft", id: m.id }; return render(); }
+  }
+  ui.drafting = null; toast("Le brouillon prend du temps : il apparaîtra dans E-mails", "schedule"); render();
+}
+async function saveMail(id, send) {
+  const m = (S.mails || []).find(x => x.id === id); if (!m) return;
+  const objet = $("#m-objet").value.trim(), corps = $("#m-corps").value;
+  if (!objet || !corps.trim()) return toast("Le sujet et le texte de l'e-mail sont obligatoires", "error");
+  const modifie = m.modifie || objet !== m.objet || corps !== m.corps;
+  ui.busy = true;
+  try {
+    await sqlLive(`update public.mail set objet = ${sqlTxt(objet)}, corps = ${sqlTxt(corps)}, modifie_avant_envoi = ${modifie}${send ? `, statut = 'Validé', date_validation = current_date, valide_par = ${Number(ME_ID)}, valide_le = now()` : ""} where id = ${Number(id)};`);
+    Object.assign(m, { objet, corps, modifie });
+    if (!send) { ui.busy = false; ui.modal = null; toast("Brouillon enregistré", "save"); return render(); }
+    m.statut = "Validé"; ui.modal = null; render();
+    toast("Envoi en cours depuis ton Gmail…", "send");
+    await LIVE.mcp.callTool("n8n", "execute_workflow", { workflowId: WF_ENVOI, executionMode: "manual", triggerNodeName: "Envoi validé sur la plateforme", inputs: { webhookData: { method: "POST", body: { mail_id: id } } } }, { cache: false });
+    for (let n = 0; n < 6; n++) {
+      await new Promise(ok => setTimeout(ok, WAIT(4000))); await loadLive(true);
+      const k = (S.mails || []).find(x => x.id === id);
+      if (k && k.statut !== "Validé") { ui.busy = false; toast(k.statut === "Envoyé" ? "E-mail envoyé" : `Envoi : ${k.statut}`, k.statut === "Envoyé" ? "mark_email_read" : "error"); return render(); }
+    }
+    ui.busy = false; toast("Envoi lancé : le statut se mettra à jour dans E-mails", "schedule"); render();
+  } catch (e) { ui.busy = false; toast(`Action impossible (${(e && e.code) || "erreur"})`, "error"); render(); }
+}
+const MAIL_BADGE = { "Brouillon IA": "b-amber", "Validé": "b-sage", "Envoyé": "b-solid", "Échec d’envoi": "b-red", "Adresse manquante": "b-red" };
+function viewEmails() {
+  const all = (S.mails || []).filter(m => m.commercialId === ME_ID || !m.commercialId);
+  const tab = ui.mailTab || "Brouillon IA";
+  const tabs = [["Brouillon IA", "À valider"], ["Envoyé", "Envoyés"], ["autres", "Autres"]];
+  const pick = m => tab === "autres" ? !["Brouillon IA", "Envoyé"].includes(m.statut) : m.statut === tab;
+  const list = all.filter(pick);
+  const row = m => { const c = commerce(m.commerceId); return `<li class="mail-row"><button type="button" class="mail-open" data-mail="${m.id}">
+      <span class="mail-ic">${ms(m.statut === "Envoyé" ? "mark_email_read" : "drafts")}</span>
+      <span class="mail-t"><b>${esc(m.objet || "(sans sujet)")}</b><small>${esc(c ? c.enseigne : "Commerce")} · ${esc((m.type || "").replace("RDV · ", "RDV "))} · ${m.statut === "Envoyé" && m.envoye ? "envoyé le " + fmt(m.envoye) : "préparé le " + fmt(m.cree)}</small></span>
+      <span class="badge ${MAIL_BADGE[m.statut] || "b-grey"}">${esc(m.statut === "Brouillon IA" ? "À valider" : m.statut)}</span></button></li>`; };
+  return `
+  <div class="page-head"><div><h1>E-mails</h1><p>Brouillons rédigés par l'IA après chaque rendez-vous : relis, modifie, puis envoie depuis ton Gmail.</p></div></div>
+  ${!LIVE.on ? `<div class="banner">${ms("info")}Les e-mails sont lus dans Supabase : connecte Supabase pour les voir.</div>` : ""}
+  <section class="card">
+    <div class="tri-tabs" role="group" aria-label="Filtrer les e-mails" style="padding:12px 16px 0">${tabs.map(([k, l]) => `<button type="button" data-mailtab="${k}" aria-pressed="${tab === k}">${l} · ${all.filter(m => k === "autres" ? !["Brouillon IA", "Envoyé"].includes(m.statut) : m.statut === k).length}</button>`).join("")}</div>
+    <ul class="mail-list">${list.map(row).join("") || `<li class="muted" style="list-style:none;padding:16px">${tab === "Brouillon IA" ? "Aucun brouillon à valider. Un brouillon est préparé automatiquement quand tu enregistres un RDV (Diagnostic, Présentation devis ou Signature)." : "Aucun e-mail."}</li>`}</ul>
+  </section>`;
+}
+function weekStart(off) { const d = new Date(TODAY + "T12:00:00"); const w = (d.getDay() + 6) % 7; d.setDate(d.getDate() - w + 7 * off); return d.toISOString().slice(0, 10); }
+function viewAgenda() {
+  const off = ui.week || 0, start = weekStart(off), days = Array.from({ length: 7 }, (_, k) => addDays(start, k));
+  const rdvs = S.interactions.filter(i => i.rdv && i.commercialId === ME_ID && !["Annulé"].includes(i.rdvStatut)).sort((a, b) => a.rdv.localeCompare(b.rdv));
+  const dayIso = i => new Date(i.rdv).toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" });
+  const col = d => { const items = rdvs.filter(i => dayIso(i) === d); return `<div class="ag-day ${d === TODAY ? "is-today" : ""}"><div class="ag-h"><b>${new Date(d + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "short" })}</b><span>${new Date(d + "T12:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</span></div>
+      ${items.map(i => { const c = commerce(i.commerceId), m = (S.mails || []).find(x => x.interactionId === i.id); return `<button type="button" class="ag-ev" data-open="${c ? c.id : ""}"><span class="ag-time">${fmtHeure(i.rdv)}</span><b>${esc(i.rdvObjet || "Rendez-vous")}</b><small>${esc(c ? c.enseigne : "")}</small><span class="ag-tags">${i.agenda ? `<span title="Ajouté à Google Agenda">${ms("event_available")}Google</span>` : ""}${m ? `<span title="E-mail : ${esc(m.statut)}">${ms(m.statut === "Envoyé" ? "mark_email_read" : "drafts")}${m.statut === "Envoyé" ? "Confirmé" : "À valider"}</span>` : ""}</span></button>`; }).join("") || `<span class="ag-empty">—</span>`}</div>`; };
+  const fin = addDays(start, 6);
+  return `
+  <div class="page-head"><div><h1>Agenda</h1><p>Mes rendez-vous de la semaine du ${fmt(start)} au ${fmt(fin)}. Chaque RDV enregistré s'ajoute aussi à Google Agenda dès que le compte est connecté dans n8n.</p></div>
+    <div class="scope" role="group" aria-label="Semaine"><button type="button" data-week="-1">${ms("chevron_left")}</button><button type="button" data-week="0" aria-pressed="${off === 0}">Cette semaine</button><button type="button" data-week="1">${ms("chevron_right")}</button></div></div>
+  <section class="card ag-grid">${days.map(col).join("")}</section>`;
+}
 const SNAPSHOT = RAW;
 const sqlTxt = v => v == null ? "null" : "'" + String(v).replace(/'/g, "''") + "'";
-function rowsOf(x, depth) {
+function rowsOf(x, depth, key = "statut_tri") {
   if (depth > 8 || x == null) return null;
   if (typeof x === "string") {
     const m = /<untrusted-data-[\w-]+>\s*([\s\S]*?)\s*<\/untrusted-data-/.exec(x);
-    for (const c of m ? [m[1], x] : [x]) { try { const v = JSON.parse(c); if (v !== x) { const f = rowsOf(v, depth + 1); if (f) return f; } } catch (e) {} }
+    for (const c of m ? [m[1], x] : [x]) { try { const v = JSON.parse(c); if (v !== x) { const f = rowsOf(v, depth + 1, key); if (f) return f; } } catch (e) {} }
     return null;
   }
-  if (Array.isArray(x)) { if (x.length && x[0] && typeof x[0] === "object" && "statut_tri" in x[0]) return x[0]; for (const v of x) { const f = rowsOf(v, depth + 1); if (f) return f; } return null; }
-  if (typeof x === "object") for (const v of Object.values(x)) { const f = rowsOf(v, depth + 1); if (f) return f; }
+  if (Array.isArray(x)) { if (x.length && x[0] && typeof x[0] === "object" && key in x[0]) return x[0]; for (const v of x) { const f = rowsOf(v, depth + 1, key); if (f) return f; } return null; }
+  if (typeof x === "object") for (const v of Object.values(x)) { const f = rowsOf(v, depth + 1, key); if (f) return f; }
   return null;
 }
 async function liveTri(id, statut, motif) {

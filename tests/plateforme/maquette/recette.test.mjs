@@ -25,11 +25,12 @@ function liveData() {
   return {
     commerces: [COM(160, "Boulangerie Ancienne"), COM(170, "Boulangerie Récente", { heures: 83 })],
     commerciaux: [[1, "Camille", "Lefèvre", "Nord", "c@x"], [2, "Wassila", "Moussaoui", "Nord", "w@x"]],
-    interactions: [],
+    interactions: [[900, 160, 2, "2026-10-14", "Appel", "RDV pris", null, "2026-10-19", "2026-10-20T08:00:00Z", "Planifié", "Diagnostic", "evt-1"]],
     recherches: [[50, "Rech-050", "2026-10-14T09:00:00Z", "Google Maps", 2, "Nord", ["Boulangerie"], "Roubaix", null, 1, "Terminée", null]],
     candidats: [CAND(501, 50, "Fournil A"), CAND(502, 50, "Fournil B"), CAND(503, 50, "Fournil Connu", "Connu", ["Pas intéressé", false, 2])],
     gx: { 501: ["03 20 11 11 11", null, "2 rue A", "59100", "lundi 06:00 to 20:00", "PLACE-A"] },
     gr: { 50: "boulangerie Roubaix" },
+    mails: [[40, 160, 2, 900, "Confirmation de notre rendez-vous diagnostic du 20 octobre", "Madame, Monsieur,\n\nTexte rédigé par l'IA.", "Brouillon IA", "contact@ancienne.fr", "2026-10-14", null, "RDV · Diagnostic", false]],
   };
 }
 const wrap = d => ({ content: [{ type: "text", text: JSON.stringify({ result: `Below <untrusted-data-x1>\n${JSON.stringify([{ d }])}\n</untrusted-data-x1>\nUse` }) }] });
@@ -45,17 +46,33 @@ async function ouvrir(mode = "live", hash = "") {
   const dom = new JSDOM(`<!doctype html><body>${HTML}</body>`, {
     runScripts: "dangerously", url: "https://recette.test/" + hash,
     beforeParse(w) {
-      w.scrollTo = () => {}; w.Element.prototype.scrollIntoView = () => {};
+      w.scrollTo = () => {}; w.Element.prototype.scrollIntoView = () => {}; w.__RECETTE_RAPIDE = true;
       if (mode === "figee") return;
       w.claude = { use: async () => ({ callTool: async (server, tool, input) => {
         calls.push({ server, tool, input });
         if (mode === "refus") throw { code: "not_in_manifest" };
-        if (server === "n8n") return { content: [{ type: "text", text: '{"executionId":"1"}' }] };
+        if (server === "n8n") {
+          const body = input.inputs?.webhookData?.body || {};
+          if (body.interaction_id) data.mails.unshift([41, 170, 2, body.interaction_id, "Présentation de votre proposition le 22 octobre", "Bonjour,\n\nBrouillon IA.", "Brouillon IA", null, "2026-10-14", null, "RDV · Présentation devis", false]);
+          if (body.mail_id) { const m = data.mails.find(x => x[0] === body.mail_id); if (m) { m[6] = "Envoyé"; m[9] = "2026-10-14"; } }
+          return { content: [{ type: "text", text: '{"executionId":"1"}' }] };
+        }
         const q = input.query;
         if (q.startsWith("update public.candidat")) {
           const id = +/where id = (\d+)/.exec(q)[1], st = /statut_tri = '([^']+)'/.exec(q)[1];
           data.candidats.find(c => c[0] === id)[9] = st;
           return { content: [{ type: "text", text: JSON.stringify({ result: `<untrusted-data-x1>\n${JSON.stringify([{ id, statut_tri: st, commerce_id: 999, code_commerce: "Co-999" }])}\n</untrusted-data-x1>` }) }] };
+        }
+        if (q.startsWith("with i as (insert into public.interaction")) {
+          const id = 950 + data.interactions.length;
+          data.interactions.push([id, 170, 2, "2026-10-14", "Appel", /'(RDV pris|Sans réponse|Intéressé|À rappeler)'/.exec(q)?.[1] || "Appel", null, null, /'(2026-[^']+T[^']+)'/.exec(q)?.[1] || null, "Planifié", /'(Diagnostic|Présentation devis|Signature)'/.exec(q)?.[1] || null, null]);
+          return { content: [{ type: "text", text: JSON.stringify({ result: `<untrusted-data-x1>\n[{"interaction_id":${id}}]\n</untrusted-data-x1>` }) }] };
+        }
+        if (q.startsWith("update public.mail")) {
+          const id = +/where id = (\d+)/.exec(q)[1], m = data.mails.find(x => x[0] === id);
+          m[4] = /objet = '((?:[^']|'')*)'/.exec(q)[1].replace(/''/g, "'"); m[5] = /corps = '((?:[^']|'')*)'/.exec(q)[1].replace(/''/g, "'");
+          if (/statut = 'Validé'/.test(q)) m[6] = "Validé";
+          return { content: [] };
         }
         if (q.startsWith("update public.commerce set statut_prospection = 'Pas intéressé'")) {
           const ids = /in \(([\d,]+)\)/.exec(q)[1].split(",").map(Number);
@@ -200,4 +217,55 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
   const m = await ouvrir("live");
   assert.equal(m.w.eval("DEMO_RAW.commerces.filter(c => c[10] === 'Pas intéressé').length"), 0);
   assert.equal(m.d.querySelector("#view").textContent.includes("Pas intéressé"), false, "le pipeline ne doit plus afficher « Pas intéressé »");
+});
+
+/* P10 */ test("P10 · RDV « Présentation devis » : échange enregistré dans Supabase, brouillon IA demandé à n8n puis ouvert", async () => {
+  const m = await ouvrir("live");
+  m.w.eval("go('fiche', 170)");
+  m.change("#i-res", "RDV pris"); m.change("#i-rdv", "2026-10-22T10:00"); m.change("#i-rdvobj", "Présentation devis");
+  m.d.querySelector("#f-inter").dispatchEvent(new m.w.Event("submit", { bubbles: true, cancelable: true }));
+  await m.wait(300);
+  const ins = m.calls.find(c => (c.input.query || "").startsWith("with i as (insert into public.interaction"));
+  assert.ok(ins, "l'échange n'a pas été enregistré dans Supabase");
+  assert.match(ins.input.query, /'RDV pris'.*'Présentation devis'.*'Planifié'/s);
+  assert.match(ins.input.query, /update public\.commerce set statut_prospection = 'RDV pris' where id = 170/);
+  const n8n = m.calls.find(c => c.server === "n8n");
+  assert.ok(n8n, "n8n n'a pas été appelé pour le brouillon");
+  assert.equal(n8n.input.workflowId, "PhjyhtFAAnD4Xog6");
+  assert.ok(n8n.input.inputs.webhookData.body.interaction_id >= 950);
+  assert.match(m.d.querySelector("#mt")?.textContent || "", /Brouillon à valider/);
+  assert.equal(m.d.querySelector("#m-objet").value, "Présentation de votre proposition le 22 octobre");
+  assert.deepEqual(m.errs, []);
+});
+
+/* P11 */ test("P11 · E-mails : brouillon modifiable, enregistré, validé puis envoyé par n8n (Gmail)", async () => {
+  const m = await ouvrir("live");
+  m.click("[data-go=emails]");
+  assert.match(m.d.querySelector("#view").textContent, /À valider · 1/);
+  m.click("[data-mail='40']");
+  m.d.querySelector("#m-corps").value = "Madame, Monsieur,\n\nTexte relu par la commerciale.";
+  m.click('[data-action="mail-send"]'); await m.wait(200);
+  const upd = m.calls.find(c => (c.input.query || "").startsWith("update public.mail"));
+  assert.match(upd.input.query, /corps = 'Madame, Monsieur,\n\nTexte relu par la commerciale\.'/);
+  assert.match(upd.input.query, /modifie_avant_envoi = true, statut = 'Validé'/);
+  const env = m.calls.find(c => c.server === "n8n");
+  assert.equal(env.input.workflowId, "0YDc66J34yXL3ywe");
+  assert.equal(env.input.inputs.webhookData.body.mail_id, 40);
+  assert.match(m.toasts(), /E-mail envoyé/);
+  m.click("[data-mailtab='Envoyé']");
+  assert.match(m.d.querySelector("#view").textContent, /envoyé le 14\/10\/2026/);
+  assert.deepEqual(m.errs, []);
+});
+
+/* P12 */ test("P12 · Agenda : le RDV apparaît dans la semaine, avec Google Agenda et l'état de l'e-mail", async () => {
+  const m = await ouvrir("live");
+  m.click("[data-go=agenda]");
+  m.click("[data-week='1']");
+  const ev = m.d.querySelector(".ag-ev");
+  assert.ok(ev, "aucun rendez-vous affiché la semaine du 19 octobre");
+  assert.match(ev.textContent, /10:00.*Diagnostic.*Boulangerie Ancienne/s);
+  assert.match(ev.textContent, /Google/);
+  assert.match(ev.textContent, /À valider/);
+  m.click(ev);
+  assert.match(m.d.querySelector("h1").textContent, /Boulangerie Ancienne/);
 });
