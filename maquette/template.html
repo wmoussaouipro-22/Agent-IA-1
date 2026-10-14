@@ -675,7 +675,7 @@ function viewDashboard() {
       <span class="acts"><span class="grow"></span>
         ${tier === "stale" ? `<button class="btn sm secondary" data-today="${c.id}" type="button">${ms("call")}Rappeler aujourd'hui</button><button class="btn sm" data-stale="${c.id}" type="button">${ms("phone_disabled")}Classer injoignable</button>` : `${x.dd !== 0 ? `<button class="btn sm secondary" data-today="${c.id}" type="button">${ms("today")}À faire</button>` : ""}
         <button class="btn sm" data-panel="${c.id}:report" type="button" aria-expanded="${open === "report"}">${ms("update")}Reporter</button>`}</span>
-      ${open === "report" ? `<div class="panel"><span class="muted">Reporter à :</span>${[["Demain", 1], ["Dans 1 semaine", 7], ["Dans 1 mois", 30]].map(([l, n]) => `<button class="btn sm" data-postpone="${c.id}:${n}" type="button">${l}</button>`).join("")}</div>` : ""}
+      ${open === "report" ? `<div class="panel"><label class="muted" for="rep-${c.id}">Reporter au :</label><input class="input" type="date" id="rep-${c.id}" min="${addDays(TODAY, 1)}" value="${addOuvres(TODAY, 1)}" style="width:auto"><button class="btn sm primary" data-postpone="${c.id}:date" type="button">${ms("event")}Valider</button></div>` : ""}
     </li>`; };
   const list = B[ui.todoTab] || [];
   const empty = { jour: "Aucune relance prévue aujourd'hui.", retard: "Aucune relance en retard.", semaine: "Aucune relance prévue dans les 7 prochains jours." }[ui.todoTab];
@@ -1124,9 +1124,9 @@ document.addEventListener("click", e => {
   if (d.relance) return setRelance(+d.relance);
   if (d.todo) { ui.todoTab = d.todo; ui.panel = null; render(); if (d.scrollto) { const el = document.getElementById(d.scrollto); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); } return; }
   if (d.copy) { const n = d.copy; try { navigator.clipboard.writeText(n).then(() => toast(`Numéro copié : ${n}`, "content_copy"), () => toast(`Numéro : ${n}`, "call")); } catch (err) { toast(`Numéro : ${n}`, "call"); } return; }
-  if (d.panel) { const [cid, kind] = d.panel.split(":"); ui.panel = ui.panel && ui.panel.cid === +cid && ui.panel.kind === kind ? null : { cid: +cid, kind }; return render(); }
+  if (d.panel) { const [cid, kind] = d.panel.split(":"); ui.panel = ui.panel && ui.panel.cid === +cid && ui.panel.kind === kind ? null : { cid: +cid, kind }; render(); const inp = $("#rep-" + cid); if (inp) { inp.focus(); try { inp.showPicker && inp.showPicker(); } catch (err) { /* calendrier natif indisponible : le champ reste saisissable */ } } return; }
   if (d.result) { const k = d.result.indexOf(":"); return quickResult(+d.result.slice(0, k), d.result.slice(k + 1)); }
-  if (d.postpone) { const [cid, n] = d.postpone.split(":"); return postpone(+cid, +n); }
+  if (d.postpone) { const [cid, n] = d.postpone.split(":"); return postpone(+cid, n === "date" ? "date" : +n); }
 
   if (d.close !== undefined || d.veil !== undefined) { ui.modal = null; return renderModal(); }
   const a = d.action;
@@ -1208,7 +1208,10 @@ function quickResult(cid, res) {
   toast(`${c.enseigne} : ${res}${relance ? ` · relance le ${fmt(relance)}` : ""}`); render();
 }
 function postpone(cid, n) {
-  const c = commerce(cid), last = interOf(cid)[0], d = addDays(TODAY, n);
+  let d;
+  if (n === "date") { const el = $("#rep-" + cid); d = el && el.value; if (!d || d <= TODAY) return toast("Choisissez une date à partir de demain", "event"); }
+  else d = addDays(TODAY, n);
+  const c = commerce(cid), last = interOf(cid)[0];
   if (last) { last.relance = d; delete last.relanceOrig; } ui.panel = null; save(); toast(`${c.enseigne} reporté au ${fmt(d)}`, "update"); render();
 }
 function launchSearch() {
