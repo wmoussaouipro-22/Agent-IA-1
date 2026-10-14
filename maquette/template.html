@@ -550,6 +550,8 @@ function relBuckets(actifs) {
 function nextAction(last) {
   if (!last) return { ic: "call", l: "Premier appel", canal: "Appel" };
   const r = last.resultat, ch = last.canal;
+  if (r === "RDV pris" && last.rdv && last.rdv.slice(0, 10) === TODAY) return { ic: "event", l: `Rendez-vous aujourd'hui à ${fmtHeure(last.rdv)}${last.rdvObjet ? " · " + last.rdvObjet : ""}`, canal: "Visite" };
+  if (r === "RDV pris" && last.rdv && last.rdv.slice(0, 10) > TODAY) return { ic: "mail", l: `Confirmer le RDV du ${fmt(last.rdv)} par e-mail`, canal: "E-mail" };
   if (r === "RDV pris") return { ic: "event", l: "Faire le suivi du rendez-vous", canal: "Visite" };
   if (r === "Intéressé") return ch === "E-mail" ? { ic: "mail", l: "Relancer après l'envoi de la documentation", canal: "E-mail" } : { ic: "event_available", l: "Proposer un rendez-vous", canal: "Appel", res: "RDV pris" };
   if (r === "À rappeler") return { ic: "call", l: "Rappeler le gérant", canal: "Appel" };
