@@ -79,7 +79,7 @@ jobs:
           alembic -c db/alembic.ini downgrade base
           alembic -c db/alembic.ini upgrade head
 
-      - name: Migrations PostgreSQL Railway (production)
+      - name: Migrations Supabase (production)
         id: migrations_prod
         # Uniquement après fusion sur main, et seulement si les migrations ont passé le test.
         if: >-

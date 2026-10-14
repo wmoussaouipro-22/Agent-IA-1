@@ -28,14 +28,16 @@ La suite `tests/` est la spécification exécutable : on corrige l'application, 
 | `ci.yml` › Ruff, Mypy | style et typage strict |
 | `ci.yml` › Pytest (unit, integration, ai, e2e) | conformité au cahier des charges |
 | `ci.yml` › Vérification du déploiement | installation dans un environnement vierge, chargement des modules, parcours e2e sur le paquet installé (`scripts/verifier_deploiement.sh`) |
-| `ci.yml` › Migrations | aller-retour des migrations sur une base de test ; sur `main`, application à la base PostgreSQL Railway |
+| `ci.yml` › Migrations | aller-retour des migrations sur une base de test ; sur `main`, application à la base Supabase |
 | `ci.yml` / `claude-review.yml` › Journal | résultat de chaque contrôle écrit dans `prospection.controles_ci` |
 | `claude-review.yml` | relecture du code par Claude (section ci-dessous), seulement si du code change |
 
 ## Base de données
 
-- Base : PostgreSQL du projet Railway « assistant-prospection-postgres » (secret GitHub
-  `DATABASE_URL`). Supabase n'est plus utilisé par ce dépôt : ne pas y écrire.
+- Base : Supabase, projet « Nouvelles tables Eco locaux SQL » (secret GitHub `DATABASE_URL`).
+  Le dépôt n'écrit que dans le schéma `prospection` ; les tables Eco Locaux du schéma `public`
+  (commerces, échanges, recherches…) sont gérées à part et lues par l'interface `web/`.
+- Railway n'héberge plus la base du dépôt (projet « assistant-prospection-postgres » abandonné).
 - Toute modification de structure passe par une migration Alembic dans `db/versions/`, jamais
   par une modification manuelle de la base. Schéma `prospection` uniquement.
 - Toute table créée active la RLS (Row Level Security).
