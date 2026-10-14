@@ -243,11 +243,12 @@ table.grid .r { text-align: right; }
 .when.late { background: var(--red-bg); color: var(--red); }
 .next-step { margin: 4px 20px 0; width: auto; cursor: default; }
 .when.soon { background: var(--amber-bg); color: var(--amber); }
-.when.stale { background: var(--sage); color: var(--ink-3); }
+.when.stale { background: var(--red); color: var(--surface); }
 .act.soon { background: var(--amber-bg); border-left-color: var(--amber); }
 .act.soon .act-k, .act.soon small b, .icons-ok .act.soon > .ms { color: var(--amber); }
-.act.stale { background: var(--surface-2); border-left-color: var(--ink-3); }
-.act.stale .act-k, .act.stale small b, .icons-ok .act.stale > .ms { color: var(--ink-2); }
+.act.stale { background: var(--red-bg); border-left: 6px solid var(--red); }
+.act.stale .act-k, .act.stale small b, .icons-ok .act.stale > .ms { color: var(--red); }
+.act.stale .act-k { font-weight: 800; }
 .when.today { background: var(--amber-bg); color: var(--amber); }
 .when.rdv { background: var(--sage); color: var(--sage-ink); }
 .todo .t { min-width: 0; }
