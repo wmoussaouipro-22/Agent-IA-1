@@ -673,8 +673,9 @@ function viewDashboard() {
       <span class="t"><button class="ens" data-open="${c.id}">${esc(c.enseigne)}</button><small>${esc(c.ville)} · <span class="num">${esc(c.tel || "pas de téléphone")}</span></small></span>
       <button type="button" class="act ${st}" data-act="${c.id}" title="Saisir le résultat dans la fiche">${ms(act.ic)}<div><span class="act-k">${x.dd < 0 ? tierK : x.dd === 0 ? "Action du jour" : "Action prévue"}</span><b>${esc(act.l)}</b><small>${when}</small></div><span class="act-go">Saisir le résultat ${ms("chevron_right")}</span></button>
       <span class="acts"><span class="grow"></span>
-        ${tier === "stale" ? `<button class="btn sm secondary" data-today="${c.id}" type="button">${ms("call")}Rappeler aujourd'hui</button><button class="btn sm" data-stale="${c.id}" type="button">${ms("phone_disabled")}Classer injoignable</button>` : `${x.dd !== 0 ? `<button class="btn sm secondary" data-today="${c.id}" type="button">${ms("today")}À faire</button>` : ""}
-        <button class="btn sm" data-panel="${c.id}:report" type="button" aria-expanded="${open === "report"}">${ms("update")}Reporter</button>`}</span>
+        <button class="btn sm secondary" data-panel="${c.id}:done" type="button" aria-expanded="${open === "done"}">${ms("task_alt")}Fait</button>
+        ${tier === "stale" ? `<button class="btn sm" data-stale="${c.id}" type="button">${ms("phone_disabled")}Classer injoignable</button>` : `<button class="btn sm" data-panel="${c.id}:report" type="button" aria-expanded="${open === "report"}">${ms("update")}Reporter</button>`}</span>
+      ${open === "done" ? `<div class="panel"><span class="muted">Résultat :</span>${RESULTATS.map(r => `<button class="btn sm" data-result="${c.id}:${r}" type="button">${r}</button>`).join("")}</div>` : ""}
       ${open === "report" ? `<div class="panel"><label class="muted" for="rep-${c.id}">Reporter au :</label><input class="input" type="date" id="rep-${c.id}" min="${addDays(TODAY, 1)}" value="${addOuvres(TODAY, 1)}" style="width:auto"><button class="btn sm primary" data-postpone="${c.id}:date" type="button">${ms("event")}Valider</button></div>` : ""}
     </li>`; };
   const list = B[ui.todoTab] || [];
