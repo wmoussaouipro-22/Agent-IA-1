@@ -1,0 +1,1417 @@
+<title>Eco-Locaux CRM</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..24,400,0..1,0&display=block">
+<style>
+/* Layout : barre latérale fixe vert bouteille (260px) + espace de travail fluide ; sous 900px, la barre devient un bandeau supérieur. */
+:root {
+  --side: #0b4d34; --side-ink: #e6f4eb; --side-muted: #96d4b2; --side-active: #13603f;
+  --bg: #f5f8f6; --surface: #ffffff; --surface-2: #e9f3ee; --line: #e1e8e4; --line-soft: #f1f4f2;
+  --ink: #14231c; --ink-2: #5e6b64; --ink-3: #8c9991;
+  --primary: #0b4d34; --primary-hover: #083b27; --on-primary: #ffffff; --link: #0b4d34;
+  --sage: #e3efe8; --sage-ink: #0b4d34;
+  --amber: #b7791f; --amber-bg: #fef7ed; --amber-line: #f6d09a;
+  --red: #b23b3b; --red-bg: #fdf2f2; --red-line: #f4b4b4;
+  --grey-bg: #f1f4f2; --grey-ink: #5e6b64;
+  --bar: #2e694e; --bar-soft: #96d4b2; --grid: #e7eeea;
+  --shadow-menu: 0 4px 12px rgba(20, 35, 28, 0.10); --shadow-modal: 0 12px 32px rgba(20, 35, 28, 0.18); --veil: rgba(20, 35, 28, 0.40);
+  --hot: #c2410c; --hot-bg: #fff1e8; --cold: #1d6fb8; --cold-bg: #eaf3fb; --exam: #b7791f; --gone: #8c9991;
+  --map-land: #e6efe9; --map-park: #d3e6d9; --map-water: #a9d4ee; --map-road: #ffffff; --map-ring: #0b4d34;
+  --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --side: #0a2a1d; --side-ink: #e3eee8; --side-muted: #7fb99a; --side-active: #154a33;
+    --bg: #0f1814; --surface: #16211c; --surface-2: #1b2a23; --line: #2a3a32; --line-soft: #202e27;
+    --ink: #e3eee8; --ink-2: #a3b3ab; --ink-3: #7d8d85;
+    --primary: #2f8a60; --primary-hover: #37a070; --on-primary: #ffffff; --link: #8fd3b0;
+    --sage: #1d3a2d; --sage-ink: #a6e0c2;
+    --amber: #f0c27a; --amber-bg: #33270f; --amber-line: #6b5120;
+    --red: #f4a5a5; --red-bg: #3a1d1d; --red-line: #6e3434;
+    --grey-bg: #222f29; --grey-ink: #a9b6af;
+    --bar: #6cc398; --bar-soft: #2f6e51; --grid: #24332c;
+    --shadow-menu: 0 4px 14px rgba(0, 0, 0, 0.45); --shadow-modal: 0 12px 32px rgba(0, 0, 0, 0.55); --veil: rgba(0, 0, 0, 0.55);
+    --hot: #fb8a4c; --hot-bg: #3a2216; --cold: #6fb3ec; --cold-bg: #16283a; --exam: #f0c27a; --gone: #7d8d85;
+    --map-land: #17241e; --map-park: #1d3328; --map-water: #1f4258; --map-road: #2c3d35; --map-ring: #8fd3b0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --side: #0a2a1d; --side-ink: #e3eee8; --side-muted: #7fb99a; --side-active: #154a33;
+  --bg: #0f1814; --surface: #16211c; --surface-2: #1b2a23; --line: #2a3a32; --line-soft: #202e27;
+  --ink: #e3eee8; --ink-2: #a3b3ab; --ink-3: #7d8d85;
+  --primary: #2f8a60; --primary-hover: #37a070; --on-primary: #ffffff; --link: #8fd3b0;
+  --sage: #1d3a2d; --sage-ink: #a6e0c2;
+  --amber: #f0c27a; --amber-bg: #33270f; --amber-line: #6b5120;
+  --red: #f4a5a5; --red-bg: #3a1d1d; --red-line: #6e3434;
+  --grey-bg: #222f29; --grey-ink: #a9b6af;
+  --bar: #6cc398; --bar-soft: #2f6e51; --grid: #24332c;
+  --shadow-menu: 0 4px 14px rgba(0, 0, 0, 0.45); --shadow-modal: 0 12px 32px rgba(0, 0, 0, 0.55); --veil: rgba(0, 0, 0, 0.55);
+  --hot: #fb8a4c; --hot-bg: #3a2216; --cold: #6fb3ec; --cold-bg: #16283a; --exam: #f0c27a; --gone: #7d8d85;
+  --map-land: #17241e; --map-park: #1d3328; --map-water: #1f4258; --map-road: #2c3d35; --map-ring: #8fd3b0;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px; line-height: 1.45; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--link); }
+.num, td.num, .tab { font-variant-numeric: tabular-nums lining-nums; }
+.ms { font-family: "Material Symbols Outlined"; font-weight: normal; font-style: normal; font-size: 20px; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; -webkit-font-smoothing: antialiased; font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 20; vertical-align: middle; width: 1em; overflow: hidden; flex: none; color: transparent; }
+.icons-ok .ms { color: inherit; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ---------- Coque ---------- */
+.app { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100%; }
+.side { background: var(--side); color: var(--side-ink); display: flex; flex-direction: column; gap: 24px; padding-block: 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: 16px; position: sticky; top: 0; height: 100vh; }
+.brand { display: flex; align-items: center; gap: 12px; padding-inline: 8px; }
+.brand .ms { font-size: 28px; }
+.icons-ok .brand .ms { color: var(--side-muted); }
+.brand b { display: block; font-size: 20px; letter-spacing: -0.01em; }
+.brand small { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--side-muted); }
+.nav { display: flex; flex-direction: column; gap: 4px; }
+.nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; color: var(--side-ink); text-decoration: none; font-weight: 500; border: 1px solid transparent; }
+.nav a:hover { background: rgba(255, 255, 255, 0.06); }
+.nav a[aria-current="page"] { background: var(--side-active); border-color: rgba(255, 255, 255, 0.10); font-weight: 700; }
+.nav a .count { margin-left: auto; font-size: 12px; font-weight: 600; background: rgba(0, 0, 0, 0.25); padding: 2px 8px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+.side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 12px; padding-inline: 8px; font-size: 13px; }
+.me { display: flex; align-items: center; gap: 10px; }
+.avatar { width: 34px; height: 34px; border-radius: 8px; background: var(--side-active); display: grid; place-items: center; font-weight: 700; font-size: 13px; flex: none; }
+.me small { display: block; color: var(--side-muted); }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--side-muted); text-decoration: underline; cursor: pointer; text-align: left; font-size: 12px; }
+
+.main { min-width: 0; display: flex; flex-direction: column; }
+.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 12px; padding-block: 12px; padding-left: 24px; padding-right: max(24px, env(safe-area-inset-right, 0px)); }
+.topbar .date { display: flex; align-items: center; gap: 8px; color: var(--ink-2); font-weight: 500; }
+.topbar .spacer { flex: 1; }
+.content { padding-block: 24px 48px; padding-left: 24px; padding-right: max(24px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 20px; max-width: 1480px; width: 100%; }
+
+/* ---------- Composants ---------- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink-2); font-weight: 600; cursor: pointer; white-space: nowrap; }
+.btn:hover { background: var(--surface); color: var(--ink); }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.btn.primary:hover { background: var(--primary-hover); }
+.btn.secondary { background: var(--surface); border-color: var(--primary); color: var(--link); }
+.btn.secondary:hover { background: var(--sage); }
+.btn.danger { background: var(--surface); border-color: var(--red); color: var(--red); }
+.btn.danger:hover { background: var(--red-bg); }
+.btn.sm { min-height: 32px; padding: 0 10px; font-size: 13px; }
+.btn.icon { width: 40px; padding: 0; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.iconbtn { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 6px; border: 0; background: transparent; color: var(--ink-2); cursor: pointer; }
+.iconbtn:hover, .iconbtn[aria-expanded="true"] { background: var(--sage); color: var(--sage-ink); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.card-pad { padding: 20px; }
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 16px 20px 0; flex-wrap: wrap; }
+.card-head h2, .card-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.card-head .hint { color: var(--ink-3); font-size: 12px; }
+.card-body { padding: 16px 20px 20px; }
+
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.page-head h1 { margin: 0; font-size: 28px; line-height: 1.2; letter-spacing: -0.01em; text-wrap: balance; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.page-head p { margin: 6px 0 0; color: var(--ink-2); }
+.dsrc { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--ink-2); background: var(--sage); padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.dsrc .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
+.dsrc[data-state="live"] { color: var(--sage-ink); } .dsrc[data-state="live"] .dot { background: var(--sage-ink); }
+.dsrc[data-state="wait"] .dot { animation: srcp 1s ease-in-out infinite alternate; }
+.dsrc[data-state="err"] .dot { background: #c2410c; }
+@keyframes srcp { to { opacity: .25; } }
+@media (max-width: 520px) { #src-l { max-width: 150px; overflow: hidden; text-overflow: ellipsis; } }
+.src-err { margin: 0; padding-block: 8px; padding-inline: 24px; font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace; color: var(--ink-2); background: var(--sage); word-break: break-word; user-select: text; }
+.pill-inc { display: inline-flex; align-items: center; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; color: var(--ink-3); background: var(--sage); vertical-align: middle; white-space: nowrap; }
+.chip { display: inline-flex; align-items: center; font-size: 13px; font-weight: 500; color: var(--ink-2); background: var(--sage); padding: 3px 10px; border-radius: 6px; letter-spacing: 0; }
+
+.badge { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border-radius: 4px; font-size: 12px; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
+.b-sage { background: var(--sage); color: var(--sage-ink); }
+.b-solid { background: var(--primary); color: var(--on-primary); }
+.b-amber { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-line); }
+.b-red { background: var(--red-bg); color: var(--red); border-color: var(--red-line); }
+.b-grey { background: var(--grey-bg); color: var(--grey-ink); }
+.b-out { background: transparent; color: var(--ink-2); border: 1px dashed var(--ink-3); }
+
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field > span { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.input, select.input, textarea.input { height: 40px; width: 100%; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+textarea.input { height: auto; min-height: 84px; padding: 10px 12px; resize: vertical; }
+.input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 25%, transparent); }
+.input::placeholder { color: var(--ink-3); }
+.input.soft { background: var(--surface-2); border-color: transparent; }
+.check { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 500; }
+.check input { width: 18px; height: 18px; accent-color: var(--primary); margin: 0; }
+.switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; padding: 6px 12px; background: var(--surface-2); border-radius: 8px; color: var(--ink-2); }
+.switch input { appearance: none; width: 36px; height: 20px; border-radius: 10px; background: var(--ink-3); position: relative; margin: 0; cursor: pointer; flex: none; }
+.switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); transition: left .15s; }
+.switch input:checked { background: var(--primary); }
+.switch input:checked::after { left: 18px; }
+
+/* ---------- Tableaux ---------- */
+.table-wrap { overflow-x: auto; }
+table.grid { width: 100%; border-collapse: collapse; }
+table.grid th { text-align: left; font-size: 12px; font-weight: 600; color: var(--ink-2); background: var(--bg); height: 40px; padding: 0 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.grid td { height: 52px; padding: 6px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.grid tr:last-child td { border-bottom: 0; }
+table.grid tbody tr:hover td { background: color-mix(in srgb, var(--sage) 45%, transparent); }
+table.grid tbody tr.sel td { background: var(--sage); }
+table.grid tbody tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--primary); }
+table.grid .r { text-align: right; }
+.code { color: var(--ink-2); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.ens { font-weight: 600; font-size: 15px; color: var(--link); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+.ens:hover { text-decoration: underline; }
+.icons-ok .warn, .warn { font-size: 18px; margin-left: 4px; }
+.icons-ok .warn { color: var(--amber); }
+.muted { color: var(--ink-2); }
+.faint { color: var(--ink-3); }
+.ital { font-style: italic; color: var(--ink-3); }
+
+.menu { position: absolute; right: 0; top: 36px; z-index: 20; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow-menu); min-width: 180px; padding: 6px; display: flex; flex-direction: column; }
+.menu button { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; border: 0; background: none; cursor: pointer; text-align: left; }
+.menu button:hover { background: var(--sage); }
+.menu button.del { color: var(--red); }
+.menu button.del:hover { background: var(--red-bg); }
+.rel { position: relative; display: inline-block; }
+
+.filters { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.filters .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.filters .row2 { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.search { position: relative; }
+.search .ms { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); }
+.icons-ok .search .ms { color: var(--ink-2); }
+.search .input { padding-left: 44px; height: 48px; }
+.potsel { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2); }
+.potsel select { width: auto; }
+.push { margin-left: auto; }
+
+.bulk { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--sage); color: var(--sage-ink); border-bottom: 1px solid var(--line); flex-wrap: wrap; font-weight: 600; }
+.bulk select { width: auto; }
+.pager { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.pager .info { color: var(--ink-2); margin-right: auto; }
+.pager .info b { color: var(--ink); }
+.pg { min-width: 40px; height: 40px; border-radius: 8px; border: 0; background: transparent; cursor: pointer; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pg:hover { background: var(--sage); }
+.pg[aria-current="page"] { background: var(--primary); color: var(--on-primary); }
+.pg:disabled { color: var(--ink-3); cursor: default; background: none; }
+.empty { padding: 40px 16px; text-align: center; color: var(--ink-2); }
+
+/* ---------- Tableau de bord ---------- */
+.scope { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 3px; gap: 3px; }
+.scope button { border: 0; background: none; padding: 7px 14px; border-radius: 6px; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.scope button[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); }
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
+.kpi.ca { border-color: color-mix(in srgb, var(--primary) 35%, var(--line)); }
+.inline-num { display: inline-flex; align-items: center; gap: 4px; }
+.inline-num .input { width: 88px; height: 28px; padding: 0 6px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.range { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.range .field { width: 160px; }
+.kpi { padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; }
+.kpi .lbl { font-size: 12px; font-weight: 600; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.kpi .val { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.kpi .val small { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.kpi .sub { font-size: 12px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.kpi.alert { border-color: var(--amber-line); }
+.kpi.alert .val { color: var(--amber); }
+.dash { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.hbars { display: flex; flex-direction: column; gap: 10px; }
+.hbar { display: grid; grid-template-columns: 120px minmax(0, 1fr) 44px; align-items: center; gap: 12px; }
+.hbar .l { font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hbar .track { height: 14px; position: relative; }
+.hbar .fill { height: 100%; background: var(--bar); border-radius: 0 4px 4px 0; min-width: 2px; cursor: default; }
+.hbar .fill.soft { background: var(--bar-soft); }
+.hbar .v { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.hbar.sep { margin-top: 6px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart text { fill: var(--ink-2); font-family: var(--font); font-size: 11px; }
+.chart .gl { stroke: var(--grid); stroke-width: 1; }
+.chart .bl { stroke: var(--ink-3); stroke-width: 1; }
+.chart .b { fill: var(--bar); }
+.chart .b.cur { fill: var(--bar-soft); }
+.chart .hit { fill: transparent; cursor: default; }
+.chart .hit:hover + .b, .chart g:hover .b { opacity: .85; }
+.zt td { height: 44px; }
+.meter { display: inline-block; width: 64px; height: 6px; border-radius: 3px; background: var(--grid); vertical-align: middle; margin-right: 8px; overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--bar); }
+.todo { display: flex; flex-direction: column; }
+.todo li { list-style: none; display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line-soft); }
+.todo li:first-child { border-top: 0; }
+.todo ul { margin: 0; padding: 0; }
+.when { font-size: 12px; font-weight: 600; text-align: center; border-radius: 6px; padding: 4px 0; background: var(--grey-bg); color: var(--grey-ink); font-variant-numeric: tabular-nums; }
+.when.late { background: var(--red-bg); color: var(--red); }
+.when.soon { background: var(--amber-bg); color: var(--amber); }
+.when.stale { background: var(--sage); color: var(--ink-3); }
+.act.soon { background: var(--amber-bg); border-left-color: var(--amber); }
+.act.soon .act-k, .act.soon small b, .icons-ok .act.soon > .ms { color: var(--amber); }
+.act.stale { background: var(--surface-2); border-left-color: var(--ink-3); }
+.act.stale .act-k, .act.stale small b, .icons-ok .act.stale > .ms { color: var(--ink-2); }
+.when.today { background: var(--amber-bg); color: var(--amber); }
+.when.rdv { background: var(--sage); color: var(--sage-ink); }
+.todo .t { min-width: 0; }
+.todo .t .ens { font-size: 14px; }
+.todo .t small { display: block; color: var(--ink-2); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sub-h { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3); margin: 14px 0 4px; }
+.sub-h:first-child { margin-top: 0; }
+.note { font-size: 12px; color: var(--ink-3); display: flex; gap: 6px; align-items: flex-start; }
+.note .ms { font-size: 16px; }
+
+.kpi-link { text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.kpi-link:hover { border-color: var(--amber); }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); padding: 8px 20px 0; overflow-x: auto; }
+.tabs button { border: 0; background: none; padding: 10px 8px; font-weight: 600; color: var(--ink-2); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; }
+.tabs button[aria-selected="true"] { color: var(--link); border-bottom-color: var(--primary); }
+.tabs .n { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--grey-bg); color: var(--grey-ink); font-variant-numeric: tabular-nums; }
+.tabs .n.late { background: var(--red-bg); color: var(--red); }
+.todo-list { max-height: 520px; overflow-y: auto; margin: 0; padding: 0; }
+.trow { list-style: none; display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 8px 12px; padding: 12px 0; border-top: 1px solid var(--line-soft); align-items: center; }
+.trow:first-child { border-top: 0; }
+.trow .t { min-width: 0; }
+.trow .t small { display: block; color: var(--ink-2); font-size: 12px; }
+.trow .acts { grid-column: 2; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.grow { flex: 1; }
+.act { grid-column: 2; display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); border: 0; border-left: 3px solid var(--ink-3); text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; }
+.act:hover { filter: brightness(0.97); }
+.act > div { flex: 1; }
+.act-go { align-self: center; display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 600; color: var(--link); white-space: nowrap; }
+@media (max-width: 520px) { .act-go { display: none; } }
+.act > .ms { margin-top: 2px; }
+.act div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.act b { font-size: 15px; }
+.act small { color: var(--ink-2); font-size: 12px; }
+.act-k { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+.act.late { background: var(--red-bg); border-left-color: var(--red); }
+.act.late .act-k, .act.late small b, .icons-ok .act.late > .ms { color: var(--red); }
+.act.today { background: var(--amber-bg); border-left-color: var(--amber); }
+.act.today .act-k, .act.today small b, .icons-ok .act.today > .ms { color: var(--amber); }
+.why { font-weight: 600; color: var(--sage-ink); }
+.panel { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 10px; background: var(--surface-2); border-radius: 8px; }
+.rq { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.rq input { width: 18px; height: 18px; accent-color: var(--primary); margin: 2px 0 0; flex: none; }
+.rq-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px 0 0; }
+
+/* ---------- Fiche ---------- */
+.crumbs { display: flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 13px; }
+.crumbs button { background: none; border: 0; padding: 0; color: var(--link); cursor: pointer; font-weight: 500; }
+.fiche { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.kv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 20px; }
+.kv div { min-width: 0; }
+.kv dt { font-size: 12px; font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+dl { margin: 0; }
+.tl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.tl li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 12px; padding: 14px 0; border-top: 1px solid var(--line-soft); }
+.tl li:first-child { border-top: 0; padding-top: 4px; }
+.tl .dot { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; background: var(--sage); color: var(--sage-ink); }
+.tl .head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tl .head b { font-weight: 600; }
+.tl p { margin: 6px 0 0; color: var(--ink); max-width: 70ch; }
+.tl .meta { color: var(--ink-2); font-size: 12px; margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+.form-grid .full { grid-column: 1 / -1; }
+.form-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.side-stack { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 84px; }
+.contact-line { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line-soft); }
+.contact-line:first-of-type { border-top: 0; }
+.icons-ok .contact-line .ms { color: var(--ink-2); }
+.contact-line span:last-child { overflow-wrap: anywhere; min-width: 0; }
+.quick { display: flex; gap: 6px; flex-wrap: wrap; }
+.banner { display: flex; gap: 10px; align-items: center; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--red-line); background: var(--red-bg); color: var(--red); font-weight: 500; }
+
+/* ---------- Recherches ---------- */
+.rech { display: grid; grid-template-columns: minmax(280px, 0.9fr) minmax(0, 2fr); gap: 16px; align-items: start; }
+.rlist { display: flex; flex-direction: column; padding: 6px; }
+.ritem { display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 12px; border-radius: 8px; border: 1px solid transparent; background: none; cursor: pointer; width: 100%; }
+.ritem:hover { background: var(--surface-2); }
+.ritem[aria-current="true"] { background: var(--sage); border-color: color-mix(in srgb, var(--primary) 35%, transparent); }
+.ritem .top { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.ritem .top b { font-weight: 600; }
+.ritem small { color: var(--ink-2); }
+.ritem .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.params { display: flex; gap: 8px 20px; flex-wrap: wrap; color: var(--ink-2); font-size: 13px; }
+.params b { color: var(--ink); font-weight: 600; }
+.tri-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.tri-tabs button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 12px; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.tri-tabs button[aria-pressed="true"] { border-color: var(--primary); color: var(--link); background: var(--sage); }
+
+/* ---------- Recherche Google Maps ---------- */
+.sbar { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+.sbar-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sbar-row.sep { border-top: 1px solid var(--line); padding-top: 14px; }
+.sbar .search { min-width: 220px; }
+.sbar .search .input { height: 48px; }
+.lbl-w { min-width: 120px; }
+.src { display: inline-flex; align-items: center; gap: 6px; background: var(--primary); color: var(--on-primary); font-weight: 600; padding: 0 14px; height: 40px; border-radius: 8px; }
+.btn.lg { min-height: 48px; padding: 0 20px; font-size: 15px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chipt { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-weight: 500; cursor: pointer; }
+.chipt.on { background: var(--sage); border-color: color-mix(in srgb, var(--primary) 45%, transparent); color: var(--sage-ink); font-weight: 600; }
+.chipt .ms { font-size: 16px; }
+.rhead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.rhead h2 { margin: 0; font-size: 18px; }
+.rgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
+.rlist2 { display: flex; flex-direction: column; gap: 12px; max-height: 780px; overflow-y: auto; padding-right: 4px; }
+.rcard { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; }
+.rcard:hover { border-color: color-mix(in srgb, var(--primary) 40%, var(--line)); }
+.rcard.on { border: 2px solid var(--primary); box-shadow: inset 0 3px 0 var(--primary); padding: 15px 17px; }
+.rc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.rc-head h3 { margin: 0; font-size: 17px; font-weight: 700; }
+.rc-sub { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; color: var(--ink-2); }
+.rc-sub > span:not(.badge):not(.num) { color: var(--ink-3); }
+.rc-line { display: flex; align-items: center; gap: 8px; color: var(--ink-2); min-width: 0; flex-wrap: wrap; }
+.rc-line .ms { font-size: 18px; }
+.rc-line .site { overflow-wrap: anywhere; }
+.rc-warn { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; background: var(--amber-bg); border: 1px solid var(--amber-line); color: var(--amber); font-size: 13px; font-weight: 500; }
+.rc-acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 6px; border-top: 1px solid var(--line-soft); margin-top: 2px; }
+a.btn { text-decoration: none; }
+.rc-main { display: inline-flex; gap: 8px; margin-left: auto; }
+.temp { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 6px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.temp i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.temp.t-chaud { background: var(--hot-bg); color: var(--hot); }
+.temp.t-tiede { background: var(--amber-bg); color: var(--amber); }
+.temp.t-froid { background: var(--cold-bg); color: var(--cold); }
+.rc-pot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 13px; }
+.potb { height: 28px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font-weight: 600; font-size: 12px; cursor: pointer; }
+.potb:hover { border-color: var(--ink-3); color: var(--ink); }
+.potb.on.p-chaud { background: var(--hot-bg); color: var(--hot); border-color: transparent; }
+.potb.on.p-tiede { background: var(--amber-bg); color: var(--amber); border-color: transparent; }
+.potb.on.p-froid { background: var(--cold-bg); color: var(--cold); border-color: transparent; }
+.temp.t-eval { background: var(--grey-bg); color: var(--grey-ink); }
+.temp.tag { font-size: 11px; height: 22px; text-transform: uppercase; letter-spacing: 0.04em; }
+.map { position: sticky; top: 84px; overflow: hidden; aspect-ratio: 600 / 640; max-width: 100%; padding: 0; }
+.map svg { width: 100%; height: 100%; display: block; }
+.m-land { fill: var(--map-land); }
+.m-park { fill: var(--map-park); }
+.m-water { fill: none; stroke: var(--map-water); stroke-width: 26; stroke-linecap: round; }
+.m-road { fill: none; stroke: var(--map-road); stroke-width: 9; }
+.m-road.thin { stroke-width: 5; }
+.m-radius { fill: color-mix(in srgb, var(--map-ring) 6%, transparent); stroke: var(--map-ring); stroke-width: 1.5; stroke-dasharray: 6 6; }
+.m-label { fill: var(--ink-2); font-family: var(--font); font-size: 12px; font-weight: 600; letter-spacing: 0.12em; }
+.pin { cursor: pointer; }
+.pin .dot { fill: var(--pin); stroke: var(--surface); stroke-width: 3; }
+.pin .core { fill: var(--surface); }
+.pin .halo { fill: color-mix(in srgb, var(--pin) 22%, transparent); stroke: color-mix(in srgb, var(--pin) 35%, transparent); stroke-width: 1; }
+.pin:hover .dot, .pin:focus .dot { stroke-width: 4; }
+.t-chaud { --pin: var(--hot); } .t-tiede { --pin: var(--amber); } .t-froid { --pin: var(--cold); } .t-eval { --pin: var(--gone); }
+.st-exam { --pin: var(--exam); } .st-retenu { --pin: var(--primary); } .st-doublon { --pin: var(--red); } .st-ecarte { --pin: var(--gone); }
+.m-toggle { position: absolute; top: 16px; left: 16px; box-shadow: var(--shadow-menu); }
+.m-zoom { position: absolute; top: 16px; right: 16px; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow-menu); overflow: hidden; }
+.m-zoom button { width: 40px; height: 40px; border: 0; background: none; cursor: pointer; color: var(--ink); display: grid; place-items: center; }
+.m-zoom button + button { border-top: 1px solid var(--line); }
+.m-zoom button:hover { background: var(--sage); }
+.m-pop { position: absolute; width: 230px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-modal); padding: 12px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; z-index: 2; }
+.m-pop.right { transform: translate(24px, -50%); }
+.m-pop.left { transform: translate(calc(-100% - 24px), -50%); }
+.m-pop small { color: var(--ink-2); }
+.m-pop .btn { align-self: stretch; }
+.m-pop-k { align-self: stretch; display: flex; justify-content: space-between; gap: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 13px; }
+.m-legend { position: absolute; left: 16px; bottom: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-menu); padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; max-width: calc(100% - 32px); }
+.m-legend b { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
+.m-legend div { display: flex; gap: 12px; flex-wrap: wrap; }
+.m-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.m-legend i { width: 10px; height: 10px; border-radius: 50%; background: var(--pin); }
+.m-legend small { color: var(--ink-3); }
+.m-note { position: absolute; right: 12px; bottom: 10px; font-size: 11px; color: var(--ink-3); background: color-mix(in srgb, var(--surface) 80%, transparent); padding: 2px 6px; border-radius: 4px; }
+@media (max-width: 1200px) { .rgrid { grid-template-columns: minmax(0, 1fr); } .map { position: relative; top: 0; order: -1; } .rlist2 { max-height: none; } }
+@media (max-width: 520px) { .lbl-w { min-width: 0; width: 100%; } .m-pop { width: 190px; } .m-legend small, .m-note { display: none; } }
+
+/* ---------- Modale, toast, infobulle ---------- */
+.veil { position: fixed; inset: 0; background: var(--veil); z-index: 50; display: grid; place-items: center; padding: 16px; }
+.modal { background: var(--surface); border-radius: 12px; box-shadow: var(--shadow-modal); width: min(560px, 100%); max-height: calc(100% - 32px); overflow: auto; display: flex; flex-direction: column; }
+.modal header { padding: 20px 20px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.modal header h2 { margin: 0; font-size: 20px; font-weight: 600; }
+.modal .body { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.modal footer { padding: 0 20px 20px; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.toasts { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 60; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+.toast { background: var(--ink); color: var(--bg); padding: 10px 14px; border-radius: 8px; box-shadow: var(--shadow-menu); display: flex; align-items: center; gap: 8px; max-width: min(420px, calc(100vw - 32px)); font-weight: 500; animation: tin .2s ease-out; }
+@keyframes tin { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
+.tip { position: fixed; z-index: 70; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow-menu); border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 1.4; max-width: 240px; }
+.tip b { display: block; font-size: 13px; }
+.demo-tag { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--amber); background: var(--amber-bg); border: 1px solid var(--amber-line); border-radius: 4px; padding: 2px 6px; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1360px) { .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1200px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dash, .fiche, .rech { grid-template-columns: minmax(0, 1fr); }
+  .side-stack { position: static; }
+}
+@media (max-width: 900px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .side { position: static; height: auto; flex-direction: row; align-items: center; flex-wrap: wrap; gap: 12px; padding-block: 12px; padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .brand small { display: none; }
+  .nav { flex-direction: row; overflow-x: auto; width: 100%; order: 3; }
+  .nav a { padding: 8px 10px; white-space: nowrap; }
+  .side-foot { margin: 0 0 0 auto; flex-direction: row; align-items: center; }
+  .me div, .side-foot .linkbtn { display: none; }
+  .topbar { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .content { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .filters .row { grid-template-columns: 1fr; }
+  .kv { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .push { margin-left: 0; }
+}
+@media (max-width: 520px) {
+  .range .field { width: calc(50% - 6px); }
+  .kpis { grid-template-columns: minmax(0, 1fr); }
+  .form-grid, .kv { grid-template-columns: minmax(0, 1fr); }
+  .page-head h1 { font-size: 23px; }
+  .hbar { grid-template-columns: 96px minmax(0, 1fr) 36px; }
+}
+</style>
+
+<div class="app">
+  <aside class="side" aria-label="Navigation">
+    <div class="brand"><span class="ms" aria-hidden="true">eco</span><div><b>Eco-Locaux</b><small>CRM énergie proximité</small></div></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot">
+      <div class="me"><span class="avatar" id="me-avatar">WM</span><div><b id="me-name">Wassila Moussaoui</b><small id="me-zone">Commerciale · zone Nord</small></div></div>
+      <button class="linkbtn" data-action="reset" type="button">Réinitialiser la démo</button>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <span class="date"><span class="ms" aria-hidden="true">calendar_today</span><span id="today-label"></span></span>
+      <span class="dsrc" id="src" data-state="snap"><span class="dot" aria-hidden="true"></span><span id="src-l">Données figées</span></span><button class="linkbtn" id="src-btn" data-action="live" type="button" hidden>Actualiser</button>
+      <span class="spacer"></span>
+      <button class="btn primary icon" data-action="new-prospect" type="button" title="Nouveau prospect" aria-label="Nouveau prospect"><span class="ms" aria-hidden="true">add</span></button>
+    </header>
+    <p class="src-err" id="src-err" hidden></p>
+    <main class="content" id="view"></main>
+  </div>
+</div>
+<div id="modal-root"></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+let RAW = __DATA__;
+const DEMO_RAW = __DEMO__; /* jeu fictif, seulement pour illustrer le tableau de bord */
+const LIVE_SQL = __SQL__;
+const TODAY = "2026-10-14";
+const ME_ID = 2;
+const STORE_KEY = "ecolocaux-maquette-v3";
+const STATUTS = ["Nouveau", "Contacté", "À rappeler", "Injoignable", "RDV pris", "Signé", "Pas intéressé"];
+const TYPES = ["Boulangerie", "Pizzeria", "Boucherie", "Poissonnerie", "Restaurant", "Pressing", "Laverie"];
+const POTENTIELS = ["Élevé", "Moyen", "Faible"];
+const ZONES = ["Paris", "Nord", "Sud", "Est", "Ouest"];
+const CANAUX = ["Appel", "E-mail", "Visite"];
+const RESULTATS = ["Sans réponse", "À rappeler", "Intéressé", "RDV pris", "Pas intéressé", "Signature"];
+const CANAL_ICON = { "Appel": "call", "E-mail": "mail", "Visite": "storefront", "SMS": "sms" };
+const MOTIFS = ["Hors cible", "Fermé définitivement", "Trop petit", "Déjà client d'un concurrent", "Autre"];
+
+/* ---------- Données ---------- */
+function seed() {
+  const commerces = RAW.commerces.map(c => ({ id: c[0], code: c[1], enseigne: c[2], type: c[3], ville: c[4], cp: c[5], zone: c[6], tel: c[7], email: c[8], contact: c[9], statut: c[10], potentiel: c[11], categorie: c[12], commercialId: c[13], siret: c[14], adresse: c[15], site: c[16], note: c[17], avis: c[18], opposition: c[19], horaires: c[20], heures: c[21] != null ? +c[21] : null }));
+  const interactions = RAW.interactions.map(i => ({ id: i[0], commerceId: i[1], commercialId: i[2], date: i[3], canal: i[4], resultat: i[5], commentaire: i[6], relance: i[7], rdv: i[8], rdvStatut: i[9], rdvObjet: i[10] }));
+  const recherches = RAW.recherches.map(r => ({ id: r[0], code: r[1], date: r[2], source: r[3], commercialId: r[4], zone: r[5], types: r[6] || [], ville: r[7], cp: r[8], rayon: r[9], statut: r[10], commentaire: r[11], requete: RAW.gr[r[0]] || null }));
+  const candidats = RAW.candidats.map(x => { const g = RAW.gx[x[0]] || []; return { id: x[0], rechercheId: x[1], enseigne: x[2], type: x[3], ville: x[4], zone: x[5], note: x[6], avis: x[7], potentiel: x[8], tri: x[9] === "Connu" ? "Doublon" : x[9], motif: x[10], known: x[11] ? { statut: x[11][0], stop: !!x[11][1], com: x[11][2] } : null, heures: x[12] != null ? +x[12] : null, tel: g[0] || null, site: g[1] || null, adresse: g[2] || null, cp: g[3] || null, horaires: g[4] || null, placeId: g[5] || null, commerceId: null }; });
+  return { commerces, interactions, recherches, candidats };
+}
+let S;
+try { const saved = localStorage.getItem(STORE_KEY); S = saved ? JSON.parse(saved) : seed(); } catch (e) { S = seed(); }
+function save() { if (typeof LIVE !== "undefined" && LIVE.on) return; /* lecture seule : les saisies sur données Supabase restent dans la session */ try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { /* stockage indisponible : la démo reste en mémoire */ } }
+let COMMERCIAUX = RAW.commerciaux.map(c => ({ id: c[0], prenom: c[1], nom: c[2], zone: c[3], email: c[4] }));
+let ME = COMMERCIAUX.find(c => c.id === ME_ID) || COMMERCIAUX[0];
+const nextId = list => list.reduce((m, x) => Math.max(m, x.id), 0) + 1;
+
+function addDaysInit(n) { const d = new Date("2026-10-14T00:00:00"); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
+const ui = { mapMode: "pot", zoom: 1, selCand: null, tour: new Set(), rq: null, rTypes: [], rRayon: 5, view: "dashboard", ficheId: null, scope: "zone", f: { q: "", statut: "", type: "", potentiel: "", incomplete: false, showStop: false }, page: 1, per: 20, sel: new Set(), menu: null, rechId: null, triFilter: "", modal: null, todoTab: null, panel: null, prefill: null, resFrom: addDaysInit(-90), resTo: "2026-10-14" };
+
+/* ---------- Utilitaires ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const ms = (n, extra = "") => `<span class="ms" aria-hidden="true"${extra}>${n}</span>`;
+const d0 = iso => new Date((iso || "").slice(0, 10) + "T00:00:00");
+const addDays = (iso, n) => { const d = d0(iso); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const diffDays = (a, b) => Math.round((d0(a) - d0(b)) / 864e5);
+const fmt = iso => iso ? d0(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
+const fmtShort = iso => iso ? d0(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "—";
+const fmtLong = iso => { const s = d0(iso).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" }); return s.charAt(0).toUpperCase() + s.slice(1); };
+const fmtHeure = iso => new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" });
+const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+const comName = id => { const c = COMMERCIAUX.find(x => x.id === id); return c ? `${c.prenom} ${c.nom}` : "Non attribué"; };
+const commerce = id => S.commerces.find(c => c.id === id);
+const interOf = id => S.interactions.filter(i => i.commerceId === id).sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id - a.id);
+const incomplete = c => !c.contact || !c.tel || !c.email || !c.potentiel;
+const stopped = c => !!c.opposition;
+function lastRelance(c) { const l = interOf(c.id)[0]; return l ? l.relance : null; }
+const PRIO_POT = { "Élevé": 0, "Moyen": 1, "Faible": 2 };
+function relBuckets(actifs) {
+  const all = actifs.filter(c => !["Signé", "Pas intéressé"].includes(c.statut)).map(c => { const d = lastRelance(c); return d ? { c, d, dd: diffDays(d, TODAY), last: interOf(c.id)[0] } : null; }).filter(Boolean);
+  const prio = x => { const r = x.last ? x.last.resultat : "", s = x.c.statut; const st = r === "Intéressé" || s === "RDV pris" ? 0 : s === "À rappeler" || s === "Contacté" ? 1 : s === "Nouveau" ? 2 : 3; return st * 10 + (PRIO_POT[x.c.potentiel] ?? 3); };
+  const byPrio = (a, b) => prio(a) - prio(b) || b.dd - a.dd;
+  return {
+    all,
+    jour: all.filter(x => x.dd === 0).sort(byPrio),
+    retard: all.filter(x => x.dd < 0).sort(byPrio),
+    semaine: all.filter(x => x.dd > 0 && x.dd <= 7).sort((a, b) => a.dd - b.dd || prio(a) - prio(b))
+  };
+}
+function nextAction(last) {
+  if (!last) return { ic: "call", l: "Premier appel", canal: "Appel" };
+  const r = last.resultat, ch = last.canal;
+  if (r === "RDV pris") return { ic: "event", l: "Faire le suivi du rendez-vous", canal: "Visite" };
+  if (r === "Intéressé") return ch === "E-mail" ? { ic: "mail", l: "Relancer après l'envoi de la documentation", canal: "E-mail" } : { ic: "event_available", l: "Proposer un rendez-vous", canal: "Appel", res: "RDV pris" };
+  if (r === "À rappeler") return { ic: "call", l: "Rappeler le gérant", canal: "Appel" };
+  if (r === "Sans réponse") return ch === "E-mail" ? { ic: "mail", l: "Relancer par e-mail", canal: "E-mail" } : { ic: "call", l: "Nouvelle tentative d'appel", canal: "Appel" };
+  return { ic: "task_alt", l: "Relancer le commerce", canal: "Appel" };
+}
+function whyLine(x) { const r = x.last && x.last.resultat === "Intéressé" ? "Intéressé" : x.c.statut === "RDV pris" ? "RDV en cours" : null; const p = x.c.potentiel === "Élevé" ? "potentiel élevé" : null; return [r, p].filter(Boolean).join(" · "); }
+function nextRdv(c) { return S.interactions.filter(i => i.commerceId === c.id && i.rdv && ["Planifié", "Confirmé"].includes(i.rdvStatut) && i.rdv.slice(0, 10) >= TODAY).sort((a, b) => a.rdv.localeCompare(b.rdv))[0] || null; }
+
+function statutBadge(s) {
+  const cls = { "Nouveau": "b-out", "Contacté": "b-sage", "À rappeler": "b-amber", "Injoignable": "b-grey", "RDV pris": "b-sage", "Signé": "b-solid", "Pas intéressé": "b-grey" }[s] || "b-grey";
+  return `<span class="badge ${cls}"${s === "RDV pris" ? ' style="font-weight:700"' : ""}>${esc(s || "—")}</span>`;
+}
+function potBadge(p) { return p ? `<span class="badge ${p === "Élevé" ? "b-sage" : "b-grey"}">Potentiel ${esc(p)}</span>` : `<span class="badge b-out">Non évalué</span>`; }
+function knownBox(x) {
+  const k = x.known;
+  if (k && k.statut === "Pas intéressé") return `<div class="rc-warn" style="border-color:var(--line);background:var(--sage);color:var(--ink-2)">${ms("block")}Déjà connu · <b>Pas intéressé</b> : à ne pas recontacter.</div>`;
+  if (k && k.stop) return `<div class="rc-warn">${ms("block")}Déjà connu · <b>Opposition RGPD</b> : ne plus contacter.</div>`;
+  if (k) return `<div class="rc-warn">${ms("content_copy")}Déjà connu · dans le portefeuille${k.com ? ` de ${esc(comName(k.com))}` : ""}, statut « ${esc(k.statut)} ».</div>`;
+  return `<div class="rc-warn">${ms("content_copy")}Déjà connu : même fiche Google Maps qu'un commerce déjà enregistré.</div>`;
+}
+/* Potentiel calculé (mêmes règles que Supabase : potentiel_points / potentiel_niveau) */
+function potDetail(x) {
+  const sect = ["Boucherie", "Poissonnerie", "Boulangerie", "Laverie", "Pressing"].includes(x.type) ? 20 : ["Pizzeria", "Restaurant"].includes(x.type) ? 15 : 0;
+  const h = x.heures, hor = h != null && h > 60 ? 10 : 0, tot = sect + hor;
+  return `Calcul automatique : secteur ${sect} pts + horaires ${hor} pts${h != null ? ` (${String(h).replace(".", ",")} h/sem.)` : " (horaires inconnus)"} = ${tot}/40 → ${tot >= 30 ? "Élevé" : tot >= 20 ? "Moyen" : "Faible"}. Seuils : Élevé ≥ 30, Moyen ≥ 20.`;
+}
+function triBadge(t) { if (t === "À examiner") return ""; const cls = { "À examiner": "b-amber", "Retenu": "b-sage", "Écarté": "b-grey", "Doublon": "b-red" }[t] || "b-grey"; return `<span class="badge ${cls}">${esc(t === "Doublon" ? "Connu" : t)}</span>`; }
+function rechBadge(s) { return `<span class="badge ${s === "Terminée" ? "b-sage" : s === "En cours" ? "b-amber" : "b-grey"}">${esc(s || "—")}</span>`; }
+
+function toast(msg, icon = "check_circle") {
+  const t = document.createElement("div"); t.className = "toast"; t.innerHTML = ms(icon) + `<span>${esc(msg)}</span>`;
+  $("#toasts").appendChild(t); setTimeout(() => t.remove(), 3200);
+}
+
+/* ---------- Navigation ---------- */
+function go(view, id) {
+  ui.view = view; ui.menu = null;
+  if (view === "fiche") ui.ficheId = id ?? ui.ficheId ?? (S.commerces.find(c => c.commercialId === ME_ID) || S.commerces[0]).id;
+  const h = view === "dashboard" ? "tableau-de-bord" : view === "fiche" ? "fiche-" + ui.ficheId : view;
+  try { history.replaceState(null, "", "#" + h); } catch (e) {}
+  render(); window.scrollTo(0, 0);
+}
+function fromHash() {
+  const h = (location.hash || "").slice(1);
+  if (h.startsWith("fiche-") && commerce(+h.slice(6))) { ui.view = "fiche"; ui.ficheId = +h.slice(6); }
+  else if (["recherches", "prospects"].includes(h)) ui.view = h;
+  else ui.view = "dashboard";
+}
+function renderNav() {
+  const aExaminer = S.recherches.filter(r => S.candidats.some(x => x.rechercheId === r.id && x.tri === "À examiner")).length;
+  const actifs = S.commerces.filter(c => !stopped(c)).length;
+  const items = [["dashboard", "space_dashboard", "Tableau de bord", ""], ["recherches", "travel_explore", "Recherche", aExaminer], ["prospects", "storefront", "Prospects", actifs], ["fiche", "assignment_ind", "Fiche prospect", ""]];
+  $("#nav").innerHTML = items.map(([v, ic, l, n]) => `<a href="#" data-go="${v}" ${ui.view === v ? 'aria-current="page"' : ""}>${ms(ic)}<span>${l}</span>${n !== "" ? `<span class="count">${n}</span>` : ""}</a>`).join("");
+}
+
+/* ---------- Écran : tableau de bord ---------- */
+function scopeData() {
+  const cs = S.commerces.filter(c => ui.scope === "zone" ? c.zone === ME.zone : true);
+  const ids = new Set(cs.map(c => c.id));
+  return { cs, is: S.interactions.filter(i => ids.has(i.commerceId)) };
+}
+function vbars(points, opts = {}) {
+  const W = 640, H = 220, L = 32, R = 8, T = 12, B = 30;
+  const max = Math.max(1, ...points.map(p => p.v));
+  const step = max <= 5 ? 1 : max <= 10 ? 2 : max <= 25 ? 5 : 10;
+  const top = Math.ceil(max / step) * step;
+  const y = v => T + (H - T - B) * (1 - v / top);
+  const bw = (W - L - R) / points.length, gap = Math.min(10, bw * 0.3);
+  let g = "";
+  for (let v = 0; v <= top; v += step) g += `<line class="gl" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  points.forEach((p, i) => {
+    const x = L + i * bw + gap / 2, w = bw - gap, yy = y(p.v), h = (H - B) - yy, r = Math.min(4, w / 2, h);
+    const path = h > 0 ? `M${x},${H - B} V${yy + r} Q${x},${yy} ${x + r},${yy} H${x + w - r} Q${x + w},${yy} ${x + w},${yy + r} V${H - B} Z` : "";
+    g += `<g data-tip="${esc(p.tip)}"><rect class="hit" x="${L + i * bw}" y="${T}" width="${bw}" height="${H - T - B}"/>${path ? `<path class="b${p.cur ? " cur" : ""}" d="${path}"/>` : ""}</g>`;
+    if (p.label) g += `<text x="${x + w / 2}" y="${H - B + 18}" text-anchor="middle">${esc(p.label)}</text>`;
+  });
+  g += `<line class="bl" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>`;
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opts.aria || "")}">${g}</svg></div>`;
+}
+function hbars(rows, opts = {}) {
+  const max = Math.max(1, ...rows.map(r => r.v));
+  return `<div class="hbars">${rows.map(r => `<div class="hbar${r.sep ? " sep" : ""}"><span class="l" title="${esc(r.l)}">${esc(r.l)}</span><span class="track"><span class="fill${r.soft ? " soft" : ""}" style="display:block;width:${(r.v / max * 100).toFixed(1)}%" data-tip="${esc(r.tip || r.l + " : " + r.v)}"></span></span><span class="v">${r.v}</span></div>`).join("")}</div>`;
+}
+function weekStart(iso) { const d = d0(iso); const k = (d.getDay() + 6) % 7; d.setDate(d.getDate() - k); return d.toISOString().slice(0, 10); }
+
+function viewDashboard() {
+  const { cs, is } = scopeData();
+  const actifs = cs.filter(c => !stopped(c));
+  const eleves = actifs.filter(c => c.potentiel === "Élevé").length;
+  const fermes = ["Signé", "Pas intéressé"];
+  const B = relBuckets(actifs);
+  const retard = B.retard.length;
+  if (!ui.todoTab) ui.todoTab = ["jour", "retard", "semaine"].find(k => B[k].length) || "jour";
+  const rdvs = is.filter(i => i.rdv && i.rdv.slice(0, 10) >= TODAY && ["Planifié", "Confirmé"].includes(i.rdvStatut)).sort((a, b) => a.rdv.localeCompare(b.rdv));
+  const touches = new Set(is.map(i => i.commerceId));
+  const signes = cs.filter(c => c.statut === "Signé");
+  const moy = S.caMoyen || 2400;
+  const ca = signes.length * moy;
+  const yearStart = TODAY.slice(0, 4) + "-01-01";
+  const sigDate = c => { const s = interOf(c.id).find(i => i.resultat === "Signature"); return s ? s.date : null; };
+  const caAnnee = signes.filter(c => { const d = sigDate(c); return d && d >= yearStart; }).length * moy;
+
+  const pipe = ["Nouveau", "Contacté", "À rappeler", "RDV pris", "Signé"].map(s => ({ l: s, v: actifs.filter(c => c.statut === s).length }));
+  const sorties = ["Injoignable"].map((s, k) => ({ l: s, v: actifs.filter(c => c.statut === s).length, soft: true, sep: k === 0 }));
+
+  const from = ui.resFrom, to = ui.resTo;
+  const inRange = is.filter(i => i.date && (!from || i.date >= from) && (!to || i.date <= to));
+  const res = RESULTATS.map(r => ({ l: r, v: inRange.filter(i => i.resultat === r).length })).sort((a, b) => b.v - a.v);
+  const preset = (n) => from === (n ? addDays(TODAY, -n) : "") && to === (n ? TODAY : "");
+
+  const tabs = [["jour", "Aujourd'hui"], ["retard", "En retard"], ["semaine", "Cette semaine"]];
+  const rowRel = x => { const c = x.c, open = ui.panel && ui.panel.cid === c.id ? ui.panel.kind : null, act = nextAction(x.last);
+    const lateN = -x.dd, tier = x.dd >= 0 ? null : lateN <= 3 ? "soon" : lateN <= 14 ? "late" : "stale";
+    const st = tier || (x.dd === 0 ? "today" : ""), lbl = x.dd < 0 ? `J+${lateN}` : x.dd === 0 ? "Auj." : fmtShort(x.d);
+    const tierK = { soon: "À rattraper", late: "En retard", stale: "À requalifier" }[tier];
+    const when = tier === "stale" ? `prévue le ${fmt(x.d)} · <b>plus de 14 jours : l'action n'a plus de sens telle quelle</b>` : x.dd < 0 ? `prévue le ${fmt(x.d)} · <b>${lateN} jour${lateN > 1 ? "s" : ""} de retard</b>` : x.dd === 0 ? `<b>à faire aujourd'hui</b>${x.last && x.last.relanceOrig ? ` · initialement prévue le ${fmt(x.last.relanceOrig)}` : ""}` : `prévue le ${fmtLong(x.d).toLowerCase()}`;
+    return `<li class="trow ${st}"><span class="when ${st}">${lbl}</span>
+      <span class="t"><button class="ens" data-open="${c.id}">${esc(c.enseigne)}</button><small>${esc(c.ville)} · <span class="num">${esc(c.tel || "pas de téléphone")}</span></small></span>
+      <button type="button" class="act ${st}" data-act="${c.id}" title="Saisir le résultat dans la fiche">${ms(act.ic)}<div><span class="act-k">${x.dd < 0 ? tierK : x.dd === 0 ? "Action du jour" : "Action prévue"}</span><b>${esc(act.l)}</b><small>${when}</small></div><span class="act-go">Saisir le résultat ${ms("chevron_right")}</span></button>
+      <span class="acts"><span class="grow"></span>
+        ${tier === "stale" ? `<button class="btn sm secondary" data-today="${c.id}" type="button">${ms("call")}Rappeler aujourd'hui</button><button class="btn sm" data-stale="${c.id}" type="button">${ms("phone_disabled")}Classer injoignable</button>` : `${x.dd !== 0 ? `<button class="btn sm secondary" data-today="${c.id}" type="button">${ms("today")}À faire</button>` : ""}
+        <button class="btn sm" data-panel="${c.id}:report" type="button" aria-expanded="${open === "report"}">${ms("update")}Reporter</button>`}</span>
+      ${open === "report" ? `<div class="panel"><span class="muted">Reporter à :</span>${[["Demain", 1], ["Dans 1 semaine", 7], ["Dans 1 mois", 30]].map(([l, n]) => `<button class="btn sm" data-postpone="${c.id}:${n}" type="button">${l}</button>`).join("")}</div>` : ""}
+    </li>`; };
+  const list = B[ui.todoTab] || [];
+  const empty = { jour: "Aucune relance prévue aujourd'hui.", retard: "Aucune relance en retard.", semaine: "Aucune relance prévue dans les 7 prochains jours." }[ui.todoTab];
+  const todoBody = `<ul class="todo-list">${list.map(rowRel).join("") || `<li class="muted" style="list-style:none;padding:12px 0">${empty}</li>`}</ul>`;
+  const todoRdv = rdvs.map(i => { const c = commerce(i.commerceId); return `<li><span class="when rdv">${fmtShort(i.rdv)}</span><span class="t"><button class="ens" data-open="${c.id}">${esc(c.enseigne)}</button><small>${fmtHeure(i.rdv)} · ${esc(i.rdvObjet || "Rendez-vous")} · ${esc(c.ville)}</small></span><button class="btn sm secondary" data-open="${c.id}" type="button">Préparer</button></li>`; }).join("");
+  const eur = n => n.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €";
+
+  return `
+  <div class="page-head">
+    <div><h1>Tableau de bord${S.demo ? ` <span class="chip">Données d'illustration</span>` : ""}</h1><p>${ui.scope === "zone" ? `Zone ${esc(ME.zone)} · ${cs.length} commerces suivis` : `Toute l'équipe · ${cs.length} commerces, 5 zones`} · données au ${fmt(TODAY)}</p></div>
+
+  </div>
+  <section class="kpis" aria-label="Indicateurs clés">
+    <div class="card kpi"><span class="lbl">${ms("storefront")}Portefeuille actif</span><span class="val">${actifs.length}</span><span class="sub">dont <b>${eleves}</b> à potentiel élevé</span></div>
+    <button type="button" class="card kpi kpi-link ${retard ? "alert" : ""}" data-todo="retard" data-scrollto="todo"><span class="lbl">${ms("schedule")}Relances en retard</span><span class="val">${retard}</span><span class="sub">${B.semaine.length} autres prévues sous 7 jours · voir la liste</span></button>
+    <div class="card kpi"><span class="lbl">${ms("event")}Rendez-vous à venir</span><span class="val">${rdvs.length}</span><span class="sub">${rdvs[0] ? `prochain le ${fmtShort(rdvs[0].rdv)} à ${fmtHeure(rdvs[0].rdv)}` : "aucun planifié"}</span></div>
+    <div class="card kpi"><span class="lbl">${ms("handshake")}Taux de signature</span><span class="val">${pct(signes.length, touches.size)}<small> %</small></span><span class="sub">${signes.length} signés sur ${touches.size} commerces contactés</span></div>
+    <div class="card kpi ca"><span class="lbl">${ms("euro")}CA réalisé <span class="badge b-amber" style="height:20px;font-size:11px">Simulé</span></span><span class="val">${eur(caAnnee)}<small> HT</small></span>
+      <span class="sub">Année en cours</span></div>
+  </section>
+  <div class="dash">
+    <div class="col">
+      <section class="card" id="todo">
+        <div class="card-head"><h2>À traiter</h2><span class="hint">Ma liste d'appels, par priorité</span></div>
+        <div class="tabs" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" data-todo="${k}" aria-selected="${ui.todoTab === k}">${l}<span class="n ${k === "retard" && B[k].length ? "late" : ""}">${B[k].length}</span></button>`).join("")}</div>
+        <div class="card-body" style="padding-top:4px">${todoBody}</div>
+      </section>
+      ${rdvs.length ? `<section class="card"><div class="card-head"><h2>Rendez-vous à venir</h2><span class="hint">${rdvs.length}</span></div><div class="card-body todo"><ul>${todoRdv}</ul></div></section>` : ""}
+    </div>
+    <div class="col">
+      <section class="card">
+        <div class="card-head"><h2>Pipeline commercial</h2><span class="hint">Commerces par statut · hors opposition</span></div>
+        <div class="card-body">${hbars(pipe.concat(sorties).map(r => ({ ...r, tip: `<b>${r.l}</b>${r.v} commerce${r.v > 1 ? "s" : ""} · ${pct(r.v, actifs.length)} % du portefeuille` })))}</div>
+      </section>
+      <p class="note">${ms("info")}CA simulé : la base ne stocke pas encore de montant de contrat. Le calcul multiplie les commerces signés cette année par un montant moyen de contrat ; il deviendra réel avec un champ « montant » dans la table commerce.</p>
+    </div>
+  </div>`;
+}
+
+/* ---------- Écran : prospects ---------- */
+function filtered() {
+  const f = ui.f, q = f.q.trim().toLowerCase();
+  return S.commerces.filter(c => {
+    if (!f.showStop && stopped(c)) return false;
+    if (f.statut && c.statut !== f.statut) return false;
+    if (f.type && c.type !== f.type) return false;
+    if (f.potentiel === "_none" ? c.potentiel : f.potentiel && c.potentiel !== f.potentiel) return false;
+    if (f.incomplete && !incomplete(c)) return false;
+    if (q && ![c.enseigne, c.contact, c.tel, c.ville, c.code].some(v => (v || "").toLowerCase().includes(q))) return false;
+    return true;
+  }).sort((a, b) => b.id - a.id); /* plus récents en premier */
+}
+function viewProspects() {
+  const list = filtered(), total = S.commerces.length, stopN = S.commerces.filter(stopped).length;
+  const pages = Math.max(1, Math.ceil(list.length / ui.per));
+  if (ui.page > pages) ui.page = pages;
+  const rows = list.slice((ui.page - 1) * ui.per, ui.page * ui.per);
+  const allSel = rows.length && rows.every(c => ui.sel.has(c.id));
+  const pgs = []; for (let p = 1; p <= pages; p++) if (p <= 3 || p === pages || Math.abs(p - ui.page) <= 1) pgs.push(p); else if (pgs[pgs.length - 1] !== "…") pgs.push("…");
+  const f = ui.f;
+  const opt = (arr, v, all) => `<option value="">${all}</option>` + arr.map(x => `<option ${x === v ? "selected" : ""}>${esc(x)}</option>`).join("");
+  return `
+  <div class="page-head"><div><h1>Tableau des prospects <span class="chip">${total} commerces enregistrés</span></h1><p>${fmtLong(TODAY)} · Portefeuille d'audit de conformité et rénovation des locaux de proximité</p></div></div>
+  <section class="card">
+    <div class="filters">
+      <label class="search"><span class="ms" aria-hidden="true">search</span><input class="input soft" id="f-q" type="search" placeholder="Rechercher par nom, gérant, téléphone…" value="${esc(f.q)}" aria-label="Rechercher"></label>
+      <div class="row">
+        <select class="input soft" id="f-statut" aria-label="Statut">${opt(STATUTS, f.statut, "Tous les statuts")}</select>
+        <select class="input soft" id="f-type" aria-label="Type">${opt(TYPES, f.type, "Tous les types")}</select>
+      </div>
+      <div class="row2">
+        <label class="potsel">Potentiel : <select class="input soft" id="f-pot"><option value="">Tous potentiels</option>${POTENTIELS.map(p => `<option ${p === f.potentiel ? "selected" : ""}>${p}</option>`).join("")}<option value="_none" ${f.potentiel === "_none" ? "selected" : ""}>Non évalué</option></select></label>
+        <label class="check"><input type="checkbox" id="f-inc" ${f.incomplete ? "checked" : ""}>Fiches incomplètes uniquement</label>
+        <label class="switch push"><input type="checkbox" id="f-stop" ${f.showStop ? "checked" : ""}>Afficher les commerces à ne plus contacter (${stopN})</label>
+      </div>
+    </div>
+  </section>
+  <section class="card" style="overflow:visible">
+    ${ui.sel.size ? `<div class="bulk"><span>${ui.sel.size} sélectionné${ui.sel.size > 1 ? "s" : ""}</span><select class="input" id="bulk-statut" aria-label="Nouveau statut"><option value="">Changer le statut…</option>${STATUTS.map(s => `<option>${s}</option>`).join("")}</select><button class="btn sm secondary" data-action="bulk-apply" type="button">Appliquer</button><button class="btn sm" data-action="bulk-clear" type="button">Désélectionner</button></div>` : ""}
+    <div class="table-wrap" style="overflow-x:auto;overflow-y:visible">
+      <table class="grid">
+        <thead><tr><th style="width:44px"><input type="checkbox" class="cb" data-selall ${allSel ? "checked" : ""} aria-label="Tout sélectionner" style="width:18px;height:18px;accent-color:var(--primary)"></th><th>Enseigne</th><th>Type</th><th>Ville</th><th>Contact (Gérant)</th><th>Téléphone</th><th>Potentiel</th><th>Statut</th><th class="r">Actions</th></tr></thead>
+        <tbody>${rows.map(c => `<tr class="${ui.sel.has(c.id) ? "sel" : ""}">
+          <td><input type="checkbox" data-sel="${c.id}" ${ui.sel.has(c.id) ? "checked" : ""} aria-label="Sélectionner ${esc(c.enseigne)}" style="width:18px;height:18px;accent-color:var(--primary)"></td>
+          <td><button class="ens" data-open="${c.id}">${esc(c.enseigne)}</button>${incomplete(c) ? ` <span class="pill-inc" title="Gérant, e-mail, téléphone ou potentiel à renseigner">à compléter</span>` : ""}${stopped(c) ? ` <span class="badge b-red">Ne plus contacter</span>` : ""}</td>
+          <td>${esc(c.type)}</td><td>${esc(c.ville)}</td>
+          <td>${c.contact ? esc(c.contact) : `<span class="ital">Non renseigné</span>`}</td>
+          <td class="num">${c.tel ? esc(c.tel) : `<span class="ital">—</span>`}</td>
+          <td>${potBadge(c.potentiel)}</td><td>${stopped(c) ? `<span class="badge b-red">Opposition</span>` : statutBadge(c.statut)}</td>
+          <td class="r"><span class="rel"><button class="iconbtn" data-menu="${c.id}" aria-haspopup="true" aria-expanded="${ui.menu === c.id}" aria-label="Actions">${ms("more_vert")}</button>${ui.menu === c.id ? `<span class="menu" role="menu"><button role="menuitem" data-open="${c.id}">${ms("open_in_new")}Ouvrir la fiche</button><button role="menuitem" data-edit="${c.id}">${ms("edit")}Modifier</button><button role="menuitem" class="del" data-del="${c.id}">${ms("delete")}Supprimer</button></span>` : ""}</span></td>
+        </tr>`).join("") || `<tr><td colspan="9"><div class="empty">Aucun commerce ne correspond à ces filtres. <button class="linkbtn" style="color:var(--link)" data-action="clear-filters">Réinitialiser les filtres</button></div></td></tr>`}</tbody>
+      </table>
+    </div>
+    <div class="pager">
+      <span class="info">Affichage de <b>${rows.length}</b> sur <b>${list.length}</b> prospects</span>
+      <button class="pg" data-page="${ui.page - 1}" ${ui.page === 1 ? "disabled" : ""}>← Précédent</button>
+      ${pgs.map(p => p === "…" ? `<span class="faint">…</span>` : `<button class="pg" data-page="${p}" ${p === ui.page ? 'aria-current="page"' : ""}>${p}</button>`).join("")}
+      <button class="pg" data-page="${ui.page + 1}" ${ui.page === pages ? "disabled" : ""}>Suivant →</button>
+      <select class="input" id="per" style="width:auto" aria-label="Lignes par page">${[20, 50, 100].map(n => `<option value="${n}" ${n === ui.per ? "selected" : ""}>${n} par page</option>`).join("")}</select>
+    </div>
+  </section>`;
+}
+
+/* ---------- Écran : fiche prospect ---------- */
+function viewFiche() {
+  const c = commerce(ui.ficheId);
+  if (!c) return `<div class="card empty">Ce commerce n'existe plus. <button class="btn sm" data-go="prospects">Retour aux prospects</button></div>`;
+  const hist = interOf(c.id), rel = lastRelance(c), rdv = nextRdv(c);
+  const relLate = rel && rel < TODAY && !["Signé", "Pas intéressé"].includes(c.statut);
+  return `
+  <div class="crumbs"><button data-go="prospects">Prospects</button>${ms("chevron_right")}<span>${esc(c.enseigne)}</span></div>
+  <div class="page-head">
+    <div><h1>${esc(c.enseigne)} ${statutBadge(c.statut)} <span class="temp t-${temp(c).k} tag" title="${esc(potDetail(c))}"><i></i>${TEMP_LABEL[temp(c).k]}</span></h1><p>${[c.type, [c.adresse, c.cp, c.ville].filter(Boolean).join(" "), c.zone && "zone " + c.zone].filter(Boolean).map(esc).join(" · ")}</p></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" data-edit="${c.id}" type="button">${ms("edit")}Modifier</button>
+      <button class="btn secondary" data-action="mail" type="button" ${stopped(c) || !c.email ? "disabled" : ""}>${ms("auto_awesome")}Préparer un e-mail</button>
+    </div>
+  </div>
+  ${stopped(c) ? `<div class="banner">${ms("block")}Ce commerçant a demandé à ne plus être sollicité le ${fmt(c.opposition)}. Aucune action commerciale n'est possible.</div>` : ""}
+  ${rdv ? `<div class="banner" style="border-color:var(--line);background:var(--sage);color:var(--sage-ink)">${ms("event")}<span>RDV le <b>${fmtLong(rdv.rdv)}</b> à ${fmtHeure(rdv.rdv)}${rdv.rdvObjet ? ` · ${esc(rdv.rdvObjet)}` : ""} · ${esc(rdv.rdvStatut || "")}</span></div>` : ""}
+  ${incomplete(c) && !stopped(c) ? `<div class="banner" style="border-color:var(--line);background:var(--sage);color:var(--ink-2)">${ms("info")}Fiche à compléter : ${[!c.contact && "gérant", !c.tel && "téléphone", !c.email && "e-mail", !c.potentiel && "potentiel"].filter(Boolean).join(", ")} à renseigner.</div>` : ""}
+  <div class="fiche">
+    <div class="col">
+      <section class="card">
+        <div class="card-head"><h2>Local commercial</h2></div>
+        <div class="card-body"><dl class="kv">
+          <div><dt>Activité</dt><dd>${esc(c.type)}</dd></div>
+          <div><dt>Zone commerciale</dt><dd>${esc(c.zone || "—")}</dd></div>
+          <div><dt>Catégorie</dt><dd>${esc(c.categorie || "—")}</dd></div>
+          <div><dt>Adresse</dt><dd>${esc(c.adresse || "—")}<br>${esc(c.cp || "")} ${esc(c.ville)}</dd></div>
+          <div><dt>Horaires</dt><dd>${esc(c.horaires || "—")}</dd></div>
+        </dl></div>
+      </section>
+      <section class="card">
+        <div class="card-head"><h2>Historique des échanges</h2><span class="hint">${hist.length} échange${hist.length > 1 ? "s" : ""}</span></div>
+        <div class="card-body">${hist.length ? `<ul class="tl">${hist.map(i => `<li><span class="dot">${ms(CANAL_ICON[i.canal] || "chat")}</span><div>
+          <div class="head"><b>${esc(i.canal)}</b><span class="muted">${fmt(i.date)}</span><span class="badge ${["RDV pris", "Signature", "Intéressé"].includes(i.resultat) ? "b-sage" : i.resultat === "À rappeler" ? "b-amber" : "b-grey"}">${esc(i.resultat)}</span></div>
+          ${i.commentaire ? `<p>${esc(i.commentaire)}</p>` : ""}
+          <div class="meta"><span>${ms("person", ' style="font-size:16px"')} ${esc(comName(i.commercialId))}</span>${i.rdv ? `<span>${ms("event", ' style="font-size:16px"')} RDV ${fmt(i.rdv)} à ${fmtHeure(i.rdv)} · ${esc(i.rdvObjet || "")} · ${esc(i.rdvStatut || "")}</span>` : ""}${i.relance ? `<span>${ms("schedule", ' style="font-size:16px"')} Relance prévue le ${fmt(i.relance)}</span>` : ""}</div>
+        </div></li>`).join("")}</ul>` : `<p class="muted">Aucun échange enregistré. Le premier contact se saisit ci-dessous.</p>`}</div>
+      </section>
+      ${stopped(c) ? "" : `<section class="card">
+        <div class="card-head"><h2>Nouvel échange</h2></div>
+        <form class="card-body" id="f-inter" style="display:flex;flex-direction:column;gap:16px">
+          <div class="form-grid">
+            <label class="field"><span>Date</span><input class="input" type="date" id="i-date" value="${TODAY}" required></label>
+            <label class="field"><span>Canal</span><select class="input" id="i-canal">${CANAUX.map(x => `<option>${x}</option>`).join("")}</select></label>
+            <label class="field"><span>Résultat</span><select class="input" id="i-res">${RESULTATS.map(x => `<option>${x}</option>`).join("")}</select></label>
+            <label class="field" id="rap-f" hidden><span>Date convenue avec le gérant <small class="muted">· facultatif</small></span><input class="input" type="date" id="i-rap" min="${TODAY}"></label>
+            <div class="field"><span>Prochaine relance <small class="muted">· automatique</small></span><div id="i-auto" class="input" style="display:flex;align-items:center;background:var(--sage);border-color:transparent;color:var(--ink-2)">—</div></div>
+            <label class="field" id="rdv-1" hidden><span>Rendez-vous le</span><input class="input" type="datetime-local" id="i-rdv"></label>
+            <label class="field" id="rdv-2" hidden><span>Objet du RDV</span><select class="input" id="i-rdvobj"><option>Diagnostic</option><option>Présentation devis</option><option>Signature</option></select></label>
+            <label class="field full"><span>Commentaire</span><textarea class="input" id="i-com" placeholder="Ce qui a été dit, objections, prochaine étape…"></textarea></label>
+          </div>
+          <div class="form-actions"><button class="btn primary" type="submit">${ms("add")}Enregistrer l'échange</button></div>
+        </form>
+      </section>`}
+    </div>
+    <div class="side-stack">
+      <section class="card">
+        <div class="card-head"><h3>Contact gérant</h3><button class="btn sm" data-edit="${c.id}" type="button">Modifier</button></div>
+        <div class="card-body">
+          <div class="contact-line">${ms("person")}<span>${c.contact ? esc(c.contact) : `<span class="ital">Non renseigné</span>`}</span></div>
+          <div class="contact-line">${ms("call")}<span class="num">${c.tel ? esc(c.tel) : `<span class="ital">Non renseigné</span>`}</span></div>
+          <div class="contact-line">${ms("mail")}<span>${c.email ? esc(c.email) : `<span class="ital">Non renseigné</span>`}</span></div>
+          <div class="contact-line">${ms("language")}<span>${c.site ? esc(c.site) : `<span class="ital">Pas de site</span>`}</span></div>
+        </div>
+      </section>
+      ${stopped(c) ? "" : `      <section class="card card-pad" style="display:flex;flex-direction:column;gap:8px">
+        <b>Opposition RGPD</b>
+        <span class="muted" style="font-size:13px">Le commerçant demande à ne plus être sollicité : la fiche est conservée, toute action est bloquée.</span>
+        <button class="btn danger sm" data-action="oppose" type="button" style="align-self:flex-start">${ms("block")}Enregistrer une opposition</button>
+      </section>`}
+    </div>
+  </div>`;
+}
+
+/* ---------- Écran : recherches ---------- */
+function temp(x) {
+  const m = { "Élevé": "chaud", "Moyen": "tiede", "Faible": "froid" }[x.potentiel];
+  return { k: m || "eval", est: false };
+}
+const TEMP_LABEL = { chaud: "Potentiel élevé", tiede: "Potentiel moyen", froid: "Potentiel faible", eval: "Potentiel à évaluer" };
+const TRI_KEY = { "À examiner": "exam", "Retenu": "retenu", "Écarté": "ecarte", "Doublon": "doublon" };
+function hash01(s, salt) { let h = 2166136261 ^ salt; for (const ch of String(s)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return ((h >>> 0) % 100000) / 100000; }
+function pinXY(x) { const k = x.placeId || "c" + x.id, ang = hash01(k, 7) * Math.PI * 2, r = Math.sqrt(hash01(k, 13)) * 0.9 * 230; return [300 + Math.cos(ang) * r, 320 + Math.sin(ang) * r]; }
+function candCommerce(x) { if (x.commerceId && commerce(x.commerceId)) return commerce(x.commerceId); return S.commerces.find(c => c.enseigne === x.enseigne) || null; }
+function syncSearchForm(r) { ui.rq = `${r.ville || ""}${r.rayon ? `, ${r.rayon} km` : ""}`; ui.rTypes = [...(r.types || [])]; ui.rRayon = r.rayon || 5; }
+
+function viewRecherches() {
+  const rs = [...S.recherches].sort((a, b) => b.date.localeCompare(a.date));
+  if (!ui.rechId || !rs.some(r => r.id === ui.rechId)) { const withRes = rs.find(r => S.candidats.some(x => x.rechercheId === r.id)); ui.rechId = (withRes || rs[0] || {}).id || null; }
+  const r = S.recherches.find(x => x.id === ui.rechId);
+  if (r && ui.rq == null) syncSearchForm(r);
+  const ordre = { "À examiner": 0, "Retenu": 1, "Doublon": 2, "Écarté": 3 }, tOrd = { chaud: 0, tiede: 1, froid: 2, eval: 3 };
+  const all = r ? S.candidats.filter(x => x.rechercheId === r.id).sort((a, b) => ordre[a.tri] - ordre[b.tri] || tOrd[temp(a).k] - tOrd[temp(b).k] || (b.note || 0) - (a.note || 0)) : [];
+  const shown = all.filter(x => !ui.triFilter || x.tri === ui.triFilter);
+  if (!shown.some(x => x.id === ui.selCand)) ui.selCand = shown[0] ? shown[0].id : null;
+  const counts = {}; all.forEach(x => counts[x.tri] = (counts[x.tri] || 0) + 1);
+  const z = ui.zoom || 1, P = v => 300 + (v - 300) * z, Q = v => 320 + (v - 320) * z;
+  const color = x => ui.mapMode === "statut" ? "st-" + TRI_KEY[x.tri] : (x.tri === "Retenu" ? "st-retenu" : "t-" + temp(x).k);
+  const sel = all.find(x => x.id === ui.selCand);
+
+  const card = x => {
+    const tp = temp(x), com = candCommerce(x), on = x.id === ui.selCand, inTour = ui.tour.has(x.id);
+    const q = encodeURIComponent([x.enseigne, x.adresse, x.cp, x.ville].filter(Boolean).join(" "));
+    return `<article class="rcard${on ? " on" : ""}" id="cand-${x.id}" data-pin="${x.id}">
+      <div class="rc-head"><h3>${esc(x.enseigne)}</h3><span class="temp t-${tp.k}" title="${esc(potDetail(x))}"><i></i>${TEMP_LABEL[tp.k]}</span></div>
+      <div class="rc-sub">${esc(x.type)} <span>•</span> ${triBadge(x.tri)}</div>
+      <div class="rc-line">${ms("location_on")}<span>${esc(x.adresse || "Adresse inconnue")}, ${esc(x.cp || "")} ${esc(x.ville)}</span></div>
+      <div class="rc-line muted"><span class="num">${esc(x.tel || "—")}</span>${x.site ? ` <span>•</span> <span class="site">${esc(x.site.replace(/^https?:\/\/(www\.)?/, ""))}</span>` : ""}</div>
+      <div class="rc-pot"><span class="muted">Potentiel :</span>${POTENTIELS.map(p => `<button type="button" class="potb${x.potentiel === p ? " on p-" + temp({ potentiel: p }).k : ""}" data-pot="${x.id}:${p}" aria-pressed="${x.potentiel === p}">${p}</button>`).join("")}</div>
+      ${x.horaires ? `<div class="rc-line faint">${ms("schedule")}<span>${esc(x.horaires)}</span></div>` : ""}
+      ${x.tri === "Doublon" ? knownBox(x) : ""}
+      ${x.tri === "Écarté" && x.motif ? `<div class="rc-line faint">Écarté : ${esc(x.motif)}</div>` : ""}
+      <div class="rc-acts">
+        ${x.tel ? `<button class="btn sm" data-copy="${esc(x.tel)}" type="button">${ms("call")}Appeler</button>` : ""}
+        <a class="btn sm" href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">${ms("map")}Itinéraire</a>
+        <button class="btn sm${inTour ? " secondary" : ""}" data-tour="${x.id}" type="button" aria-pressed="${inTour}">${ms(inTour ? "check" : "add")}${inTour ? "Dans la tournée" : "Tournée"}</button>
+        <span class="rc-main">${x.tri === "À examiner" ? `<button class="btn sm" data-drop="${x.id}" type="button">Écarter</button><button class="btn sm" data-known="${x.id}" type="button">Connu</button><button class="btn sm primary" data-keep="${x.id}" type="button">${ms("add_business")}Retenir</button>`
+          : x.tri === "Retenu" && com ? `<button class="btn sm primary" data-open="${com.id}" type="button">Ouvrir la fiche ${ms("chevron_right")}</button>`
+          : x.tri === "Écarté" ? `<button class="btn sm" data-undo="${x.id}" type="button">Remettre à examiner</button>`
+          : x.tri === "Doublon" && com ? `<button class="btn sm secondary" data-open="${com.id}" type="button">Voir le prospect</button>` : x.tri === "Doublon" ? `<button class="btn sm" data-undo="${x.id}" type="button">Remettre à examiner</button>` : ""}</span>
+      </div>
+    </article>`;
+  };
+
+  const pins = shown.map(x => { const [px, py] = pinXY(x); return { x, px: P(px), py: Q(py) }; });
+  const selPin = pins.find(p => p.x.id === ui.selCand);
+  const legend = ui.mapMode === "statut"
+    ? [["st-exam", "À examiner"], ["st-retenu", "Retenu"], ["st-doublon", "Connu"], ["st-ecarte", "Écarté"]]
+    : [["t-chaud", "Élevé"], ["t-tiede", "Moyen"], ["t-froid", "Faible"], ["t-eval", "À évaluer"], ["st-retenu", "Retenu"]];
+  const histOpt = rs.map(x => `<option value="${x.id}" ${x.id === ui.rechId ? "selected" : ""}>${esc(x.requete || x.ville)} · ${fmt(x.date)}</option>`).join("");
+
+  return `
+  <div class="page-head">
+    <div><h1>Recherche &amp; résultats</h1><p>Ciblage géolocalisé des commerces de proximité sur Google Maps, qualification immédiate et ajout au portefeuille.</p></div>
+    <label class="field" style="min-width:260px"><span>Historique des recherches</span><select class="input" id="r-hist">${histOpt}</select></label>
+  </div>
+  <section class="card sbar">
+    <div class="sbar-row">
+      <label class="search grow"><span class="ms" aria-hidden="true">search</span><input class="input" id="r-q" placeholder="Ville, rayon (ex. Lille, 10 km)" value="${esc(ui.rq || "")}" aria-label="Ville et rayon"></label>
+      <span class="muted">Source :</span><span class="src">${ms("map")}Google Maps</span>
+      <button class="btn primary lg" data-action="launch" type="button" ${ui.searching ? "disabled" : ""}>${ui.searching ? ms("hourglass_top") + "Recherche en cours…" : ms("search") + "Lancer la recherche"}</button>
+    </div>
+    <div class="sbar-row sep">
+      <span class="muted lbl-w">Activités cibles :</span>
+      <div class="chips">${TYPES.map(ty => { const on = (ui.rTypes || []).includes(ty); return `<button type="button" class="chipt${on ? " on" : ""}" data-chip="${ty}" aria-pressed="${on}">${esc(ty)}${on ? ms("close") : ""}</button>`; }).join("")}</div>
+    </div>
+    <div class="sbar-row">
+      <span class="muted lbl-w">Rayon d'action :</span>
+      <select class="input" id="r-rayon" style="width:auto">${[1, 2, 3, 5, 10, 20].map(n => `<option value="${n}" ${+ui.rRayon === n ? "selected" : ""}>${n} km autour de ${esc((ui.rq || "").split(",")[0] || "la ville")}</option>`).join("")}</select>
+    </div>
+  </section>
+  ${r && r.statut === "Erreur" ? `<div class="banner">${ms("error")}<span style="flex:1">La recherche a échoué : ${esc(r.commentaire || "erreur inconnue")}</span><button class="btn sm danger" data-action="retry" type="button">Relancer</button></div>` : ""}
+  <div class="rhead">
+    <h2>${all.length} commerce${all.length > 1 ? "s" : ""} trouvé${all.length > 1 ? "s" : ""}</h2>
+    ${r ? `<span class="muted">${fmt(r.date)} · ${r.commercialId ? esc(comName(r.commercialId)) : "automatisme n8n"}</span>${rechBadge(r.statut)}` : ""}
+    <span class="grow"></span>
+    <div class="tri-tabs" role="group" aria-label="Filtrer les résultats">${[["", "Tous"], ["Retenu", "Retenus"], ["Écarté", "Écartés"], ["Doublon", "Connus"]].map(([k, l]) => `<button type="button" data-tri="${k}" aria-pressed="${ui.triFilter === k}">${l} · ${k ? counts[k] || 0 : all.length}</button>`).join("")}</div>
+    ${ui.tour.size ? `<span class="badge b-sage">${ms("route")}Tournée : ${ui.tour.size}</span>` : ""}
+  </div>
+  <div class="rgrid">
+    <div class="rlist2">${shown.map(card).join("") || `<div class="card empty">${r && r.statut === "En cours" ? "Recherche en cours : n8n interroge Google Maps, les commerces trouvés apparaîtront ici." : r && r.statut === "Erreur" ? "Aucun résultat : la recherche a échoué." : "Aucun commerce dans cette catégorie."}</div>`}</div>
+    <div class="map card">
+      <svg viewBox="0 0 600 640" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Plan schématique des commerces trouvés">
+        <rect class="m-land" x="0" y="0" width="600" height="640"/>
+        <g transform="translate(300 320) scale(${z}) translate(-300 -320)">
+          <ellipse class="m-park" cx="490" cy="150" rx="120" ry="90"/>
+          <ellipse class="m-park" cx="110" cy="560" rx="90" ry="60"/>
+          <path class="m-road" d="M-20 170 L620 300"/><path class="m-road" d="M430 -20 L180 660"/><path class="m-road thin" d="M-20 470 L620 420"/><path class="m-road thin" d="M90 -20 L250 660"/>
+          <path class="m-water" d="M300 -20 C260 120 330 210 290 330 S250 520 300 660"/>
+          <circle class="m-radius" cx="300" cy="320" r="235"/>
+          <text class="m-label" x="300" y="${320 - 248}" text-anchor="middle">${esc((r && r.ville || "").toUpperCase())} · ${r && r.rayon ? r.rayon + " KM" : ""}</text>
+        </g>
+        ${pins.map(p => `<g class="pin ${color(p.x)}${p.x.id === ui.selCand ? " sel" : ""}" data-pin="${p.x.id}" transform="translate(${p.px.toFixed(1)} ${p.py.toFixed(1)})" tabindex="0" role="button" aria-label="${esc(p.x.enseigne)}">${p.x.id === ui.selCand ? `<circle class="halo" r="26"/>` : ""}<circle class="dot" r="${p.x.id === ui.selCand ? 12 : 9}"/><circle class="core" r="3.2"/></g>`).join("")}
+      </svg>
+      <div class="m-toggle scope" role="group" aria-label="Couleur des points"><button type="button" data-mapmode="pot" aria-pressed="${ui.mapMode !== "statut"}">Potentiel</button><button type="button" data-mapmode="statut" aria-pressed="${ui.mapMode === "statut"}">Statut</button></div>
+      <div class="m-zoom"><button type="button" data-zoom="1" aria-label="Zoomer">${ms("add")}</button><button type="button" data-zoom="-1" aria-label="Dézoomer">${ms("remove")}</button></div>
+      ${sel && selPin ? `<div class="m-pop ${selPin.px > 300 ? "left" : "right"}" style="left:${(selPin.px / 6).toFixed(2)}%;top:${(selPin.py / 6.4).toFixed(2)}%">
+        ${temp(sel).k === "chaud" && sel.tri === "À examiner" ? `<span class="temp t-chaud tag">Potentiel élevé · prioritaire</span>` : triBadge(sel.tri)}
+        <b>${esc(sel.enseigne)}</b><small>${esc(sel.adresse || "")}, ${esc(sel.ville)}</small>
+        ${sel.tri === "À examiner" ? `<button class="btn sm primary" data-keep="${sel.id}" type="button">Retenir</button>` : candCommerce(sel) ? `<button class="btn sm primary" data-open="${candCommerce(sel).id}" type="button">Voir la fiche</button>` : ""}
+      </div>` : ""}
+      <div class="m-legend"><b>${ui.mapMode === "statut" ? "Statut du tri" : "Potentiel du commerce"}</b><div>${legend.map(([c, l]) => `<span><i class="${c}"></i>${l}</span>`).join("")}</div></div>
+      <span class="m-note">Plan schématique · positions indicatives</span>
+    </div>
+  </div>`;
+}
+
+/* ---------- Modales ---------- */
+function prospectForm(c) {
+  const v = k => esc(c ? c[k] || "" : "");
+  return `<form id="f-prospect" class="body">
+    <div class="form-grid">
+      <label class="field full"><span>Enseigne *</span><input class="input" id="p-enseigne" required value="${v("enseigne")}"></label>
+      <label class="field"><span>Type *</span><select class="input" id="p-type">${TYPES.map(t => `<option ${c && c.type === t ? "selected" : ""}>${t}</option>`).join("")}</select></label>
+      <label class="field"><span>Zone</span><select class="input" id="p-zone">${ZONES.map(z => `<option ${(c ? c.zone : ME.zone) === z ? "selected" : ""}>${z}</option>`).join("")}</select></label>
+      <label class="field"><span>Ville *</span><input class="input" id="p-ville" required value="${v("ville")}"></label>
+      <label class="field"><span>Code postal</span><input class="input" id="p-cp" inputmode="numeric" value="${v("cp")}"></label>
+      <label class="field"><span>Gérant</span><input class="input" id="p-contact" value="${v("contact")}"></label>
+      <label class="field"><span>Téléphone</span><input class="input" id="p-tel" value="${v("tel")}"></label>
+      <label class="field"><span>E-mail</span><input class="input" id="p-email" type="email" value="${v("email")}"></label>
+      <label class="field"><span>Potentiel</span><select class="input" id="p-pot"><option value="">Non évalué</option>${POTENTIELS.map(p => `<option ${c && c.potentiel === p ? "selected" : ""}>${p}</option>`).join("")}</select></label>
+    </div>
+  </form>`;
+}
+function renderModal() {
+  const m = ui.modal, root = $("#modal-root");
+  if (!m) { root.innerHTML = ""; return; }
+  let h = "", body = "", foot = "";
+  if (m.type === "prospect") {
+    const c = m.id ? commerce(m.id) : null;
+    h = c ? `Modifier ${esc(c.enseigne)}` : "Nouveau prospect";
+    body = prospectForm(c);
+    foot = `<button class="btn" data-close type="button">Annuler</button><button class="btn primary" type="submit" form="f-prospect">${c ? "Enregistrer" : "Créer la fiche"}</button>`;
+  } else if (m.type === "delete") {
+    const c = commerce(m.id); h = "Supprimer ce prospect ?";
+    body = `<div class="body"><p style="margin:0">La fiche <b>${esc(c.enseigne)}</b> et ses ${interOf(c.id).length} échanges seront supprimés.</p><p class="note" style="margin:0">${ms("info")}Si le commerçant refuse d'être sollicité, préférez « Enregistrer une opposition » : la fiche est conservée et bloquée.</p></div>`;
+    foot = `<button class="btn" data-close type="button">Annuler</button><button class="btn danger" data-action="confirm-delete" type="button">${ms("delete")}Supprimer</button>`;
+  } else if (m.type === "oppose") {
+    const c = commerce(ui.ficheId); h = "Enregistrer une opposition";
+    body = `<div class="body"><p style="margin:0"><b>${esc(c.enseigne)}</b> ne sera plus sollicité : statut gelé, saisie d'échanges et e-mails bloqués. La date du jour est enregistrée comme preuve.</p></div>`;
+    foot = `<button class="btn" data-close type="button">Annuler</button><button class="btn danger" data-action="confirm-oppose" type="button">${ms("block")}Confirmer l'opposition</button>`;
+  } else if (m.type === "retire") {
+    const cs = m.ids.map(commerce).filter(Boolean), one = cs.length === 1;
+    h = one ? `${esc(cs[0].enseigne)} n'est pas intéressé ?` : `${cs.length} prospects pas intéressés ?`;
+    body = `<div class="body"><p style="margin:0">${one ? "Ce prospect sort" : "Ces prospects sortent"} de la base : il disparaît de tous les écrans.</p><p class="note" style="margin:0">${ms("info")}La fiche et ses échanges restent dans Supabase avec le statut « Pas intéressé » : une future recherche le classera « Connu » au lieu de le reproposer.</p></div>`;
+    foot = `<button class="btn" data-close type="button">Annuler</button><button class="btn danger" data-action="confirm-retire" type="button">${ms("person_remove")}Sortir de la base</button>`;
+  } else if (m.type === "keep") {
+    const x = S.candidats.find(k => k.id === m.id), com = COMMERCIAUX.find(k => k.zone === x.zone);
+    const manque = [!x.type && "le type de commerce", !x.zone && "la zone"].filter(Boolean);
+    h = `Retenir ${esc(x.enseigne)} ?`;
+    body = `<div class="body"><p style="margin:0">Une fiche commerce sera créée dans Supabase${com ? `, attribuée à <b>${esc(com.prenom + " " + com.nom)}</b> (zone ${esc(x.zone)})` : ""}.</p><p class="note" style="margin:0">${ms("lock")}C'est définitif : un candidat retenu ne peut plus être écarté ni remis à examiner.</p>${manque.length ? `<p class="note" style="margin:0;color:#c2410c">${ms("error")}Manque ${manque.join(" et ")} : Supabase refusera.</p>` : ""}</div>`;
+    foot = `<button class="btn" data-close type="button">Annuler</button><button class="btn primary" data-action="confirm-keep" type="button" ${ui.busy ? "disabled" : ""}>${ms("add_business")}Retenir et créer la fiche</button>`;
+  } else if (m.type === "drop") {
+    const x = S.candidats.find(k => k.id === m.id); h = `Écarter ${esc(x.enseigne)}`;
+    body = `<div class="body"><label class="field"><span>Motif</span><select class="input" id="d-motif">${MOTIFS.map(t => `<option>${t}</option>`).join("")}</select></label></div>`;
+    foot = `<button class="btn" data-close type="button">Annuler</button><button class="btn primary" data-action="confirm-drop" type="button">Écarter</button>`;
+  } else if (m.type === "mail") {
+    const c = commerce(ui.ficheId);
+    h = "Brouillon d'e-mail";
+    body = `<div class="body"><div class="field"><span>À</span><div>${esc(c.email)}</div></div><label class="field"><span>Objet</span><input class="input" id="m-obj" value="Réduire la facture énergétique de ${esc(c.enseigne)}"></label><label class="field"><span>Message</span><textarea class="input" id="m-body" style="min-height:180px">Bonjour${c.contact ? " " + esc(c.contact.split(" ")[0]) : ""},
+
+Je suis ${esc(ME.prenom)} ${esc(ME.nom)}, conseillère Eco-Locaux sur la zone ${esc(ME.zone)}. Nous accompagnons les ${esc(c.type.toLowerCase())}s de ${esc(c.ville)} pour réduire leur consommation d'énergie sans travaux lourds.
+
+Seriez-vous disponible 20 minutes la semaine prochaine pour un pré-diagnostic gratuit ?
+
+Bien à vous,
+${esc(ME.prenom)} ${esc(ME.nom)}
+
+Pour ne plus recevoir nos messages, répondez STOP.</textarea></label><p class="note" style="margin:0">${ms("auto_awesome")}Dans l'application, ce brouillon est rédigé par l'IA via le workflow n8n « Création mail dans supabase », puis validé par le commercial avant envoi.</p></div>`;
+    foot = `<button class="btn" data-close type="button">Fermer</button><button class="btn primary" data-action="mail-validate" type="button">${ms("check")}Valider le brouillon</button>`;
+  }
+  root.innerHTML = `<div class="veil" data-veil><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mt"><header><h2 id="mt">${h}</h2><button class="iconbtn" data-close aria-label="Fermer">${ms("close")}</button></header>${body}<footer>${foot}</footer></div></div>`;
+  const first = root.querySelector("input, select, textarea"); if (first) first.focus();
+}
+
+/* ---------- Rendu ---------- */
+let REAL_S = null, DEMO_S = null;
+function demoS() {
+  if (!DEMO_S) { const r = RAW; RAW = Object.assign({}, r, DEMO_RAW); DEMO_S = seed(); RAW = r; DEMO_S.demo = true; }
+  return DEMO_S;
+}
+const onDemo = () => ui.view === "dashboard" && LIVE.on;
+function render() {
+  if (S !== DEMO_S) REAL_S = S;
+  S = REAL_S;
+  renderNav();
+  { const mz = $("#me-zone"); if (mz && ME) mz.textContent = `Commerciale · zone ${ME.zone}`; }
+  if (onDemo()) S = demoS();
+  $("#today-label").textContent = fmtLong(TODAY);
+  const v = { dashboard: viewDashboard, prospects: viewProspects, fiche: viewFiche, recherches: viewRecherches }[ui.view];
+  $("#view").innerHTML = v();
+  renderModal();
+  const res = $("#i-res"); if (res) { res.addEventListener("change", syncRdv); ["i-rdv", "i-date", "i-rap"].forEach(k => { const el = $("#" + k); if (el) el.addEventListener("change", syncRdv); }); syncRdv(); }
+  if (ui.prefill && res) {
+    const p = typeof ui.prefill === "string" ? { res: ui.prefill } : ui.prefill;
+    if (p.canal && $("#i-canal")) $("#i-canal").value = p.canal;
+    if (p.res) res.value = p.res;
+    syncRdv();
+    const form = $("#f-inter"); if (form) form.scrollIntoView({ block: "center" });
+    const focus = p.res === "RDV pris" ? $("#i-rdv") : $("#i-res"); if (focus) focus.focus();
+    if (p.label) toast(`${p.label} : indiquez le résultat puis enregistrez`, "edit_note");
+    ui.prefill = null;
+  }
+}
+function syncRdv() {
+  const res = $("#i-res").value, on = res === "RDV pris"; $("#rdv-1").hidden = !on; $("#rdv-2").hidden = !on;
+  const rf = $("#rap-f"); if (rf) rf.hidden = res !== "À rappeler";
+  const box = $("#i-auto"); if (!box) return;
+  const c = commerce(ui.ficheId), r = $("#i-rdv"), ar = autoRelance(c, res, ($("#i-date") && $("#i-date").value) || TODAY, r && r.value ? new Date(r.value).toISOString() : null);
+  box.textContent = ar.date ? `${ar.label} · ${ar.rule} · le ${fmt(ar.date)}` : ar.label;
+}
+/* Règles de relance (jours ouvrés) — le commercial ne saisit plus de date */
+function addOuvres(iso, n) { const d = new Date(iso.slice(0, 10) + "T12:00:00"); let k = 0; while (k < n) { d.setDate(d.getDate() + 1); const w = d.getDay(); if (w !== 0 && w !== 6) k++; } return d.toISOString().slice(0, 10); }
+function autoRelance(c, res, date, rdvIso) {
+  const base = (date || TODAY).slice(0, 10);
+  if (res === "Sans réponse") {
+    let k = 1; for (const i of interOf(c.id)) { if (i.resultat === "Sans réponse") k++; else break; }
+    if (k >= 5) return { date: addDays(base, 90), label: "Nouvel essai (injoignable)", rule: `${k}e sans réponse → J+90`, statut: "Injoignable" };
+    if (k >= 3) return { date: addOuvres(base, 5), label: "Visite sur place", rule: `${k}e sans réponse → J+5 ouvrés` };
+    return { date: addOuvres(base, 2), label: "Nouvelle tentative d'appel", rule: "J+2 ouvrés" };
+  }
+  if (res === "À rappeler") { const conv = $("#i-rap") && $("#i-rap").value; return conv ? { date: conv, label: "Rappel", rule: "date convenue avec le gérant" } : { date: addOuvres(base, 7), label: "Rappel", rule: "J+7 ouvrés" }; }
+  if (res === "Intéressé") return { date: addOuvres(base, 1), label: "Envoyer la présentation par e-mail", rule: "J+1 ouvré" };
+  if (res === "RDV pris") return rdvIso ? { date: addDays(rdvIso.slice(0, 10), -1), label: "Confirmer le RDV par e-mail", rule: "la veille du RDV" } : { date: null, label: "Indiquez la date du RDV : confirmation par e-mail la veille" };
+  if (res === "Signature") return { date: null, label: "Aucune : commerce signé" };
+  if (res === "Pas intéressé") return { date: null, label: "Aucune : le prospect sort de la base" };
+  return { date: null, label: "—" };
+}
+
+/* ---------- Interactions ---------- */
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-go],[data-open],[data-menu],[data-edit],[data-del],[data-page],[data-sel],[data-selall],[data-scope],[data-rech],[data-tri],[data-keep],[data-drop],[data-known],[data-undo],[data-relance],[data-range],[data-today],[data-act],[data-pot],[data-pin],[data-tour],[data-chip],[data-mapmode],[data-zoom],[data-todo],[data-copy],[data-panel],[data-result],[data-postpone],[data-stale],[data-action],[data-close],[data-veil]");
+  if (!t) { if (ui.menu) { ui.menu = null; render(); } return; }
+  const d = t.dataset;
+  if (d.veil !== undefined && e.target !== t) return;
+  if (t.tagName === "A") e.preventDefault();
+  if (d.go) return go(d.go);
+  if (onDemo() && (d.open || d.act)) return toast("Tableau de bord d'illustration : fiche fictive, non disponible", "info");
+  if (d.open) return go("fiche", +d.open);
+  if (d.menu) { ui.menu = ui.menu === +d.menu ? null : +d.menu; return render(); }
+  if (d.edit) { ui.menu = null; ui.modal = { type: "prospect", id: +d.edit }; return render(); }
+  if (d.del) { ui.menu = null; ui.modal = { type: "delete", id: +d.del }; return render(); }
+  if (d.page) { ui.page = +d.page; return render(); }
+  if (d.sel) { const id = +d.sel; ui.sel.has(id) ? ui.sel.delete(id) : ui.sel.add(id); return render(); }
+  if (d.selall !== undefined) { const list = filtered().slice((ui.page - 1) * ui.per, ui.page * ui.per); const all = list.every(c => ui.sel.has(c.id)); list.forEach(c => all ? ui.sel.delete(c.id) : ui.sel.add(c.id)); return render(); }
+  if (d.scope) { ui.scope = d.scope; return render(); }
+  if (d.pot) { const k = d.pot.indexOf(":"), x = S.candidats.find(c => c.id === +d.pot.slice(0, k)), p = d.pot.slice(k + 1); x.potentiel = x.potentiel === p ? null : p; ui.selCand = x.id; save(); toast(`${x.enseigne} : ${TEMP_LABEL[temp(x).k].toLowerCase()}`, "flag"); return render(); }
+  if (d.act) { const c = commerce(+d.act), act = nextAction(interOf(c.id)[0]); ui.panel = null; ui.prefill = { canal: act.canal, res: act.res || null, label: act.l }; return go("fiche", c.id); }
+  if (d.stale) { const c = commerce(+d.stale), last = interOf(c.id)[0]; c.statut = "Injoignable"; if (last) last.relance = addDays(TODAY, 90); ui.panel = null; save(); toast(`${c.enseigne} classé injoignable · nouvel essai le ${fmt(addDays(TODAY, 90))}`, "phone_disabled"); return render(); }
+  if (d.today) { const c = commerce(+d.today), last = interOf(c.id)[0]; if (last) { if (!last.relanceOrig) last.relanceOrig = last.relance; last.relance = TODAY; } ui.panel = null; save(); toast(`${c.enseigne} : à faire aujourd'hui`, "today"); return render(); }
+  if (d.mapmode) { ui.mapMode = d.mapmode; return render(); }
+  if (d.zoom) { ui.zoom = Math.min(2.4, Math.max(1, (ui.zoom || 1) + 0.35 * +d.zoom)); return render(); }
+  if (d.chip) { const s = new Set(ui.rTypes); s.has(d.chip) ? s.delete(d.chip) : s.add(d.chip); ui.rTypes = [...s]; return render(); }
+  if (d.tour) { const id = +d.tour; const x = S.candidats.find(k => k.id === id); ui.tour.has(id) ? ui.tour.delete(id) : ui.tour.add(id); toast(ui.tour.has(id) ? `${x.enseigne} ajouté à la tournée (${ui.tour.size})` : `${x.enseigne} retiré de la tournée`, "route"); return render(); }
+  if (d.pin && !e.target.closest("button, a")) { ui.selCand = +d.pin; render(); const el = document.getElementById("cand-" + d.pin); if (el && t.tagName.toLowerCase() === "g") el.scrollIntoView({ behavior: "smooth", block: "nearest" }); return; }
+  if (d.tri !== undefined) { ui.triFilter = d.tri; return render(); }
+  if (d.range !== undefined) { const n = d.range; if (n === "ytd") { ui.resFrom = TODAY.slice(0, 4) + "-01-01"; ui.resTo = TODAY; } else if (n === "0") { ui.resFrom = ""; ui.resTo = ""; } else { ui.resFrom = addDays(TODAY, -n); ui.resTo = TODAY; } return render(); }
+  if (d.keep) { if (LIVE.on) return liveTri(+d.keep, "Retenu", null); return keepCandidate(+d.keep); }
+  if (d.known) { if (LIVE.on) return liveTri(+d.known, "Connu", null); const x = S.candidats.find(k => k.id === +d.known); x.tri = "Doublon"; save(); toast(`${x.enseigne} classé Connu`, "content_copy"); return render(); }
+  if (d.drop) { ui.modal = { type: "drop", id: +d.drop }; return render(); }
+  if (d.undo && LIVE.on) return liveTri(+d.undo, "À examiner", null);
+  if (d.undo) { const x = S.candidats.find(k => k.id === +d.undo); x.tri = "À examiner"; x.motif = null; save(); toast("Candidat remis à examiner", "undo"); return render(); }
+  if (d.relance) return setRelance(+d.relance);
+  if (d.todo) { ui.todoTab = d.todo; ui.panel = null; render(); if (d.scrollto) { const el = document.getElementById(d.scrollto); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); } return; }
+  if (d.copy) { const n = d.copy; try { navigator.clipboard.writeText(n).then(() => toast(`Numéro copié : ${n}`, "content_copy"), () => toast(`Numéro : ${n}`, "call")); } catch (err) { toast(`Numéro : ${n}`, "call"); } return; }
+  if (d.panel) { const [cid, kind] = d.panel.split(":"); ui.panel = ui.panel && ui.panel.cid === +cid && ui.panel.kind === kind ? null : { cid: +cid, kind }; return render(); }
+  if (d.result) { const k = d.result.indexOf(":"); return quickResult(+d.result.slice(0, k), d.result.slice(k + 1)); }
+  if (d.postpone) { const [cid, n] = d.postpone.split(":"); return postpone(+cid, +n); }
+
+  if (d.close !== undefined || d.veil !== undefined) { ui.modal = null; return renderModal(); }
+  const a = d.action;
+  if (a === "new-prospect") { ui.modal = { type: "prospect" }; return renderModal(); }
+  if (a === "launch") return launchSearch();
+  if (a === "retry") { const r = S.recherches.find(x => x.id === ui.rechId); r.statut = "En cours"; r.commentaire = "Relancée depuis la maquette."; save(); toast("Recherche relancée", "refresh"); return render(); }
+  if (a === "mail") { ui.modal = { type: "mail" }; return renderModal(); }
+  if (a === "oppose") { ui.modal = { type: "oppose" }; return renderModal(); }
+  if (a === "mail-validate") { ui.modal = null; toast("Brouillon validé : prêt à l'envoi par le commercial", "outgoing_mail"); return renderModal(); }
+  if (a === "confirm-delete") { const id = ui.modal.id, c = commerce(id); S.commerces = S.commerces.filter(x => x.id !== id); S.interactions = S.interactions.filter(i => i.commerceId !== id); ui.sel.delete(id); ui.modal = null; save(); toast(`${c.enseigne} supprimé`, "delete"); if (ui.view === "fiche") return go("prospects"); return render(); }
+  if (a === "confirm-oppose") { const c = commerce(ui.ficheId); c.opposition = TODAY; ui.modal = null; save(); toast("Opposition enregistrée", "block"); return render(); }
+  if (a === "confirm-retire") return doRetire(ui.modal.ids);
+  if (a === "confirm-keep") return liveTri(ui.modal.id, "Retenu", null);
+  if (a === "confirm-drop" && LIVE.on) return liveTri(ui.modal.id, "Écarté", $("#d-motif").value);
+  if (a === "confirm-drop") { const x = S.candidats.find(k => k.id === ui.modal.id); x.tri = "Écarté"; x.motif = $("#d-motif").value; ui.modal = null; save(); toast(`${x.enseigne} écarté`, "do_not_disturb_on"); return render(); }
+  if (a === "bulk-apply") { const s = $("#bulk-statut").value; if (!s) return toast("Choisissez d'abord un statut", "info"); if (s === "Pas intéressé") return askRetire([...ui.sel].filter(id => { const c = commerce(id); return c && !stopped(c); })); let n = 0; ui.sel.forEach(id => { const c = commerce(id); if (c && !stopped(c)) { c.statut = s; n++; } }); ui.sel.clear(); save(); toast(`${n} fiche${n > 1 ? "s" : ""} passée${n > 1 ? "s" : ""} en « ${s} »`); return render(); }
+  if (a === "bulk-clear") { ui.sel.clear(); return render(); }
+  if (a === "clear-filters") { ui.f = { q: "", statut: "", type: "", potentiel: "", incomplete: false, showStop: false }; ui.page = 1; return render(); }
+  if (a === "live") return loadLive(true);
+  if (a === "reset") { if (LIVE.on) { try { localStorage.removeItem(STORE_KEY); } catch (err) {} ui.sel.clear(); ui.modal = null; return loadLive(true); } try { localStorage.removeItem(STORE_KEY); } catch (err) {} S = seed(); ui.sel.clear(); ui.modal = null; toast("Démo réinitialisée avec les données d'origine", "restart_alt"); return render(); }
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") { if (ui.modal) { ui.modal = null; renderModal(); } else if (ui.menu) { ui.menu = null; render(); } } });
+
+document.addEventListener("input", e => {
+  if (e.target.id === "f-q") { ui.f.q = e.target.value; ui.page = 1; const pos = e.target.selectionStart; render(); const q = $("#f-q"); q.focus(); try { q.setSelectionRange(pos, pos); } catch (err) {} }
+});
+document.addEventListener("change", e => {
+  const id = e.target.id, f = ui.f;
+  const map = { "f-statut": "statut", "f-type": "type", "f-pot": "potentiel" };
+  if (map[id]) { f[map[id]] = e.target.value; ui.page = 1; return render(); }
+  if (id === "f-inc") { f.incomplete = e.target.checked; ui.page = 1; return render(); }
+  if (id === "f-stop") { f.showStop = e.target.checked; ui.page = 1; return render(); }
+  if (id === "r-from" || id === "r-to") { const v = e.target.value; if (id === "r-from") ui.resFrom = v; else ui.resTo = v; if (ui.resFrom && ui.resTo && ui.resFrom > ui.resTo) { toast("La date de début doit précéder la date de fin", "error"); if (id === "r-from") ui.resTo = ui.resFrom; else ui.resFrom = ui.resTo; } return render(); }
+  if (id === "ca-moy") { const v = Math.max(0, Math.round(+e.target.value || 0)); S.caMoyen = v; save(); toast(`Montant moyen : ${v.toLocaleString("fr-FR")} € par contrat`, "euro"); return render(); }
+  if (id === "r-hist") { ui.rechId = +e.target.value; ui.selCand = null; ui.triFilter = ""; ui.zoom = 1; syncSearchForm(S.recherches.find(x => x.id === ui.rechId)); return render(); }
+  if (id === "r-rayon") { ui.rRayon = +e.target.value; ui.rq = `${(ui.rq || "").split(",")[0].trim()}, ${ui.rRayon} km`; return render(); }
+  if (id === "r-q") { ui.rq = e.target.value; const m = ui.rq.match(/(\d+)\s*km/i); if (m) ui.rRayon = +m[1]; return render(); }
+  if (id === "per") { ui.per = +e.target.value; ui.page = 1; return render(); }
+  if (id === "s-statut" && e.target.value === "Pas intéressé") { const c = commerce(ui.ficheId); e.target.value = c.statut; return askRetire([c.id]); }
+  if (id === "s-statut") { const c = commerce(ui.ficheId); c.statut = e.target.value; save(); toast(`Statut : ${c.statut}`); return render(); }
+  if (id === "s-pot") { const c = commerce(ui.ficheId); c.potentiel = e.target.value || null; save(); toast(`Potentiel : ${c.potentiel || "non évalué"}`); return render(); }
+});
+document.addEventListener("submit", e => {
+  e.preventDefault();
+  const id = e.target.id, val = k => { const el = $("#" + k); return el ? el.value.trim() : ""; };
+  if (id === "f-inter") {
+    const c = commerce(ui.ficheId), res = val("i-res");
+    const it = { id: nextId(S.interactions), commerceId: c.id, commercialId: ME_ID, date: val("i-date") || TODAY, canal: val("i-canal"), resultat: res, commentaire: val("i-com") || null, relance: null, rdv: null, rdvStatut: null, rdvObjet: null };
+    if (res === "RDV pris") { const r = val("i-rdv"); if (!r) { toast("Indiquez la date du rendez-vous", "event"); $("#i-rdv").focus(); return; } it.rdv = new Date(r).toISOString(); it.rdvStatut = "Planifié"; it.rdvObjet = val("i-rdvobj"); }
+    if (res === "Pas intéressé") return askRetire([c.id]);
+    const ar = autoRelance(c, res, it.date, it.rdv);
+    it.relance = ar.date;
+    S.interactions.push(it);
+    applyResult(c, res); if (ar.statut) c.statut = ar.statut;
+    save(); toast(`Échange enregistré · statut : ${c.statut}${ar.date ? ` · ${ar.label.toLowerCase()} le ${fmt(ar.date)}` : ""}`); return render();
+  }
+  if (id === "f-prospect") {
+    const m = ui.modal, data = { enseigne: val("p-enseigne"), type: val("p-type"), zone: val("p-zone"), ville: val("p-ville"), cp: val("p-cp") || null, contact: val("p-contact") || null, tel: val("p-tel") || null, email: val("p-email") || null, potentiel: val("p-pot") || null };
+    if (!data.enseigne || !data.ville) return toast("Enseigne et ville sont obligatoires", "error");
+    if (m.id) { Object.assign(commerce(m.id), data); ui.modal = null; save(); toast("Fiche mise à jour"); return render(); }
+    const nid = nextId(S.commerces), com = COMMERCIAUX.find(x => x.zone === data.zone);
+    S.commerces.push({ id: nid, code: "Co-" + String(nid).padStart(3, "0"), ...data, statut: "Nouveau", categorie: "Prospect", commercialId: com ? com.id : null, siret: null, adresse: null, site: null, note: null, avis: null, opposition: null, horaires: null });
+    ui.modal = null; save(); toast(`${data.enseigne} ajouté au portefeuille`); return go("fiche", nid);
+  }
+
+});
+
+function applyResult(c, res) {
+  const auto = { "RDV pris": "RDV pris", "Signature": "Signé", "Pas intéressé": "Pas intéressé", "À rappeler": "À rappeler", "Sans réponse": c.statut === "Nouveau" ? "Contacté" : c.statut, "Intéressé": "Contacté" }[res];
+  if (auto && c.statut !== "Signé") c.statut = auto;
+}
+function quickResult(cid, res) {
+  const c = commerce(cid); ui.panel = null;
+  if (res === "RDV pris") { ui.prefill = "RDV pris"; toast("Indiquez la date du rendez-vous", "event"); return go("fiche", cid); }
+  if (res === "Pas intéressé") return askRetire([cid]);
+  const ar = autoRelance(c, res, TODAY, null), relance = ar.date;
+  S.interactions.push({ id: nextId(S.interactions), commerceId: cid, commercialId: ME_ID, date: TODAY, canal: "Appel", resultat: res, commentaire: null, relance, rdv: null, rdvStatut: null, rdvObjet: null });
+  applyResult(c, res); if (ar.statut) c.statut = ar.statut; save();
+  toast(`${c.enseigne} : ${res}${relance ? ` · relance le ${fmt(relance)}` : ""}`); render();
+}
+function postpone(cid, n) {
+  const c = commerce(cid), last = interOf(cid)[0], d = addDays(TODAY, n);
+  if (last) { last.relance = d; delete last.relanceOrig; } ui.panel = null; save(); toast(`${c.enseigne} reporté au ${fmt(d)}`, "update"); render();
+}
+function launchSearch() {
+  const raw = (ui.rq || "").trim(), ville = raw.split(",")[0].trim(), m = raw.match(/(\d+)\s*km/i), rayon = m ? +m[1] : +ui.rRayon || 5;
+  if (!ville) return toast("Indiquez une ville, par exemple « Lille, 10 km »", "error");
+  if (!ui.rTypes.length) return toast("Choisissez au moins une activité cible", "error");
+  const norm = s => (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const same = S.recherches.filter(r => norm(r.ville) === norm(ville) && r.rayon === rayon && r.types.length === ui.rTypes.length && r.types.every(ty => ui.rTypes.includes(ty))).sort((a, b) => b.date.localeCompare(a.date))[0];
+  if (same) { ui.rechId = same.id; ui.selCand = null; ui.triFilter = ""; toast(`Recherche identique déjà faite le ${fmt(same.date)} : résultats affichés`, "history"); return render(); }
+  if (LIVE.on) return liveSearch(ville, rayon, [...ui.rTypes]);
+  const nid = nextId(S.recherches);
+  S.recherches.push({ id: nid, code: "Rech-" + String(nid).padStart(3, "0"), date: TODAY + "T09:00:00+00:00", source: "Google Maps", commercialId: ME_ID, zone: ME.zone, types: [...ui.rTypes], ville, cp: null, rayon, statut: "En cours", commentaire: null, requete: ui.rTypes.join(" ").toLowerCase() + " " + ville });
+  ui.rechId = nid; ui.selCand = null; ui.triFilter = ""; ui.zoom = 1; save();
+  toast(`Recherche lancée sur ${ville} (${rayon} km)`, "travel_explore"); render();
+}
+function keepCandidate(id) {
+  const x = S.candidats.find(k => k.id === id);
+  const nid = nextId(S.commerces), com = COMMERCIAUX.find(k => k.zone === x.zone);
+  S.commerces.push({ id: nid, code: "Co-" + String(nid).padStart(3, "0"), enseigne: x.enseigne, type: x.type, ville: x.ville, cp: x.cp, zone: x.zone, tel: x.tel, email: null, contact: null, statut: "Nouveau", potentiel: x.potentiel, categorie: "Prospect", commercialId: ME_ID, siret: null, adresse: x.adresse, site: x.site, note: x.note, avis: x.avis, opposition: null, horaires: x.horaires });
+  x.tri = "Retenu"; x.commerceId = nid; save(); toast(`${x.enseigne} retenu : fiche prospect créée`, "add_business"); render();
+}
+function setRelance(n) {
+  const c = commerce(ui.ficheId), d = addDays(TODAY, n);
+  S.interactions.push({ id: nextId(S.interactions), commerceId: c.id, commercialId: ME_ID, date: TODAY, canal: "Appel", resultat: "À rappeler", commentaire: "Relance planifiée.", relance: d, rdv: null, rdvStatut: null, rdvObjet: null });
+  if (["Nouveau", "Contacté", "Injoignable"].includes(c.statut)) c.statut = "À rappeler";
+  save(); toast(`Relance planifiée le ${fmt(d)}`, "schedule"); render();
+}
+
+/* ---------- Infobulles des graphiques ---------- */
+const tip = $("#tip");
+document.addEventListener("mouseover", e => { const t = e.target.closest("[data-tip]"); if (!t) { tip.hidden = true; return; } tip.innerHTML = t.dataset.tip; tip.hidden = false; });
+document.addEventListener("mousemove", e => { if (tip.hidden) return; const w = tip.offsetWidth, h = tip.offsetHeight; let x = e.clientX + 14, y = e.clientY - h - 10; if (x + w > innerWidth - 8) x = e.clientX - w - 14; if (y < 8) y = e.clientY + 16; tip.style.left = x + "px"; tip.style.top = y + "px"; });
+
+
+/* ---------- Lecture Supabase (connecteur du lecteur, lecture seule) ---------- */
+var LIVE = { on: false, busy: false, mcp: null };
+function setSrc(state, label, btn) {
+  const s = $("#src"), b = $("#src-btn"); if (!s) return;
+  s.dataset.state = state; $("#src-l").textContent = label;
+  if (btn) { b.textContent = btn; b.hidden = false; } else b.hidden = true;
+}
+function findData(x, depth) {
+  if (depth > 8 || x == null) return null;
+  if (typeof x === "string") {
+    const m = /<untrusted-data-[\w-]+>\s*([\s\S]*?)\s*<\/untrusted-data-/.exec(x);
+    const cands = [];
+    if (m) { cands.push(m[1]); cands.push(m[1].replace(/\\"/g, '"').replace(/\\\\/g, "\\")); }
+    cands.push(x);
+    const i = x.indexOf('[{"d":'); if (i >= 0) cands.push(x.slice(i, x.lastIndexOf("]") + 1));
+    for (const c of cands) { try { const v = JSON.parse(c); if (v !== x) { const f = findData(v, depth + 1); if (f) return f; } } catch (e) {} }
+    return null;
+  }
+  if (Array.isArray(x)) { for (const v of x) { const f = findData(v, depth + 1); if (f) return f; } return null; }
+  if (typeof x === "object") {
+    if (Array.isArray(x.commerces) && Array.isArray(x.commerciaux)) return x;
+    for (const k of ["d", "result", "structuredContent", "payload", "content", "text", "rows", "data"]) if (k in x) { const f = findData(x[k], depth + 1); if (f) return f; }
+    for (const v of Object.values(x)) { const f = findData(v, depth + 1); if (f) return f; }
+  }
+  return null;
+}
+function shapeOf(x, d) { if (d > 2) return "…"; if (x == null) return String(x); if (typeof x === "string") return `texte(${x.length}) « ${x.slice(0, 60)} »`; if (Array.isArray(x)) return `liste(${x.length})[${x.length ? shapeOf(x[0], d + 1) : ""}]`; if (typeof x === "object") return "{" + Object.keys(x).slice(0, 6).map(k => k + ":" + shapeOf(x[k], d + 1)).join(", ") + "}"; return typeof x; }
+function parseSql(r) {
+  const d = findData(r, 0);
+  if (!d) throw new Error("Format de réponse non reconnu : " + shapeOf(r, 0));
+  if (d.gx == null) d.gx = {}; if (d.gr == null) d.gr = {};
+  return d;
+}
+function applyLive(d) {
+  const ca = S && S.caMoyen;
+  RAW = d; S = seed(); if (ca) S.caMoyen = ca;
+  COMMERCIAUX = RAW.commerciaux.map(c => ({ id: c[0], prenom: c[1], nom: c[2], zone: c[3], email: c[4] }));
+  ME = COMMERCIAUX.find(c => c.id === ME_ID) || COMMERCIAUX[0];
+  if (!S.commerces.some(c => c.id === ui.ficheId)) ui.ficheId = S.commerces[0] ? S.commerces[0].id : null;
+  LIVE.on = true; render();
+}
+const hhmm = ms_ => new Date(ms_).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+async function loadLive(refresh) {
+  if (!LIVE.mcp || LIVE.busy) return;
+  LIVE.busy = true; setSrc("wait", "Lecture de Supabase…");
+  try {
+    let r, tries = 0;
+    for (;;) {
+      try { r = await LIVE.mcp.callTool("Supabase", "execute_sql", { project_id: "kwbpsefdtbacdrilpviy", query: LIVE_SQL }, { cache: refresh ? { refresh: true } : { staleTime: 60000 } }); break; }
+      catch (e) { if (e && e.retryable && tries++ < 1) { await new Promise(ok => setTimeout(ok, (e.retryAfterMs || 1500))); continue; } throw e; }
+    }
+    applyLive(parseSql(r));
+    const at = r.cache ? r.cache.storedAt : Date.now();
+    { const pe = $("#src-err"); if (pe) pe.hidden = true; }
+    setSrc("live", `Supabase · lu à ${hhmm(at)}`, "Actualiser");
+    if (refresh) toast("Données relues depuis Supabase", "sync");
+  } catch (e) {
+    const c = (e && e.code) || "lecture";
+    LIVE.lastErr = `${c} : ${(e && e.message) || String(e)}`.slice(0, 400);
+    try { console.warn("[Eco-Locaux] Supabase", LIVE.lastErr, e); } catch (x) {}
+    if (c === "not_granted" || c === "capability_disabled" || c === "capability_removed") setSrc("snap", "Données figées");
+    else if (c === "approval_required" || c === "consent_required") setSrc("err", "Supabase à autoriser · données figées", "Autoriser");
+    else if (c === "not_in_manifest" || c === "blocked_by_policy") setSrc("err", "Supabase non autorisé · données figées");
+    else if (c === "needs_reauth") setSrc("err", "Reconnectez Supabase dans claude.ai · données figées", "Réessayer");
+    else if (c === "server_not_connected" || c === "server_not_found" || c === "selection_required") setSrc("err", "Connecteur Supabase absent · données figées");
+    else if (c === "tool_error") { setSrc("err", "Requête Supabase en échec · données figées", "Réessayer"); if (refresh) toast(LIVE.lastErr, "error"); }
+    else setSrc("err", `Supabase non lu (${c}) · données figées`, "Réessayer");
+    const s = $("#src"); if (s) s.title = LIVE.lastErr;
+    const pe = $("#src-err"); if (pe) { pe.textContent = "Détail pour Claude — " + LIVE.lastErr; pe.hidden = false; }
+    if (LIVE.on && c !== "server_unavailable" && c !== "upstream_error" && c !== "tool_error") { /* accès retiré : retour à l'instantané */ LIVE.on = false; RAW = SNAPSHOT; S = seed(); render(); }
+  } finally { LIVE.busy = false; }
+}
+
+/* ---------- Recherche Google Maps : exécution du workflow n8n actif (version publiée) ---------- */
+async function liveSearch(ville, rayon, types) {
+  if (ui.searching) return toast("Une recherche est déjà en cours", "hourglass_top");
+  const before = S.recherches.reduce((m, r) => Math.max(m, r.id), 0);
+  ui.searching = { ville, rayon, types, before, t0: Date.now() };
+  toast(`Recherche envoyée à n8n : ${types.join(", ").toLowerCase()} à ${ville} (${rayon} km)`, "travel_explore"); render();
+  try {
+    await LIVE.mcp.callTool("n8n", "execute_workflow", {
+      workflowId: "AWmyFaxZsYPLdOAN", executionMode: "production", triggerNodeName: "Recherche lancée depuis le site",
+      inputs: { webhookData: { method: "POST", body: { ville, rayon_km: rayon, types, commercial_id: ME_ID, max_resultats: 10 } } }
+    }, { cache: false });
+  } catch (e) {
+    ui.searching = null;
+    const c = e && e.code;
+    toast(c === "approval_required" || c === "not_in_manifest" ? "n8n non autorisé pour cette page : accepte la demande de claude.ai puis relance" : c === "server_not_connected" || c === "needs_reauth" ? "Connecteur n8n absent ou à reconnecter dans claude.ai" : `n8n n'a pas pu lancer la recherche (${c || "erreur"})`, "error");
+    return render();
+  }
+  pollSearch(0);
+}
+async function pollSearch(n) {
+  const s = ui.searching; if (!s) return;
+  await new Promise(ok => setTimeout(ok, n === 0 ? 4000 : 8000));
+  await loadLive(true);
+  const r = S.recherches.filter(x => x.id > s.before).sort((a, b) => b.id - a.id)[0];
+  if (r) { ui.rechId = r.id; ui.triFilter = ""; ui.selCand = null; syncSearchForm(r); }
+  if (r && r.statut !== "En cours") {
+    ui.searching = null; const k = S.candidats.filter(x => x.rechercheId === r.id).length;
+    toast(`Recherche terminée : ${k} commerce${k > 1 ? "s" : ""} trouvé${k > 1 ? "s" : ""}`, "check_circle"); return render();
+  }
+  render();
+  if (n >= 22) { ui.searching = null; toast("La recherche prend du temps : clique sur Actualiser dans quelques minutes", "schedule"); return render(); }
+  pollSearch(n + 1);
+}
+function askRetire(ids) { if (!ids.length) return toast("Aucun prospect sélectionné", "info"); ui.modal = { type: "retire", ids }; render(); }
+async function doRetire(ids) {
+  const names = ids.map(commerce).filter(Boolean).map(c => c.enseigne);
+  const local = () => { const set = new Set(ids); S.commerces = S.commerces.filter(c => !set.has(c.id)); S.interactions = S.interactions.filter(i => !set.has(i.commerceId)); ids.forEach(id => ui.sel.delete(id)); };
+  ui.modal = null;
+  if (LIVE.on && !S.demo) {
+    toast("Retrait en cours dans Supabase…", "sync");
+    try {
+      await LIVE.mcp.callTool("Supabase", "execute_sql", { project_id: "kwbpsefdtbacdrilpviy", query: `update public.commerce set statut_prospection = 'Pas intéressé' where id in (${ids.map(Number).join(",")});` }, { cache: false });
+    } catch (e) { toast(`Retrait impossible (${(e && e.code) || "erreur"})`, "error"); return render(); }
+    local(); toast(names.length === 1 ? `${names[0]} est sorti de la base` : `${names.length} prospects sortis de la base`, "person_remove");
+    if (ui.view === "fiche") { ui.view = "prospects"; ui.ficheId = null; }
+    await loadLive(true); return render();
+  }
+  local(); save(); toast(names.length === 1 ? `${names[0]} est sorti de la base` : `${names.length} prospects sortis de la base`, "person_remove");
+  if (ui.view === "fiche") { ui.view = "prospects"; ui.ficheId = S.commerces[0] ? S.commerces[0].id : null; }
+  render();
+}
+const SNAPSHOT = RAW;
+const sqlTxt = v => v == null ? "null" : "'" + String(v).replace(/'/g, "''") + "'";
+function rowsOf(x, depth) {
+  if (depth > 8 || x == null) return null;
+  if (typeof x === "string") {
+    const m = /<untrusted-data-[\w-]+>\s*([\s\S]*?)\s*<\/untrusted-data-/.exec(x);
+    for (const c of m ? [m[1], x] : [x]) { try { const v = JSON.parse(c); if (v !== x) { const f = rowsOf(v, depth + 1); if (f) return f; } } catch (e) {} }
+    return null;
+  }
+  if (Array.isArray(x)) { if (x.length && x[0] && typeof x[0] === "object" && "statut_tri" in x[0]) return x[0]; for (const v of x) { const f = rowsOf(v, depth + 1); if (f) return f; } return null; }
+  if (typeof x === "object") for (const v of Object.values(x)) { const f = rowsOf(v, depth + 1); if (f) return f; }
+  return null;
+}
+async function liveTri(id, statut, motif) {
+  if (!LIVE.mcp || ui.busy) return;
+  const x = S.candidats.find(k => k.id === id); if (!x) return;
+  ui.busy = true; toast("Enregistrement dans Supabase…", "sync");
+  const cid = Number(id);
+  /* Test : le commercial connecté (ME_ID = Com-02) prend la fiche créée, quelle que soit la zone. */
+  const q = `update public.candidat set statut_tri = ${sqlTxt(statut)}, motif_ecart = ${sqlTxt(motif)}, trie_par = ${Number(ME_ID)}${statut === "À examiner" ? ", date_tri = null" : ""} where id = ${cid};`
+    + (statut === "Retenu" ? ` update public.commerce set commercial_id = ${Number(ME_ID)} where id = (select commerce_id from public.candidat where id = ${cid});` : "")
+    + ` select k.id, k.statut_tri, k.commerce_id, c.code as code_commerce from public.candidat k left join public.commerce c on c.id = k.commerce_id where k.id = ${cid};`;
+  try {
+    const r = await LIVE.mcp.callTool("Supabase", "execute_sql", { project_id: "kwbpsefdtbacdrilpviy", query: q }, { cache: false });
+    const row = rowsOf(r, 0);
+    ui.modal = null; ui.busy = false;
+    if (statut === "Retenu") toast(`${x.enseigne} retenu : fiche prospect créée dans Supabase, attribuée à ${ME.prenom} ${ME.nom}`, "add_business");
+    else if (statut === "Écarté") toast(`${x.enseigne} écarté dans Supabase`, "do_not_disturb_on");
+    else if (statut === "Connu") toast(`${x.enseigne} classé Connu dans Supabase`, "content_copy");
+    else toast("Candidat remis à examiner dans Supabase", "undo");
+    await loadLive(true);
+  } catch (e) {
+    ui.busy = false;
+    const msg = (e && e.result && JSON.stringify(e.result.content || e.result)) || (e && e.message) || String(e);
+    const trig0 = /Candidat Cand-[^"\\]*/.exec(msg), trig = trig0 ? ["Supabase refuse : " + trig0[0].replace(/^Candidat Cand-\d+ : /, "")] : null;
+    toast(e && e.code === "approval_required" ? "Écriture non autorisée : accepte la demande de claude.ai" : trig ? trig[0] : `Échec de l'enregistrement (${(e && e.code) || "erreur"})`, "error");
+    render();
+  }
+}
+(async () => {
+  try { if (!window.claude || !window.claude.use) return; LIVE.mcp = await window.claude.use("mcp"); } catch (e) { LIVE.mcp = null; }
+  if (LIVE.mcp) loadLive(false);
+})();
+
+try { document.fonts.load('20px "Material Symbols Outlined"', "add").then(f => { if (f.length) document.documentElement.classList.add("icons-ok"); }); } catch (e) {}
+fromHash();
+if (ui.view === "fiche" && !ui.ficheId) ui.ficheId = S.commerces[0].id;
+render();
+</script>

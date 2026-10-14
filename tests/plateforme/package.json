@@ -1,0 +1,7 @@
+{
+  "name": "recette-plateforme-eco-locaux",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test --test-concurrency=1 maquette/recette.test.mjs" },
+  "devDependencies": { "jsdom": "24.1.3" }
+}

@@ -38,6 +38,22 @@ déboguer, corriger et dérouler les tests utilisateurs. Dans Claude Code :
 Règle centrale de l'agent : il corrige l'application, jamais les tests. Si un test lui semble
 contredire le besoin, il s'arrête et te demande de trancher.
 
+## Recette de la plateforme (maquette, Supabase, n8n)
+
+L'agent `testeur-plateforme` (`.claude/agents/testeur-plateforme.md`) vérifie à la demande les
+parcours des commerciaux sur la plateforme Eco-Locaux. Dans Claude Code :
+
+| Commande | Effet |
+|---|---|
+| `/recette-plateforme` | maquette CRM + règles Supabase + contrôles n8n, puis rapport |
+| `/recette-plateforme supabase` | seulement les règles de la base |
+| `/recette-plateforme P4` | un seul scénario |
+
+Scénarios : `tests/plateforme/scenarios.md`. Rien n'est écrit dans les vraies données : la maquette
+est testée avec des connecteurs simulés, chaque scénario SQL annule ce qu'il crée, n8n est lu sans
+être lancé. Recette maquette seule, sans Claude : `cd tests/plateforme && npm install && npm test`
+(Node 20+, Python 3 pour reconstruire `maquette/`).
+
 ## Infrastructure
 
 | Élément | Où | Rôle |
