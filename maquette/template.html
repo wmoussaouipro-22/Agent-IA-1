@@ -669,7 +669,7 @@ function viewDashboard() {
     const lateN = -x.dd, tier = x.dd >= 0 ? null : lateN <= 3 ? "soon" : lateN <= 14 ? "late" : "stale";
     const st = tier || (x.dd === 0 ? "today" : ""), lbl = x.dd < 0 ? `J+${lateN}` : x.dd === 0 ? "Auj." : fmtShort(x.d);
     const tierK = { soon: "À rattraper", late: "En retard", stale: "À requalifier" }[tier];
-    const when = tier === "stale" ? `prévue le ${fmt(x.d)} · <b>plus de 14 jours : l'action n'a plus de sens telle quelle</b>` : x.dd < 0 ? `prévue le ${fmt(x.d)} · <b>${lateN} jour${lateN > 1 ? "s" : ""} de retard</b>` : x.dd === 0 ? `<b>à faire aujourd'hui</b>${x.last && x.last.relanceOrig ? ` · initialement prévue le ${fmt(x.last.relanceOrig)}` : ""}` : `prévue le ${fmtLong(x.d).toLowerCase()}`;
+    const when = x.dd < 0 ? `prévue le ${fmt(x.d)} · <b>${lateN} jour${lateN > 1 ? "s" : ""} de retard</b>` : x.dd === 0 ? `<b>à faire aujourd'hui</b>${x.last && x.last.relanceOrig ? ` · initialement prévue le ${fmt(x.last.relanceOrig)}` : ""}` : `prévue le ${fmtLong(x.d).toLowerCase()}`;
     return `<li class="trow ${st}"><span class="when ${st}">${lbl}</span>
       <span class="t"><button class="ens" data-open="${c.id}">${esc(c.enseigne)}</button><small>${esc(c.ville)} · <span class="num">${esc(c.tel || "pas de téléphone")}</span></small></span>
       <button type="button" class="act ${st}" data-act="${c.id}" title="Saisir le résultat dans la fiche">${ms(act.ic)}<div><span class="act-k">${x.dd < 0 ? tierK : x.dd === 0 ? "Action du jour" : "Action prévue"}</span><b>${esc(act.l)}</b><small>${when}</small></div><span class="act-go">Saisir le résultat ${ms("chevron_right")}</span></button>
