@@ -115,6 +115,18 @@ begin
   raise exception 'RECETTE_OK S7 %', jsonb_build_object('potentiel', v_com.potentiel);
 end $$;
 
+-- S9 · Tournée terrain : un arrêt est soit un candidat, soit un prospect (jamais les deux, jamais aucun)
+do $$
+declare v_t bigint; v_refus int := 0;
+begin
+  insert into tournee (commercial_id, date_tournee, nom) values (2, current_date + 1, 'RECETTE') returning id into v_t;
+  insert into tournee_arret (tournee_id, ordre, commerce_id) values (v_t, 1, (select min(id) from commerce));
+  begin insert into tournee_arret (tournee_id, ordre) values (v_t, 2); exception when check_violation then v_refus := v_refus + 1; end;
+  begin insert into tournee_arret (tournee_id, ordre, candidat_id, commerce_id) values (v_t, 3, 1, 1); exception when check_violation then v_refus := v_refus + 1; end;
+  if v_refus <> 2 then raise exception 'RECETTE_KO S9 : un arrêt vide ou double a été accepté (% refus sur 2)', v_refus; end if;
+  raise exception 'RECETTE_OK S9 %', jsonb_build_object('tournee', v_t, 'refus', v_refus);
+end $$;
+
 -- S8 · Lecture de la maquette : la requête maquette/live.sql s'exécute et respecte le format attendu
 -- (à lancer tel quel : requête en lecture seule, sans bloc DO)
 -- select json_array_length(d->'commerces'->0) = 22 as commerces_ok,

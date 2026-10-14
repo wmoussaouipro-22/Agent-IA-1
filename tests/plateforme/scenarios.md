@@ -24,6 +24,7 @@ simulés, les scénarios Supabase annulent tout ce qu'ils créent, et n8n est co
 | P10 | Enregistrer un RDV (Diagnostic, Présentation devis, Signature) | Échange et statut enregistrés dans Supabase, brouillon d'e-mail demandé au workflow n8n IA, brouillon ouvert pour relecture |
 | P11 | Relire et envoyer un e-mail | Brouillon modifiable, enregistré, validé puis envoyé par le workflow n8n Gmail ; passe dans « Envoyés » |
 | P12 | Consulter l'agenda | Le RDV apparaît dans sa semaine, avec le repère Google Agenda et l'état de l'e-mail ; clic → fiche |
+| P13 | Préparer et faire une tournée terrain | Tournée à une date choisie ; candidats (recherche) et prospects (à revoir) distingués ; ordre modifiable ; horaires du jour et créneau conseillé ; itinéraire Google Maps ; résultat de visite enregistré comme échange « Visite » ; encart dans le tableau de bord |
 
 ## Règles Supabase (`supabase/scenarios.sql`)
 
@@ -37,6 +38,7 @@ simulés, les scénarios Supabase annulent tout ce qu'ils créent, et n8n est co
 | S6 | Commerce « Pas intéressé » retrouvé | Le commerce reste en base ; le candidat est classé « Connu » |
 | S7 | Potentiel corrigé à la main | Jamais écrasé par le calcul automatique |
 | S8 | Requête de lecture de la maquette | S'exécute, format attendu, aucun « Pas intéressé » renvoyé |
+| S9 | Arrêt de tournée | Soit un candidat, soit un prospect : un arrêt vide ou double est refusé |
 
 ## n8n (lecture seule)
 

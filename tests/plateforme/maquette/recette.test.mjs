@@ -30,6 +30,7 @@ function liveData() {
     candidats: [CAND(501, 50, "Fournil A"), CAND(502, 50, "Fournil B"), CAND(503, 50, "Fournil Connu", "Connu", ["Pas intéressé", false, 2])],
     gx: { 501: ["03 20 11 11 11", null, "2 rue A", "59100", "lundi 06:00 to 20:00", "PLACE-A"] },
     gr: { 50: "boulangerie Roubaix" },
+    tournees: [],
     mails: [[40, 160, 2, 900, "Confirmation de notre rendez-vous diagnostic du 20 octobre", "Madame, Monsieur,\n\nTexte rédigé par l'IA.", "Brouillon IA", "contact@ancienne.fr", "2026-10-14", null, "RDV · Diagnostic", false]],
   };
 }
@@ -62,6 +63,27 @@ async function ouvrir(mode = "live", hash = "") {
           const id = +/where id = (\d+)/.exec(q)[1], st = /statut_tri = '([^']+)'/.exec(q)[1];
           data.candidats.find(c => c[0] === id)[9] = st;
           return { content: [{ type: "text", text: JSON.stringify({ result: `<untrusted-data-x1>\n${JSON.stringify([{ id, statut_tri: st, commerce_id: 999, code_commerce: "Co-999" }])}\n</untrusted-data-x1>` }) }] };
+        }
+        if (q.startsWith("insert into public.tournee (")) {
+          const id = 70 + data.tournees.length; data.tournees.push([id, /'(\d{4}-\d\d-\d\d)'/.exec(q)[1], /'(\d{4}-\d\d-\d\d)', (null|'([^']*)')/.exec(q)[3] || null, "Planifiée", 2, []]);
+          return { content: [{ type: "text", text: JSON.stringify({ result: `<untrusted-data-x1>\n[{"id":${id}}]\n</untrusted-data-x1>` }) }] };
+        }
+        if (q.startsWith("insert into public.tournee_arret")) {
+          const m = /values \((\d+), (\d+), (\d+)\)/.exec(q), tr = data.tournees.find(x => x[0] === +m[1]), cand = /candidat_id\)/.test(q);
+          tr[5].push([800 + tr[5].length, +m[2], cand ? +m[3] : null, cand ? null : +m[3], null, null]); return { content: [] };
+        }
+        if (q.startsWith("update public.tournee_arret set ordre")) {
+          for (const [, o, id] of q.matchAll(/set ordre = (\d+) where id = (\d+)/g)) for (const tr of data.tournees) for (const a of tr[5]) if (a[0] === +id) a[1] = +o;
+          for (const tr of data.tournees) tr[5].sort((a, b) => a[1] - b[1]);
+          return { content: [] };
+        }
+        if (q.startsWith("update public.tournee_arret set resultat")) {
+          const id = +/where id = (\d+)/.exec(q)[1], r = /resultat = '([^']+)'/.exec(q)[1];
+          for (const tr of data.tournees) for (const a of tr[5]) if (a[0] === id) a[4] = r;
+          return { content: [] };
+        }
+        if (q.startsWith("delete from public.tournee_arret")) {
+          const id = +/where id = (\d+)/.exec(q)[1]; for (const tr of data.tournees) tr[5] = tr[5].filter(a => a[0] !== id); return { content: [] };
         }
         if (q.startsWith("with i as (insert into public.interaction")) {
           const id = 950 + data.interactions.length;
@@ -268,4 +290,33 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
   assert.match(ev.textContent, /À valider/);
   m.click(ev);
   assert.match(m.d.querySelector("h1").textContent, /Boulangerie Ancienne/);
+});
+
+/* P13 */ test("P13 · Tournée terrain : date choisie, candidat + prospect distingués, ordre choisi, itinéraire, résultat de visite", async () => {
+  const m = await ouvrir("live");
+  m.click("[data-go=tournees]");
+  m.change("#t-date", "2026-10-20"); m.d.querySelector("#t-nom").value = "Roubaix centre";
+  m.click('[data-action="tour-create"]'); await m.wait(80);
+  assert.ok(m.calls.some(c => /insert into public\.tournee \(commercial_id, date_tournee, nom\) values \(2, '2026-10-20', 'Roubaix centre'\)/.test(c.input.query || "")));
+  m.click("[data-go=recherches]");
+  m.click("[data-tour='501']"); await m.wait(80);
+  m.w.eval("go('fiche', 170)");
+  m.click("[data-tourp='170']"); await m.wait(80);
+  m.click("[data-go=tournees]");
+  let stops = [...m.d.querySelectorAll(".stop")];
+  assert.equal(stops.length, 2);
+  assert.match(stops[0].textContent, /Candidat.*Fournil A/s);
+  assert.match(stops[1].textContent, /Prospect.*Boulangerie Récente/s);
+  assert.match(stops[0].textContent, /Ouvert le mardi : 06:00–20:00|Horaires inconnus|Fermé le mardi/);
+  const href = m.d.querySelector('a[href^="https://www.google.com/maps/dir/"]').href;
+  assert.match(href, /waypoints=/);
+  m.click(stops[1].querySelector("[data-tmove$=':-1']")); await m.wait(80);
+  stops = [...m.d.querySelectorAll(".stop")];
+  assert.match(stops[0].textContent, /Prospect.*Boulangerie Récente/s, "le commercial doit pouvoir remonter un arrêt");
+  m.click(stops[0].querySelector("[data-tres$=':À rappeler']")); await m.wait(120);
+  assert.ok(m.calls.some(c => /update public\.tournee_arret set resultat = 'À rappeler'/.test(c.input.query || "")));
+  assert.ok(m.calls.some(c => /insert into public\.interaction.*'Visite', 'À rappeler'/s.test(c.input.query || "")), "la visite doit être enregistrée comme échange");
+  m.click("[data-go=dashboard]");
+  assert.match(m.d.querySelector("#view").textContent, /Ma prochaine tournée.*Roubaix centre.*2 arrêts.*1 candidat.*1 prospect/s);
+  assert.deepEqual(m.errs, []);
 });
