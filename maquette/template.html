@@ -243,6 +243,8 @@ table.grid .r { text-align: right; }
 .when.late { background: var(--red-bg); color: var(--red); }
 .tour-card { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .tour-card > b { display: inline-flex; align-items: center; gap: 6px; }
+.tour-in { margin: 8px 0 4px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); }
+.todo-sub { display: flex; align-items: center; gap: 6px; margin: 16px 0 4px; font-size: 13px; font-weight: 700; color: var(--ink-2); text-transform: uppercase; letter-spacing: .04em; } .todo-sub:first-child { margin-top: 8px; } .todo-sub .hint { text-transform: none; letter-spacing: 0; font-weight: 500; }
 .kind-c { color: var(--amber); font-weight: 600; } .kind-p { color: var(--sage-ink); font-weight: 600; }
 .tour-new { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 12px; } .tour-new > b { width: 100%; }
 .tour-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
@@ -547,7 +549,7 @@ const MOTIFS = ["Hors cible", "Fermé définitivement", "Trop petit", "Déjà cl
 /* ---------- Données ---------- */
 function seed() {
   const commerces = RAW.commerces.map(c => ({ id: c[0], code: c[1], enseigne: c[2], type: c[3], ville: c[4], cp: c[5], zone: c[6], tel: c[7], email: c[8], contact: c[9], statut: c[10], potentiel: c[11], categorie: c[12], commercialId: c[13], siret: c[14], adresse: c[15], site: c[16], note: c[17], avis: c[18], opposition: c[19], horaires: c[20], heures: c[21] != null ? +c[21] : null }));
-  const interactions = RAW.interactions.map(i => ({ id: i[0], commerceId: i[1], commercialId: i[2], date: i[3], canal: i[4], resultat: i[5], commentaire: i[6], relance: i[7], rdv: i[8], rdvStatut: i[9], rdvObjet: i[10], agenda: i[11] || null }));
+  const interactions = RAW.interactions.map(i => ({ id: i[0], commerceId: i[1], commercialId: i[2], date: i[3], canal: i[4], resultat: i[5], commentaire: i[6], relance: i[7], rdv: i[8], rdvStatut: i[9], rdvObjet: i[10], agenda: i[11] || null, relanceOrig: i[12] || undefined }));
   const recherches = RAW.recherches.map(r => ({ id: r[0], code: r[1], date: r[2], source: r[3], commercialId: r[4], zone: r[5], types: r[6] || [], ville: r[7], cp: r[8], rayon: r[9], statut: r[10], commentaire: r[11], requete: RAW.gr[r[0]] || null }));
   const candidats = RAW.candidats.map(x => { const g = RAW.gx[x[0]] || []; return { id: x[0], rechercheId: x[1], enseigne: x[2], type: x[3], ville: x[4], zone: x[5], note: x[6], avis: x[7], potentiel: x[8], tri: x[9] === "Connu" ? "Doublon" : x[9], motif: x[10], known: x[11] ? { statut: x[11][0], stop: !!x[11][1], com: x[11][2] } : null, heures: x[12] != null ? +x[12] : null, tel: g[0] || null, site: g[1] || null, adresse: g[2] || null, cp: g[3] || null, horaires: g[4] || null, placeId: g[5] || null, commerceId: null }; });
   const mails = (RAW.mails || []).map(m => ({ id: m[0], commerceId: m[1], commercialId: m[2], interactionId: m[3], objet: m[4] || "", corps: m[5] || "", statut: m[6], dest: m[7], cree: m[8], envoye: m[9], type: m[10], modifie: !!m[11] }));
@@ -591,7 +593,8 @@ function relBuckets(actifs) {
     all,
     jour: all.filter(x => x.dd === 0).sort(byPrio),
     retard: all.filter(x => x.dd < 0).sort(byPrio),
-    semaine: all.filter(x => x.dd > 0 && x.dd <= 7).sort((a, b) => a.dd - b.dd || prio(a) - prio(b))
+    semaine: all.filter(x => x.dd > 0 && x.dd <= 7).sort((a, b) => a.dd - b.dd || prio(a) - prio(b)),
+    todo: all.filter(x => x.dd > 0 && x.last && x.last.relanceOrig).sort((a, b) => a.dd - b.dd || prio(a) - prio(b))
   };
 }
 function nextAction(last) {
@@ -692,7 +695,7 @@ function viewDashboard() {
   const fermes = ["Signé", "Pas intéressé"];
   const B = relBuckets(actifs);
   const retard = B.retard.length;
-  if (!ui.todoTab) ui.todoTab = ["jour", "retard", "semaine"].find(k => B[k].length) || "jour";
+  if (!ui.todoTab || ui.todoTab === "semaine") ui.todoTab = ["jour", "retard", "todo"].find(k => B[k].length) || "jour";
   const rdvs = is.filter(i => i.rdv && i.rdv.slice(0, 10) >= TODAY && ["Planifié", "Confirmé"].includes(i.rdvStatut)).sort((a, b) => a.rdv.localeCompare(b.rdv));
   const touches = new Set(is.map(i => i.commerceId));
   const signes = cs.filter(c => c.statut === "Signé");
@@ -710,15 +713,15 @@ function viewDashboard() {
   const res = RESULTATS.map(r => ({ l: r, v: inRange.filter(i => i.resultat === r).length })).sort((a, b) => b.v - a.v);
   const preset = (n) => from === (n ? addDays(TODAY, -n) : "") && to === (n ? TODAY : "");
 
-  const tabs = [["jour", "Aujourd'hui"], ["retard", "En retard"], ["semaine", "Cette semaine"]];
+  const tabs = [["jour", "Aujourd'hui"], ["retard", "En retard"], ["todo", "Ma to do"]];
   const rowRel = x => { const c = x.c, open = ui.panel && ui.panel.cid === c.id ? ui.panel.kind : null, act = nextAction(x.last);
     const lateN = -x.dd, tier = x.dd >= 0 ? null : lateN <= 3 ? "soon" : lateN <= 14 ? "late" : "stale";
-    const st = tier || (x.dd === 0 ? "today" : ""), lbl = x.dd < 0 ? `J+${lateN}` : x.dd === 0 ? "Auj." : fmtShort(x.d);
+    const st = tier || (x.dd === 0 ? "today" : ""), rep = x.dd > 0 && x.last && x.last.relanceOrig, lbl = x.dd < 0 ? `J+${lateN}` : x.dd === 0 ? "Auj." : fmtShort(x.d);
     const tierK = { soon: "À rattraper", late: "En retard", stale: "À requalifier" }[tier];
-    const when = x.dd < 0 ? `prévue le ${fmt(x.d)} · <b>${lateN} jour${lateN > 1 ? "s" : ""} de retard</b>` : x.dd === 0 ? `<b>à faire aujourd'hui</b>${x.last && x.last.relanceOrig ? ` · initialement prévue le ${fmt(x.last.relanceOrig)}` : ""}` : `prévue le ${fmtLong(x.d).toLowerCase()}`;
+    const when = x.dd < 0 ? `prévue le ${fmt(x.d)} · <b>${lateN} jour${lateN > 1 ? "s" : ""} de retard</b>` : x.dd === 0 ? `<b>à faire aujourd'hui</b>${x.last && x.last.relanceOrig ? ` · initialement prévue le ${fmt(x.last.relanceOrig)}` : ""}` : rep ? `reportée au ${fmtLong(x.d).toLowerCase()} · initialement prévue le ${fmt(x.last.relanceOrig)}` : `prévue le ${fmtLong(x.d).toLowerCase()}`;
     return `<li class="trow ${st}"><span class="when ${st}">${lbl}</span>
       <span class="t"><button class="ens" data-open="${c.id}">${esc(c.enseigne)}</button><small>${esc(c.ville)} · <span class="num">${esc(c.tel || "pas de téléphone")}</span></small></span>
-      <button type="button" class="act ${st}" data-act="${c.id}" title="Saisir le résultat dans la fiche">${ms(act.ic)}<div><span class="act-k">${x.dd < 0 ? tierK : x.dd === 0 ? "Action du jour" : "Action prévue"}</span><b>${esc(act.l)}</b><small>${when}</small></div><span class="act-go">Saisir le résultat ${ms("chevron_right")}</span></button>
+      <button type="button" class="act ${st}" data-act="${c.id}" title="Saisir le résultat dans la fiche">${ms(act.ic)}<div><span class="act-k">${x.dd < 0 ? tierK : x.dd === 0 ? "Action du jour" : rep ? "Reportée" : "Action prévue"}</span><b>${esc(act.l)}</b><small>${when}</small></div><span class="act-go">Saisir le résultat ${ms("chevron_right")}</span></button>
       <span class="acts"><span class="grow"></span>
         <button class="btn sm secondary" data-panel="${c.id}:done" type="button" aria-expanded="${open === "done"}">${ms("task_alt")}Fait</button>
         ${tier === "stale" ? `<button class="btn sm" data-stale="${c.id}" type="button">${ms("phone_disabled")}Classer injoignable</button>` : `<button class="btn sm" data-panel="${c.id}:report" type="button" aria-expanded="${open === "report"}">${ms("update")}Reporter</button>`}</span>
@@ -726,9 +729,13 @@ function viewDashboard() {
       ${open === "report" ? `<div class="panel"><label class="muted" for="rep-${c.id}">Reporter au :</label><input class="input" type="date" id="rep-${c.id}" min="${addDays(TODAY, 1)}" value="${addOuvres(TODAY, 1)}" style="width:auto"><button class="btn sm primary" data-postpone="${c.id}:date" type="button">${ms("event")}Valider</button></div>` : ""}
     </li>`; };
   const list = B[ui.todoTab] || [];
-  const empty = { jour: "Aucune relance prévue aujourd'hui.", retard: "Aucune relance en retard.", semaine: "Aucune relance prévue dans les 7 prochains jours." }[ui.todoTab];
-  const todoBody = `<ul class="todo-list">${list.map(rowRel).join("") || `<li class="muted" style="list-style:none;padding:12px 0">${empty}</li>`}</ul>`;
-  const todoRdv = rdvs.map(i => { const c = commerce(i.commerceId); return `<li><span class="when rdv">${fmtShort(i.rdv)}</span><span class="t"><button class="ens" data-open="${c.id}">${esc(c.enseigne)}</button><small>${fmtHeure(i.rdv)} · ${esc(i.rdvObjet || "Rendez-vous")} · ${esc(c.ville)}</small></span><button class="btn sm secondary" data-open="${c.id}" type="button">Préparer</button></li>`; }).join("");
+  const empty = { jour: "Aucune relance prévue aujourd'hui.", retard: "Aucune relance en retard.", todo: "Aucune relance reportée. Quand tu reportes une relance, elle arrive ici." }[ui.todoTab];
+  const todoRdv = rdvs.slice(0, 5).map(i => { const c = commerce(i.commerceId); return `<li><span class="when rdv">${fmtShort(i.rdv)}</span><span class="t"><button class="ens" data-open="${c.id}">${esc(c.enseigne)}</button><small>${fmtHeure(i.rdv)} · ${esc(i.rdvObjet || "Rendez-vous")} · ${esc(c.ville)}</small></span><button class="btn sm secondary" data-open="${c.id}" type="button">Préparer</button></li>`; }).join("");
+  const relList = `<ul class="todo-list">${list.map(rowRel).join("") || `<li class="muted" style="list-style:none;padding:12px 0">${empty}</li>`}</ul>`;
+  const todoBody = ui.todoTab !== "todo" ? relList : `<h3 class="todo-sub">${ms("update")}Relances reportées <span class="hint">${list.length}</span></h3>${relList}
+    ${tourneeCard(true)}
+    <h3 class="todo-sub">${ms("event")}Mes 5 prochains RDV <span class="hint">${rdvs.length > 5 ? `5 sur ${rdvs.length}` : rdvs.length}</span></h3>
+    ${rdvs.length ? `<div class="todo"><ul>${todoRdv}</ul></div>` : `<p class="muted" style="margin:4px 0 12px">Aucun RDV planifié.</p>`}`;
   const eur = n => n.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €";
 
   return `
@@ -751,8 +758,6 @@ function viewDashboard() {
         <div class="tabs" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" data-todo="${k}" aria-selected="${ui.todoTab === k}">${l}<span class="n ${k === "retard" && B[k].length ? "late" : ""}">${B[k].length}</span></button>`).join("")}</div>
         <div class="card-body" style="padding-top:4px">${todoBody}</div>
       </section>
-      ${tourneeCard()}
-      ${rdvs.length ? `<section class="card"><div class="card-head"><h2>Rendez-vous à venir</h2><span class="hint">${rdvs.length}</span></div><div class="card-body todo"><ul>${todoRdv}</ul></div></section>` : ""}
     </div>
     <div class="col">
       <section class="card">
@@ -1193,7 +1198,7 @@ document.addEventListener("click", e => {
   if (d.pot) { const k = d.pot.indexOf(":"), x = S.candidats.find(c => c.id === +d.pot.slice(0, k)), p = d.pot.slice(k + 1); x.potentiel = x.potentiel === p ? null : p; ui.selCand = x.id; save(); toast(`${x.enseigne} : ${TEMP_LABEL[temp(x).k].toLowerCase()}`, "flag"); return render(); }
   if (d.act) { const c = commerce(+d.act), act = nextAction(interOf(c.id)[0]); ui.panel = null; ui.prefill = { canal: act.canal, res: act.res || null, label: act.l }; return go("fiche", c.id); }
   if (d.stale) { const c = commerce(+d.stale), last = interOf(c.id)[0]; c.statut = "Injoignable"; if (last) last.relance = addDays(TODAY, 90); ui.panel = null; save(); toast(`${c.enseigne} classé injoignable · nouvel essai le ${fmt(addDays(TODAY, 90))}`, "phone_disabled"); return render(); }
-  if (d.today) { const c = commerce(+d.today), last = interOf(c.id)[0]; if (last) { if (!last.relanceOrig) last.relanceOrig = last.relance; last.relance = TODAY; } ui.panel = null; save(); toast(`${c.enseigne} : à faire aujourd'hui`, "today"); return render(); }
+  if (d.today) { const c = commerce(+d.today), last = interOf(c.id)[0]; ui.panel = null; if (!last) return render(); return reportRelance(c, last, TODAY, `${c.enseigne} : à faire aujourd'hui`, "today"); }
   if (d.mapmode) { ui.mapMode = d.mapmode; return render(); }
   if (d.zoom) { ui.zoom = Math.min(2.4, Math.max(1, (ui.zoom || 1) + 0.35 * +d.zoom)); return render(); }
   if (d.chip) { const s = new Set(ui.rTypes); s.has(d.chip) ? s.delete(d.chip) : s.add(d.chip); ui.rTypes = [...s]; return render(); }
@@ -1308,7 +1313,19 @@ function postpone(cid, n) {
   if (n === "date") { const el = $("#rep-" + cid); d = el && el.value; if (!d || d <= TODAY) return toast("Choisissez une date à partir de demain", "event"); }
   else d = addDays(TODAY, n);
   const c = commerce(cid), last = interOf(cid)[0];
-  if (last) { last.relance = d; delete last.relanceOrig; } ui.panel = null; save(); toast(`${c.enseigne} reporté au ${fmt(d)}`, "update"); render();
+  ui.panel = null;
+  if (!last) return render();
+  return reportRelance(c, last, d, `${c.enseigne} reporté au ${fmt(d)} · dans Ma to do`, "update");
+}
+async function reportRelance(c, last, d, msg, ic) {
+  if (!last.relanceOrig) last.relanceOrig = last.relance;
+  last.relance = d;
+  if (LIVE.on && !S.demo) {
+    try { await sqlLive(`update public.interaction set date_relance_initiale = coalesce(date_relance_initiale, date_relance), date_relance = ${sqlTxt(d)} where id = ${Number(last.id)};`); toast(msg, ic); await loadLive(true); }
+    catch (e) { toast(`Report non enregistré (${(e && e.code) || "erreur"})`, "error"); render(); }
+    return;
+  }
+  save(); toast(msg, ic); render();
 }
 function launchSearch() {
   const raw = (ui.rq || "").trim(), ville = raw.split(",")[0].trim(), m = raw.match(/(\d+)\s*km/i), rayon = m ? +m[1] : +ui.rRayon || 5;
@@ -1662,17 +1679,18 @@ function itineraire(t) {
   const enc = encodeURIComponent, dest = pts[pts.length - 1], way = pts.slice(0, -1);
   return `https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=${enc(dest)}${way.length ? "&waypoints=" + way.map(enc).join("%7C") : ""}`;
 }
-function tourneeCard() {
-  if (S.demo && REAL_S) { const prev = S; S = REAL_S; try { return tourneeCard(); } finally { S = prev; } }
-  const t = curTournee(); if (!t) return `<section class="card card-pad tour-card"><b>${ms("route")}Ma tournée</b><span class="muted">Aucune tournée prévue.</span><button class="btn sm" data-go="tournees" type="button">Planifier une tournée</button></section>`;
+function tourneeCard(inner) {
+  if (S.demo && REAL_S) { const prev = S; S = REAL_S; try { return tourneeCard(inner); } finally { S = prev; } }
+  const wrap = h => inner ? h.replace(/^<section class="card card-pad tour-card">/, '<div class="tour-card tour-in">').replace(/<\/section>$/, "</div>") : h;
+  const t = curTournee(); if (!t) return wrap(`<section class="card card-pad tour-card"><b>${ms("route")}Ma tournée</b><span class="muted">Aucune tournée prévue.</span><button class="btn sm" data-go="tournees" type="button">Planifier une tournée</button></section>`);
   const st = t.arrets.map(stopInfo).filter(Boolean), nc = st.filter(s => s.kind === "c").length, np = st.length - nc, faits = t.arrets.filter(a => a.resultat).length;
   const mos = st.map(s => motifVisite(s.kind, s.ref, t.date)), n1 = mos.filter(m => m.k === "first").length, nr = mos.filter(m => m.k === "relance").length, rdvs = mos.filter(m => m.k === "rdv");
   const detail = [n1 ? `${n1} 1re${n1 > 1 ? "s" : ""} visite${n1 > 1 ? "s" : ""}` : "", nr ? `${nr} relance${nr > 1 ? "s" : ""}` : "", rdvs.length ? `${rdvs.length} RDV commercial${rdvs.length > 1 ? "aux" : ""} (${rdvs.map(m => heureTxt(m.rdv.rdv)).join(", ")})` : ""].filter(Boolean).join(" · ");
-  return `<section class="card card-pad tour-card"><b>${ms("route")}${t.date === TODAY ? "Ma tournée du jour" : "Ma prochaine tournée"}</b>
+  return wrap(`<section class="card card-pad tour-card"><b>${ms("route")}${t.date === TODAY ? "Ma tournée du jour" : "Ma prochaine tournée"}</b>
     <span><b>${esc(tourName(t))}</b> · ${fmtLong(t.date)}</span>
     <span class="muted">${st.length} arrêt${st.length > 1 ? "s" : ""} · <span class="kind-c">${nc} candidat${nc > 1 ? "s" : ""}</span> · <span class="kind-p">${np} prospect${np > 1 ? "s" : ""}</span>${faits ? ` · ${faits} visité${faits > 1 ? "s" : ""}` : ""}</span>
     ${detail ? `<span class="muted">${detail}</span>` : ""}
-    <button class="btn sm secondary" data-tsel="${t.id}" data-go="tournees" type="button">${ms("map")}Ouvrir la tournée</button></section>`;
+    <button class="btn sm secondary" data-tsel="${t.id}" data-go="tournees" type="button">${ms("map")}Ouvrir la tournée</button></section>`);
 }
 function viewTournees() {
   const ts = myTournees(), t = curTournee();

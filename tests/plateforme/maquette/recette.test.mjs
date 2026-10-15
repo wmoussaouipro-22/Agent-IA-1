@@ -326,7 +326,7 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
   m.click(stops[0].querySelector("[data-tres$=':À rappeler']")); await m.wait(120);
   assert.ok(m.calls.some(c => /update public\.tournee_arret set resultat = 'À rappeler'/.test(c.input.query || "")));
   assert.ok(m.calls.some(c => /insert into public\.interaction.*'Visite', 'À rappeler'/s.test(c.input.query || "")), "la visite doit être enregistrée comme échange");
-  m.click("[data-go=dashboard]");
+  m.click("[data-go=dashboard]"); m.click("[data-todo=todo]");
   assert.match(m.d.querySelector("#view").textContent, /Ma prochaine tournée.*Roubaix centre.*2 arrêts.*1 candidat.*1 prospect/s);
   assert.deepEqual(m.errs, []);
 });
@@ -358,7 +358,7 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
   assert.match(stops[1].textContent, /RDV commercial · 10 h 00.*Boulangerie Ancienne.*RDV Diagnostic · heure fixe 10 h 00/s);
   assert.ok(stops[1].classList.contains("mot-rdv"));
   assert.deepEqual([...stops[1].querySelectorAll("[data-tres]")].map(b => b.textContent), ["RDV réalisé", "Reporté", "Annulé"]);
-  m.click("[data-go=dashboard]");
+  m.click("[data-go=dashboard]"); m.click("[data-todo=todo]");
   assert.match(m.d.querySelector("#view").textContent, /1 1re visite · 1 RDV commercial \(10 h 00\)/);
   m.click("[data-go=tournees]");
   stops = [...m.d.querySelectorAll(".stop")];
@@ -376,5 +376,27 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
   m.click('[data-action="tour-del"]'); await m.wait(80);
   assert.ok(m.calls.some(c => /delete from public\.tournee_arret where tournee_id = 70; delete from public\.tournee where id = 70;/.test(c.input.query || "")));
   assert.equal(m.d.querySelectorAll(".tour-chip").length, 0);
+  assert.deepEqual(m.errs, []);
+});
+
+/* P15 */ test("P15 · « Ma to do » : une relance en retard reportée y passe, avec la prochaine tournée et les 5 prochains RDV", async () => {
+  const m = await ouvrir("live");
+  assert.ok(m.d.querySelector("[data-todo=todo]"), "l'onglet Ma to do doit exister");
+  assert.equal([...m.d.querySelectorAll("[data-todo]")].some(b => /Cette semaine/.test(b.textContent)), false, "l'onglet Cette semaine est remplacé");
+  m.click("[data-todo=retard]");
+  const row = [...m.d.querySelectorAll(".trow")].find(r => r.querySelector("[data-panel$=':report']"));
+  assert.ok(row, "aucune relance en retard à reporter");
+  const nom = row.querySelector(".ens").textContent;
+  m.click(row.querySelector("[data-panel$=':report']"));
+  const inp = m.d.querySelector(".panel input[type=date]"); inp.value = "2026-10-21";
+  m.click(m.d.querySelector("[data-postpone]")); await m.wait(60);
+  assert.match(m.toasts(), /reporté au 21\/10\/2026 · dans Ma to do/);
+  assert.ok(![...m.d.querySelectorAll(".trow .ens")].some(e => e.textContent === nom), "la relance reportée quitte « En retard »");
+  m.click("[data-todo=todo]");
+  const v = m.d.querySelector("#todo").textContent;
+  assert.match(v, new RegExp(`Relances reportées.*${nom.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}.*Reportée.*reportée au mercredi 21 octobre · initialement prévue le`, "s"));
+  assert.match(v, /Ma (prochaine )?tournée/);
+  assert.match(v, /Mes 5 prochains RDV/);
+  assert.ok(m.d.querySelectorAll("#todo .todo li").length <= 5, "pas plus de 5 RDV");
   assert.deepEqual(m.errs, []);
 });
