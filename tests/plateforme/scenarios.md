@@ -62,4 +62,5 @@ simulés, les scénarios Supabase annulent tout ce qu'ils créent, et n8n est co
 |---|---|
 | N1 | Le workflow « Recherche Google Maps → candidats » est actif, webhook `ecolocaux-recherche-google-maps`, rayon appliqué (« Situer la ville » avant Google Maps) |
 | N2 | Les 10 dernières exécutions : aucune en échec, sinon nœud et message d'erreur |
+| N4 | Le workflow « Réponse à l'invitation (Google Agenda) » est actif (toutes les 30 min) : seuls les RDV confirmés à venir dont l'invitation est « En attente » sont relus ; Oui → Acceptée, Non → Refusée + tâche « Recontacter le gérant » |
 | N3 | (seulement avec ton accord) Recherche réelle sur une petite zone : la recherche passe à « Terminée » et des candidats arrivent |
