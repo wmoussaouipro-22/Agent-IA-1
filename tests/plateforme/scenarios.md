@@ -17,7 +17,7 @@ simulés, les scénarios Supabase annulent tout ce qu'ils créent, et n8n est co
 | P3 | Voir un candidat déjà connu | Le commercial voit « Déjà connu · Pas intéressé : à ne pas recontacter » |
 | P4 | Saisir un échange | Plus de date de relance à saisir ; relance calculée : J+2, visite à J+5 au 3e « Sans réponse », J+7 ou date convenue pour « À rappeler », J+1 pour « Intéressé », veille du RDV ; canaux Appel / E-mail / Visite (pas de SMS) |
 | P5 | Déclarer un prospect « Pas intéressé » | Fenêtre de confirmation, mise à jour Supabase, le prospect disparaît des écrans |
-| P6 | Traiter les relances en retard | « À traiter » lit les vraies relances Supabase (indicateurs et pipeline restent d'illustration) ; la relance du jour est dans « Aujourd'hui », puis bascule selon les paliers : J+1 à 3 « À rattraper », J+4 à 14 « En retard », au-delà « À requalifier » avec « Rappeler aujourd'hui » / « Classer injoignable » ; plus de sélecteur Ma zone / Équipe |
+| P6 | Traiter les relances en retard | « À traiter » en mode « Mes données » lit les vraies relances Supabase ; la relance du jour est dans « Aujourd'hui », puis bascule selon les paliers : J+1 à 3 « À rattraper », J+4 à 14 « En retard », au-delà « À requalifier » avec « Rappeler aujourd'hui » / « Classer injoignable » ; plus de sélecteur Ma zone / Équipe |
 | P7 | Lancer une recherche Google Maps | Le workflow n8n actif reçoit ville, rayon, activités, commercial et 10 résultats maximum ; bouton bloqué pendant la recherche |
 | P8 | Ouvrir une fiche prospect | Potentiel affiché avec le détail du calcul ; ni section Synthèse, ni Relance, ni « suivi par » |
 | P9 | Tableau de bord d'illustration | Aucun prospect « Pas intéressé » dans les chiffres ni dans le pipeline |
@@ -30,6 +30,7 @@ simulés, les scénarios Supabase annulent tout ce qu'ils créent, et n8n est co
 | P16 | Plusieurs tournées le même jour | Signalées, puis regroupées en une seule (arrêts déplacés, tournées vides supprimées) |
 | P17 | Ouvrir un prospect depuis « À traiter » | Le nom de l'enseigne ouvre sa fiche ; sans fiche réelle, le formulaire de création s'ouvre pré-rempli et la fiche est créée dans Supabase ; plus de « Saisir le résultat » ni de bouton « Préparer » |
 | P18 | Consulter la liste des prospects | Colonne « E-mail » (adresse fournie par Google Maps), vide si le commerce n'en a pas |
+| P19 | Présenter le tableau de bord | Données d'illustration par défaut, datées par rapport au jour réel ; bouton « Mes données » pour basculer « À traiter » et les RDV sur Supabase |
 
 ## Règles Supabase (`supabase/scenarios.sql`)
 

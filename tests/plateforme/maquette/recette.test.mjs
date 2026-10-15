@@ -235,6 +235,7 @@ async function relancesReelles(m) {
   add(182, "Rappel J+20", 982, "2026-09-15", "À rappeler", "2026-09-24");
   add(183, "Rappel du jour", 983, "2026-10-07", "À rappeler", "2026-10-14");
   m.click('[data-action="live"]'); await m.wait(80);
+  m.click("[data-dash=real]");
 }
 
 /* P6 */ test("P6 · « À traiter » sur les vraies relances : aujourd'hui, puis paliers de retard (à rattraper, en retard, à requalifier)", async () => {
@@ -485,5 +486,26 @@ const commerceOuvert = m => m.w.eval("commerce(ui.ficheId).enseigne");
   const cell = nom => [...m.d.querySelectorAll("tbody tr")].find(r => r.textContent.includes(nom)).children[col].textContent.trim();
   assert.equal(cell("Boulangerie Ancienne"), "contact@ancienne.fr");
   assert.equal(cell("Boulangerie Récente"), "", "sans e-mail, la case reste vide");
+  assert.deepEqual(m.errs, []);
+});
+
+/* P19 */ test("P19 · Tableau de bord : données d'illustration par défaut (soutenance), « Mes données » pour les vraies relances", async () => {
+  const m = await ouvrir("live");
+  await relancesReelles(m);
+  m.click("[data-dash=demo]");
+  assert.equal(m.d.querySelector("[data-dash=demo]").getAttribute("aria-pressed"), "true");
+  assert.match(m.d.querySelector("h1").textContent, /Données d'illustration$/);
+  m.click("[data-todo=retard]");
+  const demo = [...m.d.querySelectorAll("#todo .trow .ens")].map(e => e.textContent);
+  assert.ok(demo.length > 0, "l'illustration doit montrer des relances en retard");
+  assert.ok(!demo.some(n => /^Rappel /.test(n)), "aucune vraie relance en mode illustration");
+  m.click("[data-dash=real]"); m.click("[data-todo=retard]");
+  assert.deepEqual([...m.d.querySelectorAll("#todo .trow .ens")].map(e => e.textContent).sort(), ["Rappel J+2", "Rappel J+20", "Rappel J+8"]);
+  assert.deepEqual(m.errs, []);
+});
+
+/* P19b */ test("P19b · Ouverture : l'illustration est affichée par défaut", async () => {
+  const m = await ouvrir("live");
+  assert.equal(m.d.querySelector("[data-dash=demo]").getAttribute("aria-pressed"), "true");
   assert.deepEqual(m.errs, []);
 });

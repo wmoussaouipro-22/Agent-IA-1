@@ -260,6 +260,7 @@ table.grid .r { text-align: right; }
 .stop-a { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px; } .stop-a .grow { flex: 1; }
 .warn-txt { color: var(--red) !important; font-weight: 600; }
 .mail-cell { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
+.dash-src { margin-top: 8px; }
 .tour-pick { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .tour-add { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
 .b-rdv { background: var(--cold-bg); color: var(--cold); border-color: transparent; font-weight: 700; }
@@ -695,8 +696,8 @@ function hbars(rows, opts = {}) {
 function weekStart(iso) { const d = d0(iso); const k = (d.getDay() + 6) % 7; d.setDate(d.getDate() - k); return d.toISOString().slice(0, 10); }
 
 function viewDashboard() {
-  /* « À traiter », relances et RDV : vraies données Supabase ; indicateurs et pipeline : données d'illustration */
-  const REALV = S.demo && REAL_S ? REAL_S : null;
+  /* Par défaut tout est en données d'illustration (soutenance) ; « Mes données » passe « À traiter » et les RDV sur Supabase */
+  const REALV = S.demo && REAL_S && ui.dashReal ? REAL_S : null;
   const swap = fn => { if (!REALV) return fn(); const prev = S; S = REALV; try { return fn(); } finally { S = prev; } };
   const { cs, is } = scopeData();
   const actifs = cs.filter(c => !stopped(c));
@@ -749,7 +750,7 @@ function viewDashboard() {
 
   return `
   <div class="page-head">
-    <div><h1>Tableau de bord${S.demo ? ` <span class="chip">Données d'illustration${REALV ? " (sauf À traiter et RDV)" : ""}</span>` : ""}</h1><p>${ui.scope === "zone" ? `Zone ${esc(ME.zone)} · ${cs.length} commerces suivis` : `Toute l'équipe · ${cs.length} commerces, 5 zones`} · données au ${fmt(TODAY)}</p></div>
+    <div><h1>Tableau de bord${S.demo ? ` <span class="chip">Données d'illustration${REALV ? " (sauf À traiter et RDV)" : ""}</span>` : ""}</h1>${S.demo ? `<div class="scope dash-src" role="group" aria-label="Données de « À traiter »"><button type="button" data-dash="demo" aria-pressed="${!REALV}">Illustration</button><button type="button" data-dash="real" aria-pressed="${!!REALV}">Mes données</button></div>` : ""}<p>${ui.scope === "zone" ? `Zone ${esc(ME.zone)} · ${cs.length} commerces suivis` : `Toute l'équipe · ${cs.length} commerces, 5 zones`} · données au ${fmt(TODAY)}</p></div>
 
   </div>
   <section class="kpis" aria-label="Indicateurs clés">
@@ -1197,11 +1198,12 @@ function autoRelance(c, res, date, rdvIso, hist) {
 
 /* ---------- Interactions ---------- */
 document.addEventListener("click", e => {
-  const t = e.target.closest("[data-go],[data-open],[data-menu],[data-edit],[data-del],[data-page],[data-sel],[data-selall],[data-scope],[data-rech],[data-tri],[data-keep],[data-drop],[data-known],[data-undo],[data-relance],[data-range],[data-today],[data-act],[data-pot],[data-pin],[data-tour],[data-chip],[data-mapmode],[data-zoom],[data-todo],[data-copy],[data-panel],[data-result],[data-postpone],[data-stale],[data-mail],[data-tourp],[data-tdate],[data-tmove],[data-tdel],[data-tres],[data-tpage],[data-mailtab],[data-week],[data-action],[data-close],[data-veil]");
+  const t = e.target.closest("[data-go],[data-open],[data-menu],[data-edit],[data-del],[data-page],[data-sel],[data-selall],[data-scope],[data-rech],[data-tri],[data-keep],[data-drop],[data-known],[data-undo],[data-relance],[data-range],[data-today],[data-act],[data-pot],[data-pin],[data-tour],[data-chip],[data-mapmode],[data-zoom],[data-todo],[data-copy],[data-panel],[data-result],[data-postpone],[data-stale],[data-mail],[data-tourp],[data-tdate],[data-dash],[data-tmove],[data-tdel],[data-tres],[data-tpage],[data-mailtab],[data-week],[data-action],[data-close],[data-veil]");
   if (!t) { if (ui.menu) { ui.menu = null; render(); } return; }
   const d = t.dataset;
   if (d.veil !== undefined && e.target !== t) return;
   if (t.tagName === "A") e.preventDefault();
+  if (d.dash) { ui.dashReal = d.dash === "real"; ui.todoTab = null; ui.panel = null; return render(); }
   if (d.tdate) { ui.tourDate = d.tdate; ui.tourEdit = ui.tourDel = null; ui.tpage = 1; }
   if (d.go) return go(d.go);
   if (d.tourp) return toggleArret("p", +d.tourp);
@@ -1212,7 +1214,7 @@ document.addEventListener("click", e => {
   if (d.mail) { ui.modal = { type: "maildraft", id: +d.mail }; return render(); }
   if (d.mailtab) { ui.mailTab = d.mailtab; return render(); }
   if (d.week !== undefined) { ui.week = +d.week === 0 ? 0 : (ui.week || 0) + +d.week; return render(); }
-  const inReal = onDemo() && REAL_S && t.closest("#todo, .kpi-link");
+  const inReal = onDemo() && REAL_S && ui.dashReal && t.closest("#todo, .kpi-link");
   if (inReal) S = REAL_S;
   if (onDemo() && !inReal && (d.open || d.act)) return ouvrirDepuisDemo(+(d.open || d.act));
   if (d.open) return go("fiche", +d.open);
