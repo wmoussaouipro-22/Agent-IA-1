@@ -31,6 +31,8 @@ simulés, les scénarios Supabase annulent tout ce qu'ils créent, et n8n est co
 | P17 | Ouvrir un prospect depuis « À traiter » | Le nom de l'enseigne ouvre sa fiche ; sans fiche réelle, le formulaire de création s'ouvre pré-rempli et la fiche est créée dans Supabase ; plus de « Saisir le résultat » ni de bouton « Préparer » |
 | P18 | Consulter la liste des prospects | Colonne « E-mail » (adresse fournie par Google Maps), vide si le commerce n'en a pas |
 | P19 | Présenter le tableau de bord | Données d'illustration par défaut, datées par rapport au jour réel ; bouton « Mes données » pour basculer « À traiter » et les RDV sur Supabase |
+| P20 | Saisir un échange (modèle du 15/10) | Motif + résultat ; le statut est seulement proposé (case à cocher, jamais d'office) puis validé depuis la fiche ; l'échange ferme les tâches ouvertes et crée la suivante (table `tache`) ; informations énergétiques avec source, date et validation |
+| P21 | Lire le pipeline | Nouveau → Contacté → En qualification → Audit en préparation → Audit prêt → Rendez-vous confirmé, puis Injoignable |
 
 ## Règles Supabase (`supabase/scenarios.sql`)
 
@@ -44,6 +46,9 @@ simulés, les scénarios Supabase annulent tout ce qu'ils créent, et n8n est co
 | S6 | Commerce « Pas intéressé » retrouvé | Le commerce reste en base ; le candidat est classé « Connu » |
 | S7 | Potentiel corrigé à la main | Jamais écrasé par le calcul automatique |
 | S8 | Requête de lecture de la maquette | S'exécute, format attendu, aucun « Pas intéressé » renvoyé |
+| S10 | RDV « Rendez-vous pris » | Défauts du RDV (objet « Présentation du pré-diagnostic ») ; le statut du commerce ne change pas tout seul |
+| S11 | Tâche | Reliée à un commerce existant (clé étrangère) ; statut limité à À faire / Faite / Annulée |
+| S12 | Information extraite par l'IA | Toujours « À confirmer », même si l'insertion demande « Validée » |
 | S9 | Arrêt de tournée | Soit un candidat, soit un prospect : un arrêt vide ou double est refusé |
 
 ## n8n (lecture seule)

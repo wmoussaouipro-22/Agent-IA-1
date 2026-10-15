@@ -27,10 +27,12 @@ function liveData() {
     commerciaux: [[1, "Camille", "Lefèvre", "Nord", "c@x"], [2, "Wassila", "Moussaoui", "Nord", "w@x"]],
     interactions: [[900, 160, 2, "2026-10-14", "Appel", "RDV pris", null, "2026-10-19", "2026-10-20T08:00:00Z", "Planifié", "Diagnostic", "evt-1"]],
     recherches: [[50, "Rech-050", "2026-10-14T09:00:00Z", "Google Maps", 2, "Nord", ["Boulangerie"], "Roubaix", null, 1, "Terminée", null]],
-    candidats: [CAND(501, 50, "Fournil A"), CAND(502, 50, "Fournil B"), CAND(503, 50, "Fournil Connu", "Connu", ["Pas intéressé", false, 2])],
+    candidats: [CAND(501, 50, "Fournil A"), CAND(502, 50, "Fournil B"), CAND(503, 50, "Fournil Connu", "Connu", ["Non intéressé", false, 2])],
     gx: { 501: ["03 20 11 11 11", null, "2 rue A", "59100", "lundi 06:00 to 20:00", "PLACE-A"] },
     gr: { 50: "boulangerie Roubaix" },
     tournees: [],
+    taches: [[1, 160, 2, 900, "E-mail", "Confirmer le RDV par e-mail", "2026-10-19", null, "À faire", null, "Règle J+X", "la veille du RDV"]],
+    infos: [],
     mails: [[40, 160, 2, 900, "Confirmation de notre rendez-vous diagnostic du 20 octobre", "Madame, Monsieur,\n\nTexte rédigé par l'IA.", "Brouillon IA", "contact@ancienne.fr", "2026-10-14", null, "RDV · Diagnostic", false]],
   };
 }
@@ -103,6 +105,21 @@ async function ouvrir(mode = "live", hash = "") {
           const id = +/where id = (\d+)/.exec(q)[1], tr = data.tournees.find(x => x[0] === id);
           tr[1] = /date_tournee = '([^']+)'/.exec(q)[1]; tr[2] = /nom = (null|'([^']*)')/.exec(q)[2] || null; return { content: [] };
         }
+        if (q.startsWith("update public.tache set echeance_initiale")) {
+          const id = +/where id = (\d+)/.exec(q)[1], t = data.taches.find(x => x[0] === id), d = /echeance = '([^']+)'/.exec(q)[1];
+          if (t) { t[7] = t[7] || t[6]; t[6] = d; } return { content: [] };
+        }
+        if (/^update public\.commerce set statut_prospection = '[^']+' where id = \d+; update public\.interaction set statut_applique = true/.test(q)) {
+          const m2 = /statut_prospection = '([^']+)' where id = (\d+);.*where id = (\d+);/s.exec(q), c = data.commerces.find(x => x[0] === +m2[2]), i = data.interactions.find(x => x[0] === +m2[3]);
+          if (c) c[10] = m2[1]; if (i) i[15] = true; return { content: [] };
+        }
+        if (q.startsWith("insert into public.info_energetique")) {
+          const v = [...q.matchAll(/'((?:[^']|'')*)'|null/g)].map(x => x[1] == null ? null : x[1]);
+          data.infos.push([700 + data.infos.length, +/values \((\d+)/.exec(q)[1], v[0], v[1], v[2], v[3], null, "2026-10-14", false, "Validée", 2, "2026-10-14T10:00:00Z", null]); return { content: [] };
+        }
+        if (q.startsWith("update public.info_energetique")) {
+          const id = +/where id = (\d+)/.exec(q)[1], x = data.infos.find(k => k[0] === id); if (x) x[9] = /statut_validation = '([^']+)'/.exec(q)[1]; return { content: [] };
+        }
         if (q.startsWith("update public.interaction set date_relance_initiale")) {
           const id = +/where id = (\d+)/.exec(q)[1], i = data.interactions.find(x => x[0] === id), d = /date_relance = '([^']+)'/.exec(q)[1];
           if (i) { i[12] = i[12] || i[7]; i[7] = d; } return { content: [] };
@@ -119,8 +136,13 @@ async function ouvrir(mode = "live", hash = "") {
           const id = +/where id = (\d+)/.exec(q)[1]; for (const tr of data.tournees) tr[5] = tr[5].filter(a => a[0] !== id); return { content: [] };
         }
         if (q.startsWith("with i as (insert into public.interaction")) {
-          const id = 950 + data.interactions.length;
-          data.interactions.push([id, 170, 2, "2026-10-14", "Appel", /'(RDV pris|Sans réponse|Intéressé|À rappeler)'/.exec(q)?.[1] || "Appel", null, null, /'(2026-[^']+T[^']+)'/.exec(q)?.[1] || null, "Planifié", /'(Diagnostic|Présentation devis|Signature)'/.exec(q)?.[1] || null, null]);
+          const id = 950 + data.interactions.length, cid = +/where commerce_id = (\d+) and statut = 'À faire'/.exec(q)[1];
+          const prop = /, (null|'([^']*)'), (true|false)\) returning id\)/.exec(q);
+          data.interactions.push([id, cid, 2, "2026-10-14", "Appel", /'(Rendez-vous pris|RDV pris|Sans réponse|Absent|Intéressé|À rappeler|À relancer)'/.exec(q)?.[1] || "Appel", null, null, /'(2026-[^']+T[^']+)'/.exec(q)?.[1] || null, "Planifié", /'(Présentation du pré-diagnostic|Diagnostic|Présentation devis|Signature)'/.exec(q)?.[1] || null, null, null, null, prop ? prop[2] || null : null, prop ? prop[3] === "true" : false]);
+          for (const t of data.taches) if (t[1] === cid && t[8] === "À faire") { t[8] = "Faite"; t[9] = "2026-10-14T10:00:00Z"; }
+          const nt = /t as \(insert into public\.tache .* from i returning id\)/s.exec(q);
+          if (nt) { const v = [...nt[0].matchAll(/'((?:[^']|'')*)'/g)].map(x => x[1]); data.taches.push([100 + data.taches.length, cid, 2, id, v[0], v[1], v[2], null, "À faire", null, "Règle J+X", v[4] || null]); }
+          if (/u as \(update public\.commerce set statut_prospection = '([^']+)'/.test(q)) { const c = data.commerces.find(x => x[0] === cid); if (c) c[10] = /u as \(update public\.commerce set statut_prospection = '([^']+)'/.exec(q)[1]; }
           return { content: [{ type: "text", text: JSON.stringify({ result: `<untrusted-data-x1>\n[{"interaction_id":${id}}]\n</untrusted-data-x1>` }) }] };
         }
         if (q.startsWith("update public.mail")) {
@@ -129,7 +151,7 @@ async function ouvrir(mode = "live", hash = "") {
           if (/statut = 'Validé'/.test(q)) m[6] = "Validé";
           return { content: [] };
         }
-        if (q.startsWith("update public.commerce set statut_prospection = 'Pas intéressé'")) {
+        if (q.startsWith("update public.commerce set statut_prospection = 'Non intéressé'")) {
           const ids = /in \(([\d,]+)\)/.exec(q)[1].split(",").map(Number);
           data.commerces = data.commerces.filter(c => !ids.includes(c[0]));
           return { content: [] };
@@ -185,10 +207,10 @@ async function ouvrir(mode = "live", hash = "") {
   assert.deepEqual(m.errs, []);
 });
 
-/* P3 */ test("P3 · Candidat Connu : le commercial voit que le commerce est « Pas intéressé »", async () => {
+/* P3 */ test("P3 · Candidat Connu : le commercial voit que le commerce est « Non intéressé »", async () => {
   const m = await ouvrir("live");
   m.click("[data-go=recherches]");
-  assert.match(m.d.querySelector("#view").textContent, /Déjà connu · Pas intéressé : à ne pas recontacter/);
+  assert.match(m.d.querySelector("#view").textContent, /Déjà connu · Non intéressé : à ne pas recontacter/);
 });
 
 /* P4 */ test("P4 · Relances automatiques : Sans réponse ×3 → visite, À rappeler avec ou sans date, RDV → veille", async () => {
@@ -209,8 +231,15 @@ async function ouvrir(mode = "live", hash = "") {
   m.change("#i-res", "Intéressé");
   assert.equal(m.d.querySelector("#rap-f").hidden, true);
   assert.match(m.d.querySelector("#i-auto").textContent, /présentation par e-mail · J\+1 ouvré · le 15\/10\/2026/);
-  m.change("#i-res", "RDV pris"); m.change("#i-rdv", "2026-10-22T10:00");
+  m.change("#i-res", "Rendez-vous pris"); m.change("#i-rdv", "2026-10-22T10:00");
   assert.match(m.d.querySelector("#i-auto").textContent, /Confirmer le RDV par e-mail · la veille du RDV · le 21\/10\/2026/);
+  m.change("#i-res", "Absent");
+  assert.match(m.d.querySelector("#i-auto").textContent, /Nouvelle visite · J\+2 ouvrés · le 16\/10\/2026/);
+  m.change("#i-res", "Informations complémentaires demandées");
+  assert.match(m.d.querySelector("#i-auto").textContent, /Envoyer les informations demandées · J\+1 ouvré · le 15\/10\/2026/);
+  m.change("#i-res", "À relancer");
+  assert.match(m.d.querySelector("#i-auto").textContent, /Relancer le commerce · J\+3 ouvrés · le 19\/10\/2026/);
+  assert.deepEqual([...m.d.querySelectorAll("#i-res option")].map(o => o.textContent), ["Sans réponse", "Absent", "À rappeler", "Informations complémentaires demandées", "Intéressé", "Rendez-vous pris", "À relancer", "Pas intéressé"]);
   assert.deepEqual([...m.d.querySelectorAll("#i-canal option")].map(o => o.textContent), ["Appel", "E-mail", "Visite"], "le canal SMS doit avoir disparu");
   assert.deepEqual(m.errs, []);
 });
@@ -223,13 +252,13 @@ async function ouvrir(mode = "live", hash = "") {
   m.d.querySelector("#f-inter").dispatchEvent(new m.w.Event("submit", { bubbles: true, cancelable: true }));
   assert.match(m.d.querySelector("#mt")?.textContent || "", /n'est pas intéressé/);
   m.click('[data-action="confirm-retire"]'); await m.wait(80);
-  assert.ok(m.calls.some(c => /update public\.commerce set statut_prospection = 'Pas intéressé' where id in \(170\)/.test(c.input.query || "")));
+  assert.ok(m.calls.some(c => /update public\.commerce set statut_prospection = 'Non intéressé' where id in \(170\)/.test(c.input.query || "")));
   assert.deepEqual([...m.d.querySelectorAll("tbody .ens")].map(x => x.textContent), ["Boulangerie Ancienne"]);
 });
 
 /* Relances réelles (Supabase) : en retard de 2, 8 et 20 jours, et une pour aujourd'hui (date de la recette : 14/10/2026) */
 async function relancesReelles(m) {
-  const add = (cid, nom, iid, date, res, rel) => { m.data.commerces.push(COM(cid, nom, { statut: "À rappeler", ville: "Lille" })); m.data.interactions.push([iid, cid, 2, date, "Appel", res, null, rel, null, null, null, null]); };
+  const add = (cid, nom, iid, date, res, rel) => { m.data.commerces.push(COM(cid, nom, { statut: "Contacté", ville: "Lille" })); m.data.interactions.push([iid, cid, 2, date, "Appel", res, null, rel, null, null, null, null]); m.data.taches.push([iid - 900, cid, 2, iid, "Appel", "Rappeler le gérant", rel, null, "À faire", null, "Règle J+X", "J+7 ouvrés"]); };
   add(180, "Rappel J+2", 980, "2026-10-05", "À rappeler", "2026-10-12");
   add(181, "Rappel J+8", 981, "2026-09-28", "À rappeler", "2026-10-06");
   add(182, "Rappel J+20", 982, "2026-09-15", "À rappeler", "2026-09-24");
@@ -285,16 +314,20 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
   assert.equal(m.d.querySelector("#view").textContent.includes("Pas intéressé"), false, "le pipeline ne doit plus afficher « Pas intéressé »");
 });
 
-/* P10 */ test("P10 · RDV « Présentation devis » : échange enregistré dans Supabase, brouillon IA demandé à n8n puis ouvert", async () => {
+/* P10 */ test("P10 · RDV « Présentation du pré-diagnostic » : échange enregistré, statut validé par le commercial, brouillon IA demandé à n8n", async () => {
   const m = await ouvrir("live");
   m.w.eval("go('fiche', 170)");
-  m.change("#i-res", "RDV pris"); m.change("#i-rdv", "2026-10-22T10:00"); m.change("#i-rdvobj", "Présentation devis");
+  m.change("#i-res", "Rendez-vous pris"); m.change("#i-rdv", "2026-10-22T10:00");
+  assert.deepEqual([...m.d.querySelectorAll("#i-rdvobj option")].map(o => o.textContent), ["Présentation du pré-diagnostic"]);
+  assert.match(m.d.querySelector("#st-prop").textContent, /Passer de « Nouveau » à « Rendez-vous confirmé »/);
+  m.d.querySelector("#i-stapp").checked = true;
   m.d.querySelector("#f-inter").dispatchEvent(new m.w.Event("submit", { bubbles: true, cancelable: true }));
   await m.wait(300);
   const ins = m.calls.find(c => (c.input.query || "").startsWith("with i as (insert into public.interaction"));
   assert.ok(ins, "l'échange n'a pas été enregistré dans Supabase");
-  assert.match(ins.input.query, /'RDV pris'.*'Présentation devis'.*'Planifié'/s);
-  assert.match(ins.input.query, /update public\.commerce set statut_prospection = 'RDV pris' where id = 170/);
+  assert.match(ins.input.query, /'Rendez-vous pris'.*'Présentation du pré-diagnostic'.*'Planifié'.*'Rendez-vous confirmé', true/s);
+  assert.match(ins.input.query, /update public\.commerce set statut_prospection = 'Rendez-vous confirmé' where id = 170/);
+  assert.match(ins.input.query, /insert into public\.tache .*'E-mail', 'Confirmer le RDV par e-mail', '2026-10-21'/s, "la confirmation la veille doit devenir une tâche");
   const n8n = m.calls.find(c => c.server === "n8n");
   assert.ok(n8n, "n8n n'a pas été appelé pour le brouillon");
   assert.equal(n8n.input.workflowId, "PhjyhtFAAnD4Xog6");
@@ -362,7 +395,7 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
   assert.match(stops[0].textContent, /Prospect.*Boulangerie Récente/s, "le commercial doit pouvoir remonter un arrêt");
   m.click(stops[0].querySelector("[data-tres$=':À rappeler']")); await m.wait(120);
   assert.ok(m.calls.some(c => /update public\.tournee_arret set resultat = 'À rappeler'/.test(c.input.query || "")));
-  assert.ok(m.calls.some(c => /insert into public\.interaction.*'Visite', 'À rappeler'/s.test(c.input.query || "")), "la visite doit être enregistrée comme échange");
+  assert.ok(m.calls.some(c => /insert into public\.interaction.*'Visite', 'Relance', 'À rappeler'/s.test(c.input.query || "")), "la visite doit être enregistrée comme échange");
   m.click("[data-go=dashboard]"); m.click("[data-todo=todo]");
   assert.match(m.d.querySelector("#view").textContent, /Ma prochaine tournée.*Tournée du 20\/10\/2026.*2 arrêts.*1 candidat.*1 prospect/s);
   assert.deepEqual(m.errs, []);
@@ -425,7 +458,7 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
   m.click("#todo [data-panel='181:report']");
   m.d.querySelector("#rep-181").value = "2026-10-21";
   m.click("#todo [data-postpone='181:date']"); await m.wait(100);
-  assert.ok(m.calls.some(c => /update public\.interaction set date_relance_initiale = coalesce\(date_relance_initiale, date_relance\), date_relance = '2026-10-21' where id = 981;/.test(c.input.query || "")), "le report doit être enregistré dans Supabase");
+  assert.ok(m.calls.some(c => /update public\.tache set echeance_initiale = coalesce\(echeance_initiale, echeance\), echeance = '2026-10-21' where id = 81;/.test(c.input.query || "")), "le report doit être enregistré dans Supabase");
   assert.match(m.toasts(), /reporté au 21\/10\/2026 · dans Ma to do/);
   assert.ok(![...m.d.querySelectorAll("#todo .trow .ens")].some(e => e.textContent === "Rappel J+8"), "la relance reportée quitte « En retard »");
   m.click("[data-todo=todo]");
@@ -507,5 +540,38 @@ const commerceOuvert = m => m.w.eval("commerce(ui.ficheId).enseigne");
 /* P19b */ test("P19b · Ouverture : l'illustration est affichée par défaut", async () => {
   const m = await ouvrir("live");
   assert.equal(m.d.querySelector("[data-dash=demo]").getAttribute("aria-pressed"), "true");
+  assert.deepEqual(m.errs, []);
+});
+
+/* P20 */ test("P20 · Échange : le résultat propose un statut sans l'appliquer ; tâches fermées et créées ; validation depuis la fiche", async () => {
+  const m = await ouvrir("live");
+  m.w.eval("go('fiche', 170)");
+  m.change("#i-motif", "Premier contact"); m.change("#i-res", "Sans réponse");
+  assert.equal(m.d.querySelector("#st-prop").hidden, false);
+  assert.equal(m.d.querySelector("#i-stapp").checked, false, "le changement de statut n'est jamais coché d'office");
+  m.d.querySelector("#f-inter").dispatchEvent(new m.w.Event("submit", { bubbles: true, cancelable: true })); await m.wait(150);
+  const ins = m.calls.find(c => (c.input.query || "").startsWith("with i as (insert into public.interaction"));
+  assert.match(ins.input.query, /'Appel', 'Premier contact', 'Sans réponse'.*'Contacté', false\) returning id/s);
+  assert.doesNotMatch(ins.input.query, /update public\.commerce/, "le résultat ne change pas le statut tout seul");
+  assert.match(ins.input.query, /update public\.tache set statut = 'Faite'.*where commerce_id = 170 and statut = 'À faire'/s);
+  assert.match(ins.input.query, /insert into public\.tache .*'Appel', 'Nouvelle tentative d''appel', '2026-10-16'/s);
+  assert.match(m.d.querySelector("#view").textContent, /propose de passer le prospect de « Nouveau » à Contacté/);
+  m.click("[data-apply]"); await m.wait(100);
+  assert.ok(m.calls.some(c => /update public\.commerce set statut_prospection = 'Contacté' where id = 170; update public\.interaction set statut_applique = true/.test(c.input.query || "")));
+  assert.doesNotMatch(m.d.querySelector("#view").textContent, /propose de passer le prospect/);
+  // Informations énergétiques : source, date, validation
+  m.change("#e-rub", "Froid (vitrines, chambres froides)"); m.change("#e-src", "Visite sur place");
+  m.d.querySelector("#e-val").value = "2 vitrines réfrigérées";
+  m.d.querySelector("#f-energie").dispatchEvent(new m.w.Event("submit", { bubbles: true, cancelable: true })); await m.wait(100);
+  assert.ok(m.calls.some(c => /insert into public\.info_energetique .*'Froid \(vitrines, chambres froides\)', '2 vitrines réfrigérées', null, 'Visite sur place'.*'Validée'/s.test(c.input.query || "")));
+  assert.match(m.d.querySelector("#energie").textContent, /2 vitrines réfrigérées.*Visite sur place.*Validée/s);
+  assert.deepEqual(m.errs, []);
+});
+
+/* P21 */ test("P21 · Pipeline : les 6 étapes du MVP, puis Injoignable", async () => {
+  const m = await ouvrir("live");
+  const v = m.d.querySelector("#view").textContent;
+  for (const s of ["Nouveau", "Contacté", "En qualification", "Audit en préparation", "Audit prêt", "Rendez-vous confirmé", "Injoignable"]) assert.ok(v.includes(s), `étape absente du pipeline : ${s}`);
+  assert.doesNotMatch(v.slice(v.indexOf("Pipeline commercial")), /À rappeler\d|RDV pris\d/);
   assert.deepEqual(m.errs, []);
 });

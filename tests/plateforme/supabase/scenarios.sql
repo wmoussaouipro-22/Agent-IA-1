@@ -88,7 +88,7 @@ begin
   raise exception 'RECETTE_OK S5 %', jsonb_build_object('statut', v_c.statut_tri, 'note', v_c.note_tri);
 end $$;
 
--- S6 · « Pas intéressé » : le commerce reste en base, une nouvelle recherche le reconnaît (Connu)
+-- S6 · « Non intéressé » (ancien libellé « Pas intéressé ») : le commerce reste en base, une nouvelle recherche le reconnaît (Connu)
 do $$
 declare v_rech bigint; v_com bigint; v_c candidat%rowtype; v_statut text;
 begin
@@ -125,6 +125,27 @@ begin
   begin insert into tournee_arret (tournee_id, ordre, candidat_id, commerce_id) values (v_t, 3, 1, 1); exception when check_violation then v_refus := v_refus + 1; end;
   if v_refus <> 2 then raise exception 'RECETTE_KO S9 : un arrêt vide ou double a été accepté (% refus sur 2)', v_refus; end if;
   raise exception 'RECETTE_OK S9 %', jsonb_build_object('tournee', v_t, 'refus', v_refus);
+end $$;
+
+-- S10-S12 · Échanges, tâches et informations énergétiques (modèle validé le 15/10/2026)
+do $$
+declare v_com bigint; v_i interaction%rowtype; v_t bigint; v_refus int := 0; v_e info_energetique%rowtype;
+begin
+  insert into commerce (enseigne, type_commerce, ville, zone, google_place_id, statut_prospection, categorie) values ('Boulangerie Recette S10', 'Boulangerie', 'Lille', 'Nord', 'RECETTE-S10', 'Nouveau', 'Prospect') returning id into v_com;
+  -- S10 : RDV « Rendez-vous pris » → défauts, objet pré-diagnostic ; le statut du commerce ne change pas tout seul
+  insert into interaction (date_interaction, canal, motif, resultat, commerce_id, commercial_id, rdv_date_heure, statut_propose, statut_applique)
+  values (current_date, 'Appel', 'Qualification', 'Rendez-vous pris', v_com, 2, now() + interval '3 days', 'Rendez-vous confirmé', false) returning * into v_i;
+  if v_i.rdv_statut is distinct from 'Planifié' or v_i.rdv_objet is distinct from 'Présentation du pré-diagnostic' then raise exception 'RECETTE_KO S10 : défauts RDV (%, %)', v_i.rdv_statut, v_i.rdv_objet; end if;
+  if (select statut_prospection from commerce where id = v_com) <> 'Nouveau' then raise exception 'RECETTE_KO S10 : le statut a changé tout seul'; end if;
+  -- S11 : tâche reliée ; statut contrôlé ; commerce inexistant refusé
+  insert into tache (commerce_id, commercial_id, interaction_origine_id, type, libelle, echeance) values (v_com, 2, v_i.id, 'E-mail', 'Confirmer le RDV par e-mail', current_date + 2) returning id into v_t;
+  begin insert into tache (commerce_id, libelle, echeance) values (-1, 'x', current_date); exception when foreign_key_violation then v_refus := v_refus + 1; end;
+  begin update tache set statut = 'Peut-être' where id = v_t; exception when check_violation then v_refus := v_refus + 1; end;
+  if v_refus <> 2 then raise exception 'RECETTE_KO S11 : % refus sur 2', v_refus; end if;
+  -- S12 : donnée extraite par l'IA toujours « À confirmer »
+  insert into info_energetique (commerce_id, rubrique, valeur, source, interaction_id, extrait_par_ia, statut_validation, valide_par) values (v_com, 'Facture d''énergie', '850 €/mois', 'E-mail du gérant', v_i.id, true, 'Validée', 2) returning * into v_e;
+  if v_e.statut_validation <> 'À confirmer' or v_e.valide_par is not null then raise exception 'RECETTE_KO S12 : une donnée IA a été validée sans confirmation'; end if;
+  raise exception 'RECETTE_OK S10-S12 %', jsonb_build_object('rdv_objet', v_i.rdv_objet, 'tache', v_t, 'ia', v_e.statut_validation);
 end $$;
 
 -- S8 · Lecture de la maquette : la requête maquette/live.sql s'exécute et respecte le format attendu

@@ -55,6 +55,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px; line-height: 1.45; }
 button, input, select, textarea { font: inherit; color: inherit; }
@@ -217,7 +218,7 @@ table.grid .r { text-align: right; }
 .dash { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .hbars { display: flex; flex-direction: column; gap: 10px; }
-.hbar { display: grid; grid-template-columns: 120px minmax(0, 1fr) 44px; align-items: center; gap: 12px; }
+.hbar { display: grid; grid-template-columns: 158px minmax(0, 1fr) 44px; align-items: center; gap: 12px; }
 .hbar .l { font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hbar .track { height: 14px; position: relative; }
 .hbar .fill { height: 100%; background: var(--bar); border-radius: 0 4px 4px 0; min-width: 2px; cursor: default; }
@@ -261,6 +262,9 @@ table.grid .r { text-align: right; }
 .warn-txt { color: var(--red) !important; font-weight: 600; }
 .mail-cell { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
 .dash-src { margin-top: 8px; }
+.banner.prop { border-color: var(--line); background: var(--cold-bg); color: var(--cold); } .banner.prop > span { flex: 1; min-width: 200px; } .banner.prop .btn { flex: none; }
+.energie { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; } .energie li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid var(--line-soft); } .energie li:first-child { border-top: 0; }
+.energie li > div { flex: 1; min-width: 200px; display: flex; flex-direction: column; } .energie small { color: var(--ink-2); }
 .tour-pick { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .tour-add { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
 .b-rdv { background: var(--cold-bg); color: var(--cold); border-color: transparent; font-weight: 700; }
@@ -504,7 +508,7 @@ a.btn { text-decoration: none; }
   .kpis { grid-template-columns: minmax(0, 1fr); }
   .form-grid, .kv { grid-template-columns: minmax(0, 1fr); }
   .page-head h1 { font-size: 23px; }
-  .hbar { grid-template-columns: 96px minmax(0, 1fr) 36px; }
+  .hbar { grid-template-columns: 128px minmax(0, 1fr) 36px; }
 }
 </style>
 
@@ -538,24 +542,34 @@ const LIVE_SQL = __SQL__;
 const TODAY = window.__TODAY || new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" });
 const ME_ID = 2;
 const STORE_KEY = "ecolocaux-maquette-v3";
-const STATUTS = ["Nouveau", "Contacté", "À rappeler", "Injoignable", "RDV pris", "Signé", "Pas intéressé"];
+const STATUTS = ["Nouveau", "Contacté", "En qualification", "Audit en préparation", "Audit prêt", "Rendez-vous confirmé", "Injoignable", "Non intéressé"];
+const ST_SORTIS = ["Non intéressé", "Pas intéressé", "Signé"]; /* prospects sortis (anciens libellés reconnus pour l'historique) */
+const isOut = s => ST_SORTIS.includes(s);
+const RANG_STATUT = { "Nouveau": 0, "Contacté": 1, "En qualification": 2, "Audit en préparation": 3, "Audit prêt": 4, "Rendez-vous confirmé": 5 };
 const TYPES = ["Boulangerie", "Pizzeria", "Boucherie", "Poissonnerie", "Restaurant", "Pressing", "Laverie"];
 const POTENTIELS = ["Élevé", "Moyen", "Faible"];
 const ZONES = ["Paris", "Nord", "Sud", "Est", "Ouest"];
 const CANAUX = ["Appel", "E-mail", "Visite"];
-const RESULTATS = ["Sans réponse", "À rappeler", "Intéressé", "RDV pris", "Pas intéressé", "Signature"];
+const RESULTATS = ["Sans réponse", "Absent", "À rappeler", "Informations complémentaires demandées", "Intéressé", "Rendez-vous pris", "À relancer", "Pas intéressé"];
+const isRdvRes = r => r === "Rendez-vous pris" || r === "RDV pris";
+const MOTIFS_ECH = ["Premier contact", "Qualification", "Collecte d'informations", "Relance", "Présentation du pré-diagnostic", "Confirmation de rendez-vous"];
+const OBJETS_RDV = ["Présentation du pré-diagnostic"];
+const RUBRIQUES_ENERGIE = ["Froid (vitrines, chambres froides)", "Cuisson (fours, plaques)", "Chauffage / climatisation", "Éclairage", "Facture d'énergie", "Consommation annuelle", "Surface du local", "Autre"];
+const SOURCES_ENERGIE = ["Gérant (oral)", "Facture", "Visite sur place", "Google Maps", "E-mail du gérant"];
 const CANAL_ICON = { "Appel": "call", "E-mail": "mail", "Visite": "storefront", "SMS": "sms" };
 const MOTIFS = ["Hors cible", "Fermé définitivement", "Trop petit", "Déjà client d'un concurrent", "Autre"];
 
 /* ---------- Données ---------- */
 function seed() {
   const commerces = RAW.commerces.map(c => ({ id: c[0], code: c[1], enseigne: c[2], type: c[3], ville: c[4], cp: c[5], zone: c[6], tel: c[7], email: c[8], contact: c[9], statut: c[10], potentiel: c[11], categorie: c[12], commercialId: c[13], siret: c[14], adresse: c[15], site: c[16], note: c[17], avis: c[18], opposition: c[19], horaires: c[20], heures: c[21] != null ? +c[21] : null }));
-  const interactions = RAW.interactions.map(i => ({ id: i[0], commerceId: i[1], commercialId: i[2], date: i[3], canal: i[4], resultat: i[5], commentaire: i[6], relance: i[7], rdv: i[8], rdvStatut: i[9], rdvObjet: i[10], agenda: i[11] || null, relanceOrig: i[12] || undefined }));
+  const interactions = RAW.interactions.map(i => ({ id: i[0], commerceId: i[1], commercialId: i[2], date: i[3], canal: i[4], resultat: i[5], commentaire: i[6], relance: i[7], rdv: i[8], rdvStatut: i[9], rdvObjet: i[10], agenda: i[11] || null, relanceOrig: i[12] || undefined, motif: i[13] || null, statutPropose: i[14] || null, statutApplique: !!i[15] }));
   const recherches = RAW.recherches.map(r => ({ id: r[0], code: r[1], date: r[2], source: r[3], commercialId: r[4], zone: r[5], types: r[6] || [], ville: r[7], cp: r[8], rayon: r[9], statut: r[10], commentaire: r[11], requete: RAW.gr[r[0]] || null }));
   const candidats = RAW.candidats.map(x => { const g = RAW.gx[x[0]] || []; return { id: x[0], rechercheId: x[1], enseigne: x[2], type: x[3], ville: x[4], zone: x[5], note: x[6], avis: x[7], potentiel: x[8], tri: x[9] === "Connu" ? "Doublon" : x[9], motif: x[10], known: x[11] ? { statut: x[11][0], stop: !!x[11][1], com: x[11][2] } : null, heures: x[12] != null ? +x[12] : null, tel: g[0] || null, site: g[1] || null, adresse: g[2] || null, cp: g[3] || null, horaires: g[4] || null, placeId: g[5] || null, commerceId: null }; });
   const mails = (RAW.mails || []).map(m => ({ id: m[0], commerceId: m[1], commercialId: m[2], interactionId: m[3], objet: m[4] || "", corps: m[5] || "", statut: m[6], dest: m[7], cree: m[8], envoye: m[9], type: m[10], modifie: !!m[11] }));
   const tournees = (RAW.tournees || []).map(x => ({ id: x[0], date: x[1], nom: x[2], statut: x[3], commercialId: x[4], arrets: (x[5] || []).map(a => ({ id: a[0], ordre: a[1], candidatId: a[2], commerceId: a[3], resultat: a[4], visite: a[5] })) }));
-  return { commerces, interactions, recherches, candidats, mails, tournees };
+  const taches = RAW.taches ? RAW.taches.map(t => ({ id: t[0], commerceId: t[1], commercialId: t[2], origineId: t[3], type: t[4], libelle: t[5], echeance: t[6], echeanceInitiale: t[7] || null, statut: t[8], faiteLe: t[9], source: t[10], regle: t[11] })) : null;
+  const infos = (RAW.infos || []).map(x => ({ id: x[0], commerceId: x[1], rubrique: x[2], valeur: x[3], unite: x[4], source: x[5], interactionId: x[6], collecte: x[7], ia: !!x[8], validation: x[9], validePar: x[10], valideLe: x[11], commentaire: x[12] }));
+  return { commerces, interactions, recherches, candidats, mails, tournees, taches, infos };
 }
 let S;
 try { const saved = localStorage.getItem(STORE_KEY); S = saved ? JSON.parse(saved) : seed(); } catch (e) { S = seed(); }
@@ -584,26 +598,37 @@ const commerce = id => S.commerces.find(c => c.id === id);
 const interOf = id => S.interactions.filter(i => i.commerceId === id).sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id - a.id);
 const incomplete = c => !c.contact || !c.tel || !c.email || !c.potentiel;
 const stopped = c => !!c.opposition;
-function lastRelance(c) { const l = interOf(c.id)[0]; return l ? l.relance : null; }
+function lastRelance(c) { const t = openTache(c.id); if (t) return t.echeance; if (S.taches) return null; const l = interOf(c.id)[0]; return l ? l.relance : null; }
+const openTaches = id => (S.taches || []).filter(t => t.commerceId === id && t.statut === "À faire").sort((a, b) => a.echeance.localeCompare(b.echeance) || a.id - b.id);
+const openTache = id => openTaches(id)[0] || null;
+function tachesOuvertes(cs) {
+  if (S.taches) { const ids = new Set(cs.map(c => c.id)); return S.taches.filter(t => t.statut === "À faire" && ids.has(t.commerceId)).map(t => { const c = commerce(t.commerceId); return { c, d: t.echeance, dd: diffDays(t.echeance, TODAY), last: interOf(c.id)[0], tache: t, orig: t.echeanceInitiale }; }); }
+  return cs.map(c => { const last = interOf(c.id)[0], d = last && last.relance; return d ? { c, d, dd: diffDays(d, TODAY), last, tache: null, orig: last.relanceOrig || null } : null; }).filter(Boolean);
+}
+const TYPE_ICON = { "Appel": "call", "E-mail": "mail", "Visite": "storefront", "Rendez-vous": "event" };
+function actionTache(t) { return { ic: TYPE_ICON[t.type] || "task_alt", l: t.libelle, canal: t.type === "Rendez-vous" ? "Visite" : (CANAUX.includes(t.type) ? t.type : "Appel") }; }
 const PRIO_POT = { "Élevé": 0, "Moyen": 1, "Faible": 2 };
 function relBuckets(actifs) {
-  const all = actifs.filter(c => !["Signé", "Pas intéressé"].includes(c.statut)).map(c => { const d = lastRelance(c); return d ? { c, d, dd: diffDays(d, TODAY), last: interOf(c.id)[0] } : null; }).filter(Boolean);
-  const prio = x => { const r = x.last ? x.last.resultat : "", s = x.c.statut; const st = r === "Intéressé" || s === "RDV pris" ? 0 : s === "À rappeler" || s === "Contacté" ? 1 : s === "Nouveau" ? 2 : 3; return st * 10 + (PRIO_POT[x.c.potentiel] ?? 3); };
+  const all = tachesOuvertes(actifs.filter(c => !isOut(c.statut)));
+  const prio = x => { const r = x.last ? x.last.resultat : "", s = x.c.statut; const st = r === "Intéressé" || isRdvRes(r) || (RANG_STATUT[s] || 0) >= 2 ? 0 : s === "Contacté" || s === "À rappeler" ? 1 : s === "Nouveau" ? 2 : 3; return st * 10 + (PRIO_POT[x.c.potentiel] ?? 3); };
   const byPrio = (a, b) => prio(a) - prio(b) || b.dd - a.dd;
   return {
     all,
     jour: all.filter(x => x.dd === 0).sort(byPrio),
     retard: all.filter(x => x.dd < 0).sort(byPrio),
     semaine: all.filter(x => x.dd > 0 && x.dd <= 7).sort((a, b) => a.dd - b.dd || prio(a) - prio(b)),
-    todo: all.filter(x => x.dd > 0 && x.last && x.last.relanceOrig).sort((a, b) => a.dd - b.dd || prio(a) - prio(b))
+    todo: all.filter(x => x.dd > 0 && x.orig).sort((a, b) => a.dd - b.dd || prio(a) - prio(b))
   };
 }
 function nextAction(last) {
   if (!last) return { ic: "call", l: "Premier appel", canal: "Appel" };
   const r = last.resultat, ch = last.canal;
-  if (r === "RDV pris" && last.rdv && last.rdv.slice(0, 10) === TODAY) return { ic: "event", l: `Rendez-vous aujourd'hui à ${fmtHeure(last.rdv)}${last.rdvObjet ? " · " + last.rdvObjet : ""}`, canal: "Visite" };
-  if (r === "RDV pris" && last.rdv && last.rdv.slice(0, 10) > TODAY) { const mm = (S.mails || []).find(x => x.interactionId === last.id); return mm && mm.statut === "Envoyé" ? { ic: "event", l: `Rendez-vous le ${fmt(last.rdv)} à ${fmtHeure(last.rdv)} · confirmation envoyée`, canal: "Visite" } : mm ? { ic: "drafts", l: `Valider l'e-mail de confirmation du RDV du ${fmt(last.rdv)}`, canal: "E-mail" } : { ic: "mail", l: `Confirmer le RDV du ${fmt(last.rdv)} par e-mail`, canal: "E-mail" }; }
-  if (r === "RDV pris") return last.rdv ? { ic: "event", l: `Mettre à jour le RDV du ${fmt(last.rdv)} (réalisé, reporté ou annulé)`, canal: "Visite" } : { ic: "event", l: "Indiquer la date du RDV", canal: "Appel", res: "RDV pris" };
+  if (isRdvRes(r) && last.rdv && last.rdv.slice(0, 10) === TODAY) return { ic: "event", l: `Rendez-vous aujourd'hui à ${fmtHeure(last.rdv)}${last.rdvObjet ? " · " + last.rdvObjet : ""}`, canal: "Visite" };
+  if (isRdvRes(r) && last.rdv && last.rdv.slice(0, 10) > TODAY) { const mm = (S.mails || []).find(x => x.interactionId === last.id); return mm && mm.statut === "Envoyé" ? { ic: "event", l: `Rendez-vous le ${fmt(last.rdv)} à ${fmtHeure(last.rdv)} · confirmation envoyée`, canal: "Visite" } : mm ? { ic: "drafts", l: `Valider l'e-mail de confirmation du RDV du ${fmt(last.rdv)}`, canal: "E-mail" } : { ic: "mail", l: `Confirmer le RDV du ${fmt(last.rdv)} par e-mail`, canal: "E-mail" }; }
+  if (isRdvRes(r)) return last.rdv ? { ic: "event", l: `Mettre à jour le RDV du ${fmt(last.rdv)} (réalisé, reporté ou annulé)`, canal: "Visite" } : { ic: "event", l: "Indiquer la date du RDV", canal: "Appel", res: "Rendez-vous pris" };
+  if (r === "Absent") return { ic: "storefront", l: "Nouvelle visite", canal: "Visite" };
+  if (r === "Informations complémentaires demandées") return { ic: "mail", l: "Envoyer les informations demandées", canal: "E-mail" };
+  if (r === "À relancer") return { ic: "call", l: "Relancer le commerce", canal: "Appel" };
   if (r === "Intéressé") return { ic: "mail", l: "Envoyer la présentation par e-mail", canal: "E-mail" };
   if (r === "À rappeler") return { ic: "call", l: "Rappeler le gérant", canal: "Appel" };
   if (r === "Sans réponse") {
@@ -615,17 +640,17 @@ function nextAction(last) {
   }
   return { ic: "task_alt", l: "Relancer le commerce", canal: "Appel" };
 }
-function whyLine(x) { const r = x.last && x.last.resultat === "Intéressé" ? "Intéressé" : x.c.statut === "RDV pris" ? "RDV en cours" : null; const p = x.c.potentiel === "Élevé" ? "potentiel élevé" : null; return [r, p].filter(Boolean).join(" · "); }
+function whyLine(x) { const r = x.last && x.last.resultat === "Intéressé" ? "Intéressé" : x.c.statut === "Rendez-vous confirmé" ? "RDV confirmé" : null; const p = x.c.potentiel === "Élevé" ? "potentiel élevé" : null; return [r, p].filter(Boolean).join(" · "); }
 function nextRdv(c) { return S.interactions.filter(i => i.commerceId === c.id && i.rdv && ["Planifié", "Confirmé"].includes(i.rdvStatut) && i.rdv.slice(0, 10) >= TODAY).sort((a, b) => a.rdv.localeCompare(b.rdv))[0] || null; }
 
 function statutBadge(s) {
-  const cls = { "Nouveau": "b-out", "Contacté": "b-sage", "À rappeler": "b-amber", "Injoignable": "b-grey", "RDV pris": "b-sage", "Signé": "b-solid", "Pas intéressé": "b-grey" }[s] || "b-grey";
-  return `<span class="badge ${cls}"${s === "RDV pris" ? ' style="font-weight:700"' : ""}>${esc(s || "—")}</span>`;
+  const cls = { "Nouveau": "b-out", "Contacté": "b-sage", "En qualification": "b-sage", "Audit en préparation": "b-amber", "Audit prêt": "b-amber", "Rendez-vous confirmé": "b-rdv", "Injoignable": "b-grey", "Non intéressé": "b-grey", "Signé": "b-solid", "Pas intéressé": "b-grey", "À rappeler": "b-amber", "RDV pris": "b-sage" }[s] || "b-grey";
+  return `<span class="badge ${cls}"${s === "Rendez-vous confirmé" ? ' style="font-weight:700"' : ""}>${esc(s || "—")}</span>`;
 }
 function potBadge(p) { return p ? `<span class="badge ${p === "Élevé" ? "b-sage" : "b-grey"}">Potentiel ${esc(p)}</span>` : `<span class="badge b-out">Non évalué</span>`; }
 function knownBox(x) {
   const k = x.known;
-  if (k && k.statut === "Pas intéressé") return `<div class="rc-warn" style="border-color:var(--line);background:var(--sage);color:var(--ink-2)">${ms("block")}Déjà connu · <b>Pas intéressé</b> : à ne pas recontacter.</div>`;
+  if (k && (k.statut === "Non intéressé" || k.statut === "Pas intéressé")) return `<div class="rc-warn" style="border-color:var(--line);background:var(--sage);color:var(--ink-2)">${ms("block")}Déjà connu · <b>Non intéressé</b> : à ne pas recontacter.</div>`;
   if (k && k.stop) return `<div class="rc-warn">${ms("block")}Déjà connu · <b>Opposition RGPD</b> : ne plus contacter.</div>`;
   if (k) return `<div class="rc-warn">${ms("content_copy")}Déjà connu · dans le portefeuille${k.com ? ` de ${esc(comName(k.com))}` : ""}, statut « ${esc(k.statut)} ».</div>`;
   return `<div class="rc-warn">${ms("content_copy")}Déjà connu : même fiche Google Maps qu'un commerce déjà enregistré.</div>`;
@@ -702,7 +727,6 @@ function viewDashboard() {
   const { cs, is } = scopeData();
   const actifs = cs.filter(c => !stopped(c));
   const eleves = actifs.filter(c => c.potentiel === "Élevé").length;
-  const fermes = ["Signé", "Pas intéressé"];
   const B = swap(() => relBuckets(scopeData().cs.filter(c => !stopped(c))));
   const retard = B.retard.length;
   if (!ui.todoTab || ui.todoTab === "semaine") ui.todoTab = ["jour", "retard", "todo"].find(k => B[k].length) || "jour";
@@ -715,7 +739,7 @@ function viewDashboard() {
   const sigDate = c => { const s = interOf(c.id).find(i => i.resultat === "Signature"); return s ? s.date : null; };
   const caAnnee = signes.filter(c => { const d = sigDate(c); return d && d >= yearStart; }).length * moy;
 
-  const pipe = ["Nouveau", "Contacté", "À rappeler", "RDV pris", "Signé"].map(s => ({ l: s, v: actifs.filter(c => c.statut === s).length }));
+  const pipe = ["Nouveau", "Contacté", "En qualification", "Audit en préparation", "Audit prêt", "Rendez-vous confirmé"].map(s => ({ l: s, v: actifs.filter(c => c.statut === s).length }));
   const sorties = ["Injoignable"].map((s, k) => ({ l: s, v: actifs.filter(c => c.statut === s).length, soft: true, sep: k === 0 }));
 
   const from = ui.resFrom, to = ui.resTo;
@@ -724,11 +748,11 @@ function viewDashboard() {
   const preset = (n) => from === (n ? addDays(TODAY, -n) : "") && to === (n ? TODAY : "");
 
   const tabs = [["jour", "Aujourd'hui"], ["retard", "En retard"], ["todo", "Ma to do"]];
-  const rowRel = x => { const c = x.c, open = ui.panel && ui.panel.cid === c.id ? ui.panel.kind : null, act = nextAction(x.last);
+  const rowRel = x => { const c = x.c, open = ui.panel && ui.panel.cid === c.id ? ui.panel.kind : null, act = x.tache ? actionTache(x.tache) : nextAction(x.last);
     const lateN = -x.dd, tier = x.dd >= 0 ? null : lateN <= 3 ? "soon" : lateN <= 14 ? "late" : "stale";
-    const st = tier || (x.dd === 0 ? "today" : ""), rep = x.dd > 0 && x.last && x.last.relanceOrig, lbl = x.dd < 0 ? `J+${lateN}` : x.dd === 0 ? "Auj." : fmtShort(x.d);
+    const st = tier || (x.dd === 0 ? "today" : ""), rep = x.dd > 0 && x.orig, lbl = x.dd < 0 ? `J+${lateN}` : x.dd === 0 ? "Auj." : fmtShort(x.d);
     const tierK = { soon: "À rattraper", late: "En retard", stale: "À requalifier" }[tier];
-    const when = x.dd < 0 ? `prévue le ${fmt(x.d)} · <b>${lateN} jour${lateN > 1 ? "s" : ""} de retard</b>` : x.dd === 0 ? `<b>à faire aujourd'hui</b>${x.last && x.last.relanceOrig ? ` · initialement prévue le ${fmt(x.last.relanceOrig)}` : ""}` : rep ? `reportée au ${fmtLong(x.d).toLowerCase()} · initialement prévue le ${fmt(x.last.relanceOrig)}` : `prévue le ${fmtLong(x.d).toLowerCase()}`;
+    const when = x.dd < 0 ? `prévue le ${fmt(x.d)} · <b>${lateN} jour${lateN > 1 ? "s" : ""} de retard</b>` : x.dd === 0 ? `<b>à faire aujourd'hui</b>${x.orig ? ` · initialement prévue le ${fmt(x.orig)}` : ""}` : rep ? `reportée au ${fmtLong(x.d).toLowerCase()} · initialement prévue le ${fmt(x.orig)}` : `prévue le ${fmtLong(x.d).toLowerCase()}`;
     return `<li class="trow ${st}"><span class="when ${st}">${lbl}</span>
       <span class="t"><button class="ens" data-open="${c.id}">${esc(c.enseigne)}</button><small>${esc(c.ville)} · <span class="num">${esc(c.tel || "pas de téléphone")}</span></small></span>
       <button type="button" class="act ${st}" data-act="${c.id}" title="Saisir le résultat dans la fiche">${ms(act.ic)}<div><span class="act-k">${x.dd < 0 ? tierK : x.dd === 0 ? "Action du jour" : rep ? "Reportée" : "Action prévue"}</span><b>${esc(act.l)}</b><small>${when}</small></div></button>
@@ -844,12 +868,50 @@ function viewProspects() {
   </section>`;
 }
 
+/* ---------- Informations énergétiques (source, date, validation) ---------- */
+function infosCard(c) {
+  const L = (S.infos || []).filter(x => x.commerceId === c.id).sort((a, b) => (b.collecte || "").localeCompare(a.collecte || "") || b.id - a.id);
+  const ok = L.filter(x => x.validation === "Validée").length, wait = L.filter(x => x.validation === "À confirmer").length;
+  const vb = v => `<span class="badge ${v === "Validée" ? "b-sage" : v === "Rejetée" ? "b-grey" : "b-amber"}">${esc(v)}</span>`;
+  return `<section class="card" id="energie">
+    <div class="card-head"><h2>Informations énergétiques</h2><span class="hint">${ok} validée${ok > 1 ? "s" : ""}${wait ? ` · ${wait} à confirmer` : ""}</span></div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+      ${L.length ? `<ul class="energie">${L.map(x => `<li><div><span><b>${esc(x.rubrique)}</b> : ${esc(x.valeur)}${x.unite ? ` ${esc(x.unite)}` : ""}</span><small>${esc(x.source)} · ${fmt(x.collecte)}${x.ia ? " · extrait par l'IA" : ""}${x.valideLe ? ` · ${x.validation === "Rejetée" ? "rejetée" : "validée"} le ${fmt(x.valideLe)}` : ""}</small></div>${vb(x.validation)}${x.validation === "À confirmer" ? `<button class="btn sm primary" data-infoval="${x.id}:Validée" type="button">Valider</button><button class="btn sm" data-infoval="${x.id}:Rejetée" type="button">Rejeter</button>` : ""}</li>`).join("")}</ul>` : `<p class="muted" style="margin:0">Aucune information collectée pour l'instant.</p>`}
+      <p class="note" style="margin:0">${ms("info")}Seules les informations validées alimentent le pré-diagnostic. Une information extraite par l'IA arrive toujours « À confirmer ».</p>
+      ${stopped(c) ? "" : `<form id="f-energie" class="form-grid">
+        <label class="field"><span>Rubrique</span><select class="input" id="e-rub">${RUBRIQUES_ENERGIE.map(x => `<option>${x}</option>`).join("")}</select></label>
+        <label class="field"><span>Source</span><select class="input" id="e-src">${SOURCES_ENERGIE.map(x => `<option>${x}</option>`).join("")}</select></label>
+        <label class="field"><span>Information</span><input class="input" id="e-val" placeholder="ex. 2 vitrines réfrigérées, 1 chambre froide" required></label>
+        <label class="field"><span>Unité <small class="muted">· facultatif</small></span><input class="input" id="e-unit" placeholder="ex. kWh/an, m², €/mois"></label>
+        <div class="form-actions full"><button class="btn" type="submit">${ms("add")}Ajouter l'information</button></div>
+      </form>`}
+    </div></section>`;
+}
+async function addInfo(c) {
+  const v = k => ($("#" + k) && $("#" + k).value.trim()) || "";
+  const x = { commerceId: c.id, rubrique: v("e-rub"), valeur: v("e-val"), unite: v("e-unit") || null, source: v("e-src") };
+  if (!x.valeur) return toast("Indique l'information collectée", "info");
+  if (LIVE.on && !S.demo) {
+    try { await sqlLive(`insert into public.info_energetique (commerce_id, rubrique, valeur, unite, source, collecte_par, statut_validation, valide_par, valide_le) values (${Number(c.id)}, ${sqlTxt(x.rubrique)}, ${sqlTxt(x.valeur)}, ${sqlTxt(x.unite)}, ${sqlTxt(x.source)}, ${Number(ME_ID)}, 'Validée', ${Number(ME_ID)}, now());`); toast("Information enregistrée", "bolt"); return loadLive(true); }
+    catch (e) { return toast(`Information non enregistrée (${(e && e.code) || "erreur"})`, "error"); }
+  }
+  S.infos = S.infos || []; S.infos.push({ id: nextId(S.infos), ...x, interactionId: null, collecte: TODAY, ia: false, validation: "Validée", validePar: ME_ID, valideLe: TODAY, commentaire: null }); save(); toast("Information enregistrée", "bolt"); render();
+}
+async function validateInfo(id, st) {
+  const x = (S.infos || []).find(k => k.id === id); if (!x) return;
+  if (LIVE.on && !S.demo) {
+    try { await sqlLive(`update public.info_energetique set statut_validation = ${sqlTxt(st)}, valide_par = ${Number(ME_ID)}, valide_le = now() where id = ${Number(id)};`); toast(`Information ${st === "Validée" ? "validée" : "rejetée"}`, "bolt"); return loadLive(true); }
+    catch (e) { return toast(`Non enregistré (${(e && e.code) || "erreur"})`, "error"); }
+  }
+  x.validation = st; x.validePar = ME_ID; x.valideLe = TODAY; save(); render();
+}
+
 /* ---------- Écran : fiche prospect ---------- */
 function viewFiche() {
   const c = commerce(ui.ficheId);
   if (!c) return `<div class="card empty">Ce commerce n'existe plus. <button class="btn sm" data-go="prospects">Retour aux prospects</button></div>`;
   const hist = interOf(c.id), rel = lastRelance(c), rdv = nextRdv(c);
-  const relLate = rel && rel < TODAY && !["Signé", "Pas intéressé"].includes(c.statut);
+  const relLate = rel && rel < TODAY && !isOut(c.statut);
   return `
   <div class="crumbs"><button data-go="prospects">Prospects</button>${ms("chevron_right")}<span>${esc(c.enseigne)}</span></div>
   <div class="page-head">
@@ -862,6 +924,7 @@ function viewFiche() {
   </div>
   ${stopped(c) ? `<div class="banner">${ms("block")}Ce commerçant a demandé à ne plus être sollicité le ${fmt(c.opposition)}. Aucune action commerciale n'est possible.</div>` : ""}
   ${rdv ? `<div class="banner" style="border-color:var(--line);background:var(--sage);color:var(--sage-ink)">${ms("event")}<span>RDV le <b>${fmtLong(rdv.rdv)}</b> à ${fmtHeure(rdv.rdv)}${rdv.rdvObjet ? ` · ${esc(rdv.rdvObjet)}` : ""} · ${esc(rdv.rdvStatut || "")}</span></div>` : ""}
+  ${(() => { const p1 = hist.find(i => i.statutPropose); return p1 && !p1.statutApplique && p1.statutPropose !== c.statut && !stopped(c) ? `<div class="banner prop">${ms("published_with_changes")}<span>L'échange du ${fmt(p1.date)} (« ${esc(p1.resultat)} ») propose de passer le prospect de « ${esc(c.statut)} » à <b>${esc(p1.statutPropose)}</b>.</span><button class="btn sm primary" data-apply="${p1.id}" type="button">Appliquer</button></div>` : ""; })()}
   ${incomplete(c) && !stopped(c) ? `<div class="banner" style="border-color:var(--line);background:var(--sage);color:var(--ink-2)">${ms("info")}Fiche à compléter : ${[!c.contact && "gérant", !c.tel && "téléphone", !c.email && "e-mail", !c.potentiel && "potentiel"].filter(Boolean).join(", ")} à renseigner.</div>` : ""}
   <div class="fiche">
     <div class="col">
@@ -879,7 +942,7 @@ function viewFiche() {
         <div class="card-head"><h2>Historique des échanges</h2><span class="hint">${hist.length} échange${hist.length > 1 ? "s" : ""}</span></div>
         ${stopped(c) ? "" : nextStepBox(c)}
         <div class="card-body">${hist.length ? `<ul class="tl">${hist.map(i => `<li><span class="dot">${ms(CANAL_ICON[i.canal] || "chat")}</span><div>
-          <div class="head"><b>${esc(i.canal)}</b><span class="muted">${fmt(i.date)}</span><span class="badge ${["RDV pris", "Signature", "Intéressé"].includes(i.resultat) ? "b-sage" : i.resultat === "À rappeler" ? "b-amber" : "b-grey"}">${esc(i.resultat)}</span></div>
+          <div class="head"><b>${esc(i.canal)}</b><span class="muted">${fmt(i.date)}</span><span class="badge ${isRdvRes(i.resultat) || ["Signature", "Intéressé", "Informations complémentaires demandées"].includes(i.resultat) ? "b-sage" : ["À rappeler", "À relancer"].includes(i.resultat) ? "b-amber" : "b-grey"}">${esc(i.resultat)}</span>${i.motif ? `<span class="muted">${esc(i.motif)}</span>` : ""}${i.statutPropose ? `<span class="badge ${i.statutApplique ? "b-sage" : "b-out"}">${i.statutApplique ? "Statut appliqué" : "Statut proposé"} : ${esc(i.statutPropose)}</span>` : ""}</div>
           ${i.commentaire ? `<p>${esc(i.commentaire)}</p>` : ""}
           <div class="meta"><span>${ms("person", ' style="font-size:16px"')} ${esc(comName(i.commercialId))}</span>${i.rdv ? `<span>${ms("event", ' style="font-size:16px"')} RDV ${fmt(i.rdv)} à ${fmtHeure(i.rdv)} · ${esc(i.rdvObjet || "")} · ${esc(i.rdvStatut || "")}</span>` : ""}${i.relance ? `<span>${ms("schedule", ' style="font-size:16px"')} Relance prévue le ${fmt(i.relance)}</span>` : ""}</div>
         </div></li>`).join("")}</ul>` : `<p class="muted">Aucun échange enregistré. Le premier contact se saisit ci-dessous.</p>`}</div>
@@ -890,16 +953,19 @@ function viewFiche() {
           <div class="form-grid">
             <label class="field"><span>Date</span><input class="input" type="date" id="i-date" value="${TODAY}" required></label>
             <label class="field"><span>Canal</span><select class="input" id="i-canal">${CANAUX.map(x => `<option>${x}</option>`).join("")}</select></label>
+            <label class="field"><span>Motif</span><select class="input" id="i-motif">${MOTIFS_ECH.map(x => `<option ${x === (hist.length ? "Relance" : "Premier contact") ? "selected" : ""}>${x}</option>`).join("")}</select></label>
             <label class="field"><span>Résultat</span><select class="input" id="i-res">${RESULTATS.map(x => `<option>${x}</option>`).join("")}</select></label>
             <label class="field" id="rap-f" hidden><span>Date convenue avec le gérant <small class="muted">· facultatif</small></span><input class="input" type="date" id="i-rap" min="${TODAY}"></label>
-            <div class="field"><span>Prochaine relance <small class="muted">· automatique</small></span><div id="i-auto" class="input" style="display:flex;align-items:center;background:var(--sage);border-color:transparent;color:var(--ink-2)">—</div></div>
+            <div class="field"><span>Prochaine tâche <small class="muted">· automatique</small></span><div id="i-auto" class="input" style="display:flex;align-items:center;background:var(--sage);border-color:transparent;color:var(--ink-2)">—</div></div>
             <label class="field" id="rdv-1" hidden><span>Rendez-vous le</span><input class="input" type="datetime-local" id="i-rdv"></label>
-            <label class="field" id="rdv-2" hidden><span>Objet du RDV</span><select class="input" id="i-rdvobj"><option>Diagnostic</option><option>Présentation devis</option><option>Signature</option></select></label>
-            <label class="field full"><span>Commentaire</span><textarea class="input" id="i-com" placeholder="Ce qui a été dit, objections, prochaine étape…"></textarea></label>
+            <label class="field" id="rdv-2" hidden><span>Objet du RDV</span><select class="input" id="i-rdvobj">${OBJETS_RDV.map(x => `<option>${x}</option>`).join("")}</select></label>
+            <label class="field full st-prop" id="st-prop" hidden><span>Statut du prospect <small class="muted">· proposé, à valider</small></span><span class="check"><input type="checkbox" id="i-stapp"> <span id="st-prop-l"></span></span></label>
+            <label class="field full"><span>Compte rendu</span><textarea class="input" id="i-com" placeholder="Ce qui a été dit, objections, informations recueillies…"></textarea></label>
           </div>
           <div class="form-actions"><button class="btn primary" type="submit">${ms("add")}Enregistrer l'échange</button></div>
         </form>
       </section>`}
+      ${infosCard(c)}
     </div>
     <div class="side-stack">
       <section class="card">
@@ -1126,7 +1192,7 @@ function demoS() {
     /* le jeu fictif est daté du 14/10/2026 : on le décale pour qu'il reste à jour */
     const n = Math.round((Date.parse(TODAY + "T12:00:00Z") - Date.parse("2026-10-14T12:00:00Z")) / 864e5);
     const sh = v => { if (!v || !n) return v; const t = new Date(Date.parse(v.length <= 10 ? v + "T12:00:00Z" : v) + n * 864e5).toISOString(); return v.length <= 10 ? t.slice(0, 10) : t; };
-    const demo = Object.assign({}, DEMO_RAW, { interactions: DEMO_RAW.interactions.map(i => { const x = i.slice(); x[3] = sh(x[3]); x[7] = sh(x[7]); x[8] = sh(x[8]); return x; }) });
+    const demo = Object.assign({}, DEMO_RAW, { taches: null, infos: DEMO_RAW.infos || [], interactions: DEMO_RAW.interactions.map(i => { const x = i.slice(); x[3] = sh(x[3]); x[7] = sh(x[7]); x[8] = sh(x[8]); return x; }) });
     const r = RAW; RAW = Object.assign({}, r, demo); DEMO_S = seed(); RAW = r; DEMO_S.demo = true;
   }
   return DEMO_S;
@@ -1155,17 +1221,33 @@ function render() {
   }
 }
 function syncRdv() {
-  const res = $("#i-res").value, on = res === "RDV pris"; $("#rdv-1").hidden = !on; $("#rdv-2").hidden = !on;
+  const res = $("#i-res").value, on = isRdvRes(res); $("#rdv-1").hidden = !on; $("#rdv-2").hidden = !on;
   const rf = $("#rap-f"); if (rf) rf.hidden = res !== "À rappeler";
   const box = $("#i-auto"); if (!box) return;
   const c = commerce(ui.ficheId), r = $("#i-rdv"), ar = autoRelance(c, res, ($("#i-date") && $("#i-date").value) || TODAY, r && r.value ? new Date(r.value).toISOString() : null);
   box.textContent = ar.date ? `${ar.label} · ${ar.rule} · le ${fmt(ar.date)}` : ar.label;
+  const sp = $("#st-prop"), prop = proposeStatut(c, res, ar);
+  if (sp) { sp.hidden = !prop || res === "Pas intéressé"; if (prop) $("#st-prop-l").textContent = `Passer de « ${c.statut} » à « ${prop} »`; }
+}
+/* Le résultat ne change jamais le statut tout seul : il propose, le commercial valide */
+function proposeStatut(c, res, ar) {
+  const cur = c.statut, r = RANG_STATUT[cur] ?? -1, up = s => (RANG_STATUT[s] > r ? s : null);
+  if (res === "Pas intéressé") return cur === "Non intéressé" ? null : "Non intéressé";
+  if (ar && ar.statut === "Injoignable") return cur === "Injoignable" ? null : "Injoignable";
+  if (isRdvRes(res)) return up("Rendez-vous confirmé");
+  if (res === "Intéressé" || res === "Informations complémentaires demandées") return up("En qualification");
+  if (cur === "Nouveau") return "Contacté";
+  if (cur === "Injoignable" && !["Sans réponse", "Absent"].includes(res)) return "Contacté";
+  return null;
 }
 /* Règles de relance (jours ouvrés) — le commercial ne saisit plus de date */
 function addOuvres(iso, n) { const d = new Date(iso.slice(0, 10) + "T12:00:00"); let k = 0; while (k < n) { d.setDate(d.getDate() + 1); const w = d.getDay(); if (w !== 0 && w !== 6) k++; } return d.toISOString().slice(0, 10); }
 /* Prochaine étape d'un commerce : déduite du dernier échange et des règles J+X */
 function nextStep(c) {
   const h = interOf(c.id), last = h[0];
+  const t = openTache(c.id);
+  if (t) return { label: t.libelle, rule: t.echeanceInitiale ? "date reportée" : (t.regle || t.source || "tâche"), date: t.echeance, after: last ? `« ${last.resultat} » (${last.canal.toLowerCase()} du ${fmt(last.date)})` : null };
+  if (S.taches && last) return { label: "Aucune tâche en cours", rule: "", date: null };
   if (!last) return { label: "Premier appel", rule: "nouveau prospect", date: null };
   const ar = autoRelance(c, last.resultat, last.date, last.rdv, h.slice(1));
   const date = last.relance || ar.date;
@@ -1175,6 +1257,7 @@ function nextStep(c) {
 function nextStepBox(c) {
   const s = nextStep(c);
   if (!s.date && s.label.startsWith("Aucune")) return "";
+  if (!s.rule) s.rule = "à planifier";
   const late = s.date && s.date < TODAY, today = s.date === TODAY, n = s.date ? -diffDays(s.date, TODAY) : 0;
   const tone = late ? (n <= 3 ? "soon" : n <= 14 ? "late" : "stale") : today ? "today" : "";
   const quand = !s.date ? "à faire dès que possible" : late ? `date limite dépassée : ${fmt(s.date)} (J+${n})` : today ? "à faire aujourd'hui" : `avant le <b>${fmtLong(s.date)}</b>`;
@@ -1185,12 +1268,15 @@ function autoRelance(c, res, date, rdvIso, hist) {
   if (res === "Sans réponse") {
     let k = 1; for (const i of (hist || interOf(c.id))) { if (i.resultat === "Sans réponse") k++; else break; }
     if (k >= 5) return { date: addDays(base, 90), label: "Nouvel essai (injoignable)", rule: `${k}e sans réponse → J+90`, statut: "Injoignable" };
-    if (k >= 3) return { date: addOuvres(base, 5), label: "Visite sur place", rule: `${k}e sans réponse → J+5 ouvrés` };
+    if (k >= 3) return { date: addOuvres(base, 5), label: "Visite sur place", rule: `${k}e sans réponse → J+5 ouvrés`, type: "Visite" };
     return { date: addOuvres(base, 2), label: "Nouvelle tentative d'appel", rule: "J+2 ouvrés" };
   }
   if (res === "À rappeler") { const conv = $("#i-rap") && $("#i-rap").value; return conv ? { date: conv, label: "Rappel", rule: "date convenue avec le gérant" } : { date: addOuvres(base, 7), label: "Rappel", rule: "J+7 ouvrés" }; }
-  if (res === "Intéressé") return { date: addOuvres(base, 1), label: "Envoyer la présentation par e-mail", rule: "J+1 ouvré" };
-  if (res === "RDV pris") return rdvIso ? { date: addDays(rdvIso.slice(0, 10), -1), label: "Confirmer le RDV par e-mail", rule: "la veille du RDV" } : { date: null, label: "Indiquez la date du RDV : confirmation par e-mail la veille" };
+  if (res === "Absent") return { date: addOuvres(base, 2), label: "Nouvelle visite", rule: "J+2 ouvrés", type: "Visite" };
+  if (res === "Informations complémentaires demandées") return { date: addOuvres(base, 1), label: "Envoyer les informations demandées", rule: "J+1 ouvré", type: "E-mail" };
+  if (res === "À relancer") return { date: addOuvres(base, 3), label: "Relancer le commerce", rule: "J+3 ouvrés", type: "Appel" };
+  if (res === "Intéressé") return { date: addOuvres(base, 1), label: "Envoyer la présentation par e-mail", rule: "J+1 ouvré", type: "E-mail" };
+  if (isRdvRes(res)) return rdvIso ? { date: addDays(rdvIso.slice(0, 10), -1), label: "Confirmer le RDV par e-mail", rule: "la veille du RDV", type: "E-mail" } : { date: null, label: "Indiquez la date du RDV : confirmation par e-mail la veille" };
   if (res === "Signature") return { date: null, label: "Aucune : commerce signé" };
   if (res === "Pas intéressé") return { date: null, label: "Aucune : le prospect sort de la base" };
   return { date: null, label: "—" };
@@ -1198,7 +1284,7 @@ function autoRelance(c, res, date, rdvIso, hist) {
 
 /* ---------- Interactions ---------- */
 document.addEventListener("click", e => {
-  const t = e.target.closest("[data-go],[data-open],[data-menu],[data-edit],[data-del],[data-page],[data-sel],[data-selall],[data-scope],[data-rech],[data-tri],[data-keep],[data-drop],[data-known],[data-undo],[data-relance],[data-range],[data-today],[data-act],[data-pot],[data-pin],[data-tour],[data-chip],[data-mapmode],[data-zoom],[data-todo],[data-copy],[data-panel],[data-result],[data-postpone],[data-stale],[data-mail],[data-tourp],[data-tdate],[data-dash],[data-tmove],[data-tdel],[data-tres],[data-tpage],[data-mailtab],[data-week],[data-action],[data-close],[data-veil]");
+  const t = e.target.closest("[data-go],[data-open],[data-menu],[data-edit],[data-del],[data-page],[data-sel],[data-selall],[data-scope],[data-rech],[data-tri],[data-keep],[data-drop],[data-known],[data-undo],[data-relance],[data-range],[data-today],[data-act],[data-pot],[data-pin],[data-tour],[data-chip],[data-mapmode],[data-zoom],[data-todo],[data-copy],[data-panel],[data-result],[data-postpone],[data-stale],[data-mail],[data-tourp],[data-tdate],[data-dash],[data-apply],[data-infoval],[data-tmove],[data-tdel],[data-tres],[data-tpage],[data-mailtab],[data-week],[data-action],[data-close],[data-veil]");
   if (!t) { if (ui.menu) { ui.menu = null; render(); } return; }
   const d = t.dataset;
   if (d.veil !== undefined && e.target !== t) return;
@@ -1226,9 +1312,14 @@ document.addEventListener("click", e => {
   if (d.selall !== undefined) { const list = filtered().slice((ui.page - 1) * ui.per, ui.page * ui.per); const all = list.every(c => ui.sel.has(c.id)); list.forEach(c => all ? ui.sel.delete(c.id) : ui.sel.add(c.id)); return render(); }
   if (d.scope) { ui.scope = d.scope; return render(); }
   if (d.pot) { const k = d.pot.indexOf(":"), x = S.candidats.find(c => c.id === +d.pot.slice(0, k)), p = d.pot.slice(k + 1); x.potentiel = x.potentiel === p ? null : p; ui.selCand = x.id; save(); toast(`${x.enseigne} : ${TEMP_LABEL[temp(x).k].toLowerCase()}`, "flag"); return render(); }
-  if (d.act) { const c = commerce(+d.act), act = nextAction(interOf(c.id)[0]); ui.panel = null; ui.prefill = { canal: act.canal, res: act.res || null, label: act.l }; return go("fiche", c.id); }
+  if (d.apply) return applyStatut(+d.apply);
+  if (d.infoval) { const [iid, st] = d.infoval.split(":"); return validateInfo(+iid, st); }
+  if (d.act) { const c = commerce(+d.act), t0 = openTache(c.id), act = t0 ? actionTache(t0) : nextAction(interOf(c.id)[0]); ui.panel = null; ui.prefill = { canal: act.canal, res: act.res || null, label: act.l }; return go("fiche", c.id); }
   if (d.stale && LIVE.on && !S.demo) { const c = commerce(+d.stale), last = interOf(c.id)[0], dd = addDays(TODAY, 90); ui.panel = null;
-    return sqlLive(`update public.commerce set statut_prospection = 'Injoignable' where id = ${Number(c.id)};${last ? ` update public.interaction set date_relance_initiale = coalesce(date_relance_initiale, date_relance), date_relance = ${sqlTxt(dd)} where id = ${Number(last.id)};` : ""}`)
+    const t0 = openTache(c.id);
+    const qt = t0 ? ` update public.tache set statut = 'Annulée', faite_le = now() where id = ${Number(t0.id)}; insert into public.tache (commerce_id, commercial_id, type, libelle, echeance, source, regle) values (${Number(c.id)}, ${Number(ME_ID)}, 'Appel', 'Nouvel essai (injoignable)', ${sqlTxt(dd)}, 'Règle J+X', 'classé injoignable → J+90');`
+      : last ? ` update public.interaction set date_relance_initiale = coalesce(date_relance_initiale, date_relance), date_relance = ${sqlTxt(dd)} where id = ${Number(last.id)};` : "";
+    return sqlLive(`update public.commerce set statut_prospection = 'Injoignable' where id = ${Number(c.id)};${qt}`)
       .then(() => { toast(`${c.enseigne} classé injoignable · nouvel essai le ${fmt(dd)}`, "phone_disabled"); return loadLive(true); })
       .catch(e => { toast(`Non enregistré (${(e && e.code) || "erreur"})`, "error"); render(); }); }
   if (d.stale) { const c = commerce(+d.stale), last = interOf(c.id)[0]; c.statut = "Injoignable"; if (last) last.relance = addDays(TODAY, 90); ui.panel = null; save(); toast(`${c.enseigne} classé injoignable · nouvel essai le ${fmt(addDays(TODAY, 90))}`, "phone_disabled"); return render(); }
@@ -1274,7 +1365,7 @@ document.addEventListener("click", e => {
   if (a === "confirm-keep") return liveTri(ui.modal.id, "Retenu", null);
   if (a === "confirm-drop" && LIVE.on) return liveTri(ui.modal.id, "Écarté", $("#d-motif").value);
   if (a === "confirm-drop") { const x = S.candidats.find(k => k.id === ui.modal.id); x.tri = "Écarté"; x.motif = $("#d-motif").value; ui.modal = null; save(); toast(`${x.enseigne} écarté`, "do_not_disturb_on"); return render(); }
-  if (a === "bulk-apply") { const s = $("#bulk-statut").value; if (!s) return toast("Choisissez d'abord un statut", "info"); if (s === "Pas intéressé") return askRetire([...ui.sel].filter(id => { const c = commerce(id); return c && !stopped(c); })); let n = 0; ui.sel.forEach(id => { const c = commerce(id); if (c && !stopped(c)) { c.statut = s; n++; } }); ui.sel.clear(); save(); toast(`${n} fiche${n > 1 ? "s" : ""} passée${n > 1 ? "s" : ""} en « ${s} »`); return render(); }
+  if (a === "bulk-apply") { const s = $("#bulk-statut").value; if (!s) return toast("Choisissez d'abord un statut", "info"); if (s === "Non intéressé") return askRetire([...ui.sel].filter(id => { const c = commerce(id); return c && !stopped(c); })); let n = 0; ui.sel.forEach(id => { const c = commerce(id); if (c && !stopped(c)) { c.statut = s; n++; } }); ui.sel.clear(); save(); toast(`${n} fiche${n > 1 ? "s" : ""} passée${n > 1 ? "s" : ""} en « ${s} »`); return render(); }
   if (a === "bulk-clear") { ui.sel.clear(); return render(); }
   if (a === "clear-filters") { ui.f = { q: "", statut: "", type: "", potentiel: "", incomplete: false, showStop: false }; ui.page = 1; return render(); }
   if (a === "live") return loadLive(true);
@@ -1299,7 +1390,7 @@ document.addEventListener("change", e => {
   if (id === "r-rayon") { ui.rRayon = +e.target.value; ui.rq = `${(ui.rq || "").split(",")[0].trim()}, ${ui.rRayon} km`; return render(); }
   if (id === "r-q") { ui.rq = e.target.value; const m = ui.rq.match(/(\d+)\s*km/i); if (m) ui.rRayon = +m[1]; return render(); }
   if (id === "per") { ui.per = +e.target.value; ui.page = 1; return render(); }
-  if (id === "s-statut" && e.target.value === "Pas intéressé") { const c = commerce(ui.ficheId); e.target.value = c.statut; return askRetire([c.id]); }
+  if (id === "s-statut" && e.target.value === "Non intéressé") { const c = commerce(ui.ficheId); e.target.value = c.statut; return askRetire([c.id]); }
   if (id === "s-statut") { const c = commerce(ui.ficheId); c.statut = e.target.value; save(); toast(`Statut : ${c.statut}`); return render(); }
   if (id === "s-pot") { const c = commerce(ui.ficheId); c.potentiel = e.target.value || null; save(); toast(`Potentiel : ${c.potentiel || "non évalué"}`); return render(); }
 });
@@ -1308,16 +1399,19 @@ document.addEventListener("submit", e => {
   const id = e.target.id, val = k => { const el = $("#" + k); return el ? el.value.trim() : ""; };
   if (id === "f-inter") {
     const c = commerce(ui.ficheId), res = val("i-res");
-    const it = { id: nextId(S.interactions), commerceId: c.id, commercialId: ME_ID, date: val("i-date") || TODAY, canal: val("i-canal"), resultat: res, commentaire: val("i-com") || null, relance: null, rdv: null, rdvStatut: null, rdvObjet: null };
-    if (res === "RDV pris") { const r = val("i-rdv"); if (!r) { toast("Indiquez la date du rendez-vous", "event"); $("#i-rdv").focus(); return; } it.rdv = new Date(r).toISOString(); it.rdvStatut = "Planifié"; it.rdvObjet = val("i-rdvobj"); }
+    const it = { id: nextId(S.interactions), commerceId: c.id, commercialId: ME_ID, date: val("i-date") || TODAY, canal: val("i-canal"), motif: val("i-motif") || null, resultat: res, commentaire: val("i-com") || null, relance: null, rdv: null, rdvStatut: null, rdvObjet: null };
+    if (isRdvRes(res)) { const r = val("i-rdv"); if (!r) { toast("Indiquez la date du rendez-vous", "event"); $("#i-rdv").focus(); return; } it.rdv = new Date(r).toISOString(); it.rdvStatut = "Planifié"; it.rdvObjet = val("i-rdvobj"); }
     if (res === "Pas intéressé") return askRetire([c.id]);
     const ar = autoRelance(c, res, it.date, it.rdv);
     it.relance = ar.date;
+    const prop = proposeStatut(c, res, ar), app = !!(prop && $("#i-stapp") && $("#i-stapp").checked);
+    it.statutPropose = prop; it.statutApplique = app;
     S.interactions.push(it);
-    applyResult(c, res); if (ar.statut) c.statut = ar.statut;
-    if (LIVE.on && !S.demo) { liveSaveInteraction(it, c); return render(); }
-    save(); toast(`Échange enregistré · statut : ${c.statut}${ar.date ? ` · ${ar.label.toLowerCase()} le ${fmt(ar.date)}` : ""}`); return render();
+    if (app) c.statut = prop;
+    if (LIVE.on && !S.demo) { liveSaveInteraction(it, c, ar); return render(); }
+    save(); toast(`Échange enregistré${app ? ` · statut : ${c.statut}` : prop ? ` · statut proposé : ${prop}` : ""}${ar.date ? ` · ${ar.label.toLowerCase()} le ${fmt(ar.date)}` : ""}`); return render();
   }
+  if (id === "f-energie") return addInfo(commerce(ui.ficheId));
   if (id === "f-prospect") {
     const m = ui.modal, data = { enseigne: val("p-enseigne"), type: val("p-type"), zone: val("p-zone"), ville: val("p-ville"), cp: val("p-cp") || null, contact: val("p-contact") || null, tel: val("p-tel") || null, email: val("p-email") || null, potentiel: val("p-pot") || null };
     if (!data.enseigne || !data.ville) return toast("Enseigne et ville sont obligatoires", "error");
@@ -1338,19 +1432,26 @@ async function liveCreateCommerce(data) {
     return row ? go("fiche", row.id) : go("prospects");
   } catch (e) { toast(`Fiche non créée (${(e && e.code) || "erreur"})`, "error"); }
 }
-function applyResult(c, res) {
-  const auto = { "RDV pris": "RDV pris", "Signature": "Signé", "Pas intéressé": "Pas intéressé", "À rappeler": "À rappeler", "Sans réponse": c.statut === "Nouveau" ? "Contacté" : c.statut, "Intéressé": "Contacté" }[res];
-  if (auto && c.statut !== "Signé") c.statut = auto;
-}
 function quickResult(cid, res) {
   const c = commerce(cid); ui.panel = null;
-  if (res === "RDV pris") { ui.prefill = "RDV pris"; toast("Indiquez la date du rendez-vous", "event"); return go("fiche", cid); }
+  if (isRdvRes(res)) { ui.prefill = "Rendez-vous pris"; toast("Indiquez la date du rendez-vous", "event"); return go("fiche", cid); }
   if (res === "Pas intéressé") return askRetire([cid]);
-  const ar = autoRelance(c, res, TODAY, null), relance = ar.date;
-  S.interactions.push({ id: nextId(S.interactions), commerceId: cid, commercialId: ME_ID, date: TODAY, canal: "Appel", resultat: res, commentaire: null, relance, rdv: null, rdvStatut: null, rdvObjet: null });
-  applyResult(c, res); if (ar.statut) c.statut = ar.statut; save();
-  if (LIVE.on && !S.demo) { liveSaveInteraction(S.interactions[S.interactions.length - 1], c); return render(); }
-  toast(`${c.enseigne} : ${res}${relance ? ` · relance le ${fmt(relance)}` : ""}`); render();
+  const t0 = openTache(cid), ar = autoRelance(c, res, TODAY, null), relance = ar.date, prop = proposeStatut(c, res, ar);
+  const it = { id: nextId(S.interactions), commerceId: cid, commercialId: ME_ID, date: TODAY, canal: t0 ? actionTache(t0).canal : "Appel", motif: "Relance", resultat: res, commentaire: null, relance, rdv: null, rdvStatut: null, rdvObjet: null, statutPropose: prop, statutApplique: false };
+  S.interactions.push(it); save();
+  if (LIVE.on && !S.demo) { liveSaveInteraction(it, c, ar); return render(); }
+  toast(`${c.enseigne} : ${res}${relance ? ` · prochaine tâche le ${fmt(relance)}` : ""}${prop ? ` · statut proposé : ${prop} (à valider sur la fiche)` : ""}`); render();
+}
+/* Appliquer le statut proposé par un échange (validation du commercial) */
+async function applyStatut(iid) {
+  const it = S.interactions.find(i => i.id === iid), c = it && commerce(it.commerceId); if (!c || !it.statutPropose) return;
+  const st = it.statutPropose;
+  if (st === "Non intéressé") return askRetire([c.id]);
+  if (LIVE.on && !S.demo) {
+    try { await sqlLive(`update public.commerce set statut_prospection = ${sqlTxt(st)} where id = ${Number(c.id)}; update public.interaction set statut_applique = true where id = ${Number(iid)};`); toast(`${c.enseigne} : statut « ${st} »`, "check_circle"); return loadLive(true); }
+    catch (e) { toast(`Statut non enregistré (${(e && e.code) || "erreur"})`, "error"); return render(); }
+  }
+  c.statut = st; it.statutApplique = true; save(); toast(`${c.enseigne} : statut « ${st} »`, "check_circle"); render();
 }
 function postpone(cid, n) {
   let d;
@@ -1358,14 +1459,17 @@ function postpone(cid, n) {
   else d = addDays(TODAY, n);
   const c = commerce(cid), last = interOf(cid)[0];
   ui.panel = null;
-  if (!last) return render();
+  if (!last && !openTache(cid)) return render();
   return reportRelance(c, last, d, `${c.enseigne} reporté au ${fmt(d)} · dans Ma to do`, "update");
 }
 async function reportRelance(c, last, d, msg, ic) {
-  if (!last.relanceOrig) last.relanceOrig = last.relance;
-  last.relance = d;
+  const t = openTache(c.id);
+  if (t) { if (!t.echeanceInitiale) t.echeanceInitiale = t.echeance; t.echeance = d; }
+  else { if (!last.relanceOrig) last.relanceOrig = last.relance; last.relance = d; }
   if (LIVE.on && !S.demo) {
-    try { await sqlLive(`update public.interaction set date_relance_initiale = coalesce(date_relance_initiale, date_relance), date_relance = ${sqlTxt(d)} where id = ${Number(last.id)};`); toast(msg, ic); await loadLive(true); }
+    const q = t ? `update public.tache set echeance_initiale = coalesce(echeance_initiale, echeance), echeance = ${sqlTxt(d)} where id = ${Number(t.id)};`
+      : `update public.interaction set date_relance_initiale = coalesce(date_relance_initiale, date_relance), date_relance = ${sqlTxt(d)} where id = ${Number(last.id)};`;
+    try { await sqlLive(q); toast(msg, ic); await loadLive(true); }
     catch (e) { toast(`Report non enregistré (${(e && e.code) || "erreur"})`, "error"); render(); }
     return;
   }
@@ -1393,7 +1497,7 @@ function keepCandidate(id) {
 function setRelance(n) {
   const c = commerce(ui.ficheId), d = addDays(TODAY, n);
   S.interactions.push({ id: nextId(S.interactions), commerceId: c.id, commercialId: ME_ID, date: TODAY, canal: "Appel", resultat: "À rappeler", commentaire: "Relance planifiée.", relance: d, rdv: null, rdvStatut: null, rdvObjet: null });
-  if (["Nouveau", "Contacté", "Injoignable"].includes(c.statut)) c.statut = "À rappeler";
+  if (["Nouveau", "Injoignable"].includes(c.statut)) c.statut = "Contacté";
   save(); toast(`Relance planifiée le ${fmt(d)}`, "schedule"); render();
 }
 
@@ -1517,7 +1621,7 @@ async function doRetire(ids) {
   if (LIVE.on && !S.demo) {
     toast("Retrait en cours dans Supabase…", "sync");
     try {
-      await LIVE.mcp.callTool("Supabase", "execute_sql", { project_id: "kwbpsefdtbacdrilpviy", query: `update public.commerce set statut_prospection = 'Pas intéressé' where id in (${ids.map(Number).join(",")});` }, { cache: false });
+      await LIVE.mcp.callTool("Supabase", "execute_sql", { project_id: "kwbpsefdtbacdrilpviy", query: `update public.commerce set statut_prospection = 'Non intéressé' where id in (${ids.map(Number).join(",")});` }, { cache: false });
     } catch (e) { toast(`Retrait impossible (${(e && e.code) || "erreur"})`, "error"); return render(); }
     local(); toast(names.length === 1 ? `${names[0]} est sorti de la base` : `${names.length} prospects sortis de la base`, "person_remove");
     if (ui.view === "fiche") { ui.view = "prospects"; ui.ficheId = null; }
@@ -1531,20 +1635,24 @@ async function doRetire(ids) {
 /* ---------- Échanges, e-mails et agenda enregistrés dans Supabase ---------- */
 const WAIT = ms => (window.__RECETTE_RAPIDE ? 5 : ms); /* attentes raccourcies pendant la recette automatique */
 const WF_BROUILLON = "PhjyhtFAAnD4Xog6", WF_ENVOI = "0YDc66J34yXL3ywe";
-const OBJETS_MAIL = ["Diagnostic", "Présentation devis", "Signature"];
+const OBJETS_MAIL = ["Présentation du pré-diagnostic", "Diagnostic", "Présentation devis", "Signature"];
 async function sqlLive(query) { return LIVE.mcp.callTool("Supabase", "execute_sql", { project_id: "kwbpsefdtbacdrilpviy", query }, { cache: false }); }
-async function liveSaveInteraction(it, c) {
-  const q = `with i as (insert into public.interaction (date_interaction, canal, resultat, commentaire, date_relance, commerce_id, commercial_id, rdv_date_heure, rdv_objet, rdv_statut)
-    values (${sqlTxt(it.date)}, ${sqlTxt(it.canal)}, ${sqlTxt(it.resultat)}, ${sqlTxt(it.commentaire)}, ${sqlTxt(it.relance)}, ${Number(c.id)}, ${Number(ME_ID)}, ${sqlTxt(it.rdv)}, ${sqlTxt(it.rdvObjet)}, ${sqlTxt(it.rdvStatut)}) returning id),
-    u as (update public.commerce set statut_prospection = ${sqlTxt(c.statut)} where id = ${Number(c.id)} returning id)
+async function liveSaveInteraction(it, c, ar) {
+  ar = ar || {};
+  const cid = Number(c.id);
+  const q = `with i as (insert into public.interaction (date_interaction, canal, motif, resultat, commentaire, date_relance, commerce_id, commercial_id, rdv_date_heure, rdv_objet, rdv_statut, statut_propose, statut_applique)
+    values (${sqlTxt(it.date)}, ${sqlTxt(it.canal)}, ${sqlTxt(it.motif)}, ${sqlTxt(it.resultat)}, ${sqlTxt(it.commentaire)}, ${sqlTxt(it.relance)}, ${cid}, ${Number(ME_ID)}, ${sqlTxt(it.rdv)}, ${sqlTxt(it.rdvObjet)}, ${sqlTxt(it.rdvStatut)}, ${sqlTxt(it.statutPropose)}, ${it.statutApplique ? "true" : "false"}) returning id),
+    f as (update public.tache set statut = 'Faite', faite_le = now(), interaction_cloture_id = (select id from i) where commerce_id = ${cid} and statut = 'À faire' returning id)${it.relance ? `,
+    t as (insert into public.tache (commerce_id, commercial_id, interaction_origine_id, type, libelle, echeance, source, regle) select ${cid}, ${Number(ME_ID)}, i.id, ${sqlTxt(ar.type || it.canal || "Appel")}, ${sqlTxt(ar.label || "Relancer le commerce")}, ${sqlTxt(it.relance)}, 'Règle J+X', ${sqlTxt(ar.rule || null)} from i returning id)` : ""}${it.statutApplique ? `,
+    u as (update public.commerce set statut_prospection = ${sqlTxt(it.statutPropose)} where id = ${cid} returning id)` : ""}
     select i.id as interaction_id from i;`;
   toast("Enregistrement de l'échange dans Supabase…", "sync");
   try {
     const r = await sqlLive(q), row = rowsOf(r, 0, "interaction_id");
     const newId = row && row.interaction_id;
     if (newId) it.id = newId;
-    toast(`Échange enregistré · statut : ${c.statut}${it.relance ? ` · prochaine étape le ${fmt(it.relance)}` : ""}`, "check_circle");
-    if (it.resultat === "RDV pris" && OBJETS_MAIL.includes(it.rdvObjet) && newId) return prepareDraft(newId, c);
+    toast(`Échange enregistré${it.statutApplique ? ` · statut : ${it.statutPropose}` : it.statutPropose ? ` · statut proposé : ${it.statutPropose}` : ""}${it.relance ? ` · prochaine tâche le ${fmt(it.relance)}` : ""}`, "check_circle");
+    if (isRdvRes(it.resultat) && OBJETS_MAIL.includes(it.rdvObjet) && newId) return prepareDraft(newId, c);
     await loadLive(true);
   } catch (e) { toast(`Échange non enregistré dans Supabase (${(e && e.code) || "erreur"})`, "error"); render(); }
 }
@@ -1704,15 +1812,15 @@ async function arretResult(arretId, res) {
     const r = mo.rdv, st = res === "RDV réalisé" ? "Réalisé" : res;
     a.resultat = res; r.rdvStatut = st; await mark();
     if (LIVE.on && !S.demo) await tourSql(`update public.interaction set rdv_statut = ${sqlTxt(st)} where id = ${Number(r.id)};`, null); else save();
-    if (res === "Reporté") { ui.prefill = { canal: "Visite", res: "RDV pris", label: "Nouvelle date du RDV" }; toast("Indique la nouvelle date du rendez-vous", "event"); return go("fiche", c.id); }
+    if (res === "Reporté") { ui.prefill = { canal: "Visite", res: "Rendez-vous pris", label: "Nouvelle date du RDV" }; toast("Indique la nouvelle date du rendez-vous", "event"); return go("fiche", c.id); }
     toast(`${c.enseigne} : ${res === "RDV réalisé" ? "RDV réalisé" : "RDV annulé"}`, "event"); return render();
   }
-  if (res === "RDV pris") { a.resultat = res; await mark(); ui.prefill = { canal: "Visite", res: "RDV pris", label: "Visite" }; toast("Indique la date du rendez-vous", "event"); return go("fiche", c.id); }
+  if (isRdvRes(res)) { a.resultat = res; await mark(); ui.prefill = { canal: "Visite", res: "Rendez-vous pris", label: "Visite" }; toast("Indique la date du rendez-vous", "event"); return go("fiche", c.id); }
   if (res === "Pas intéressé") { a.resultat = res; await mark(); return askRetire([c.id]); }
-  const r = res === "Absent" ? "Sans réponse" : res, ar = autoRelance(c, r, TODAY, null);
-  const it = { id: nextId(S.interactions), commerceId: c.id, commercialId: ME_ID, date: TODAY, canal: "Visite", resultat: r, commentaire: `Visite terrain (${tourName(t)})`, relance: ar.date, rdv: null, rdvStatut: null, rdvObjet: null };
-  S.interactions.push(it); applyResult(c, r); if (ar.statut) c.statut = ar.statut; a.resultat = res; await mark();
-  if (LIVE.on && !S.demo) { liveSaveInteraction(it, c); return render(); }
+  const r = res, ar = autoRelance(c, r, TODAY, null), prop = proposeStatut(c, r, ar);
+  const it = { id: nextId(S.interactions), commerceId: c.id, commercialId: ME_ID, date: TODAY, canal: "Visite", motif: "Relance", resultat: r, commentaire: `Visite terrain (${tourName(t)})`, relance: ar.date, rdv: null, rdvStatut: null, rdvObjet: null, statutPropose: prop, statutApplique: false };
+  S.interactions.push(it); a.resultat = res; await mark();
+  if (LIVE.on && !S.demo) { liveSaveInteraction(it, c, ar); return render(); }
   save(); toast(`${c.enseigne} : ${res}${ar.date ? ` · prochaine étape le ${fmt(ar.date)}` : ""}`, "storefront"); render();
 }
 function itineraire(t) {
@@ -1736,7 +1844,7 @@ function tourneeCard(inner) {
 }
 function viewTournees() {
   const day = tourDay(), memes = tourneesDuJour(day), t = memes[0] || null, autres = memes.slice(1);
-  const RES_C = ["Retenir", "Écarter", "Absent"], RES_P = ["Absent", "À rappeler", "Intéressé", "RDV pris", "Pas intéressé"], RES_R = ["RDV réalisé", "Reporté", "Annulé"];
+  const RES_C = ["Retenir", "Écarter", "Absent"], RES_P = ["Absent", "À rappeler", "Intéressé", "Rendez-vous pris", "Pas intéressé"], RES_R = ["RDV réalisé", "Reporté", "Annulé"];
   const stops = t ? [...t.arrets].sort((a, b) => a.ordre - b.ordre || a.id - b.id) : [];
   const info = stops.map(a => { const s = stopInfo(a); return s ? { a, s, m: motifVisite(s.kind, s.ref, day) } : null; }).filter(Boolean);
   const rdvOrder = info.filter(x => x.m.k === "rdv").map(x => x.m.rdv.rdv), horsOrdre = rdvOrder.some((r, i) => i && r < rdvOrder[i - 1]);
@@ -1748,7 +1856,7 @@ function viewTournees() {
       <small>${esc(sub)}</small>
       <small>${ms("location_on")}${esc(s.adresse || "adresse inconnue")}${s.tel ? ` · ${esc(s.tel)}` : ""}</small>
       <small class="${hj && hj.ferme ? "warn-txt" : ""}">${ms("schedule")}${hj ? (hj.ferme ? `Fermé le ${hj.jour}` : `Ouvert le ${hj.jour} : ${esc(hj.txt)}`) : "Horaires inconnus"}${cr && !rdv ? ` · créneau conseillé ${cr}` : ""}</small>
-      <div class="stop-a">${a.resultat ? "" : (s.kind === "c" ? RES_C : rdv ? RES_R : RES_P).map(r => `<button class="btn sm${["Retenir", "RDV pris", "RDV réalisé"].includes(r) ? " primary" : ""}" data-tres="${a.id}:${r}" type="button">${r}</button>`).join("")}<span class="grow"></span>
+      <div class="stop-a">${a.resultat ? "" : (s.kind === "c" ? RES_C : rdv ? RES_R : RES_P).map(r => `<button class="btn sm${["Retenir", "Rendez-vous pris", "RDV réalisé"].includes(r) ? " primary" : ""}" data-tres="${a.id}:${r}" type="button">${r}</button>`).join("")}<span class="grow"></span>
         <button class="iconbtn" data-tmove="${a.id}:-1" type="button" title="Monter" ${k === 0 ? "disabled" : ""}>${ms("arrow_upward")}</button><button class="iconbtn" data-tmove="${a.id}:1" type="button" title="Descendre" ${k === info.length - 1 ? "disabled" : ""}>${ms("arrow_downward")}</button><button class="iconbtn" data-tdel="${a.id}" type="button" title="Retirer de la tournée">${ms("close")}</button></div>
     </div></li>`; };
   const inT = new Set(stops.map(a => a.commerceId).filter(Boolean));

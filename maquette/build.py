@@ -46,6 +46,15 @@ for cid,h in par.items():
     elif r=='À rappeler' and not last[7]: last[7]=ouvres(last[3],7)     # rappel à J+7 (sauf date convenue)
     elif r=='RDV pris' and (not last[8] or last[8][:10]<'2026-10-14'):
         j=next(futur); last[8]=f'{j}T{next(heures)}:00+02:00'; last[9]='Planifié'; last[7]=jours(j,-1)   # RDV à venir, confirmation la veille
+# Nouveaux statuts et résultats (15/10/2026) : mêmes correspondances que dans Supabase
+ST={'À rappeler':'Contacté','RDV pris':'Rendez-vous confirmé','Pas intéressé':'Non intéressé'}
+for base in (demo,d):
+    for c in base['commerces']: c[10]=ST.get(c[10],c[10])
+    for i in base['interactions']:
+        if i[5]=='RDV pris': i[5]='Rendez-vous pris'
+# Illustration du pipeline (zone Nord de la commerciale) : un prospect à chaque étape de l'audit, les autres restent « Contacté »
+pool=[c for c in sorted(demo['commerces'],key=lambda c:c[0]) if c[6]=='Nord' and c[10]=='Contacté']
+for c,st in zip(pool,['En qualification','Audit en préparation','Audit prêt','En qualification']): c[10]=st
 g=json.load(open('google.json'))
 gids={r[0] for r in d['recherches'] if r[3]=='Google Maps'}
 d['recherches']=[r for r in d['recherches'] if r[0] in gids]
