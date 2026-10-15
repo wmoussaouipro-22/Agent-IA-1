@@ -73,6 +73,11 @@ async function ouvrir(mode = "live", hash = "") {
           for (const x of data.tournees.filter(x => ids.includes(x[0]))) for (const a of x[5]) tr[5].push([a[0], a[1] + add, a[2], a[3], a[4], a[5]]);
           data.tournees = data.tournees.filter(x => !ids.includes(x[0])); return { content: [] };
         }
+        if (q.startsWith("insert into public.commerce")) {
+          const v = [...q.matchAll(/'((?:[^']|'')*)'|null/g)].map(x => x[1] == null ? null : x[1].replace(/''/g, "'"));
+          const id = 300 + data.commerces.length; data.commerces.push(COM(id, v[0], { type: v[1], ville: v[3], tel: v[6] }));
+          return { content: [{ type: "text", text: JSON.stringify({ result: `<untrusted-data-x1>\n[{"id":${id}}]\n</untrusted-data-x1>` }) }] };
+        }
         if (q.startsWith("insert into public.tournee (")) {
           const id = 70 + data.tournees.length; data.tournees.push([id, /'(\d{4}-\d\d-\d\d)'/.exec(q)[1], /'(\d{4}-\d\d-\d\d)', (null|'([^']*)')/.exec(q)[3] || null, "Planifiée", 2, []]);
           return { content: [{ type: "text", text: JSON.stringify({ result: `<untrusted-data-x1>\n[{"id":${id}}]\n</untrusted-data-x1>` }) }] };
@@ -426,3 +431,31 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
   assert.doesNotMatch(m.d.querySelector("#view").textContent, /tournées existent ce jour-là/);
   assert.deepEqual(m.errs, []);
 });
+
+/* P17 */ test("P17 · « À traiter » : le nom de l'enseigne ouvre sa fiche, ou la création d'une fiche si elle n'existe pas", async () => {
+  const m = await ouvrir("live");
+  assert.match(m.d.querySelector("h1").textContent, /Données d'illustration/);
+  assert.doesNotMatch(m.d.querySelector("#todo").textContent, /Saisir le résultat/);
+  m.click("[data-todo=todo]");
+  assert.doesNotMatch(m.d.querySelector("#todo").textContent, /Préparer/);
+  m.click("[data-todo=retard]");
+  const nom = m.d.querySelector("#todo .trow .ens").textContent;
+  // 1. Pas encore de fiche réelle : formulaire de création pré-rempli
+  m.click("#todo .trow .ens");
+  assert.equal(m.d.querySelector("#p-enseigne")?.value, nom, "le formulaire de création doit être pré-rempli");
+  m.d.querySelector("#f-prospect").dispatchEvent(new m.w.Event("submit", { bubbles: true, cancelable: true })); await m.wait(120);
+  const ins = m.calls.find(c => /^insert into public\.commerce \(enseigne, type_commerce, zone, ville/.test(c.input.query || ""));
+  assert.ok(ins, "la fiche doit être créée dans Supabase");
+  assert.ok(ins.input.query.includes(`'${nom.replace(/'/g, "''")}'`));
+  assert.match(m.d.querySelector("#view").textContent, new RegExp(nom.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.equal(m.d.querySelector("h1").textContent.includes("Données d'illustration"), false, "on doit être sur la vraie fiche");
+  // 2. La fiche existe désormais : le nom ouvre directement la fiche
+  m.click("[data-go=dashboard]"); m.click("[data-todo=retard]");
+  const n0 = m.calls.length;
+  m.click([...m.d.querySelectorAll("#todo .trow .ens")].find(e => e.textContent === nom));
+  assert.equal(m.d.querySelector("#p-enseigne"), null, "pas de création en double");
+  assert.equal(m.calls.slice(n0).some(c => /insert into public\.commerce/.test(c.input.query || "")), false);
+  assert.match(location(m), /^#fiche-\d+$/);
+  assert.deepEqual(m.errs, []);
+});
+function location(m) { return m.w.location.hash; }

@@ -28,6 +28,7 @@ simulés, les scénarios Supabase annulent tout ce qu'ils créent, et n8n est co
 | P14 | Organiser une tournée | Motif de chaque arrêt : « 1re visite », « Relance terrain » ou « RDV commercial · heure » (heure fixe, boutons RDV réalisé / Reporté / Annulé) ; RDV du jour proposés avec « Ajouter à la tournée », jamais ajoutés d'office ; recherche des prospects avec liste de 20 par page (Précédent / Suivant) ; modifier la date et le nom ; supprimer la tournée après confirmation dans la page |
 | P15 | Reporter une relance | « Cette semaine » devient « Ma to do » : une relance reportée (« Reporter » dans « En retard ») y passe, avec sa date d'origine, et le report est enregistré dans Supabase (date_relance_initiale) ; l'onglet regroupe aussi la prochaine tournée et les 5 prochains RDV |
 | P16 | Plusieurs tournées le même jour | Signalées, puis regroupées en une seule (arrêts déplacés, tournées vides supprimées) |
+| P17 | Ouvrir un prospect depuis « À traiter » | Le nom de l'enseigne ouvre sa fiche ; sans fiche réelle, le formulaire de création s'ouvre pré-rempli et la fiche est créée dans Supabase ; plus de « Saisir le résultat » ni de bouton « Préparer » |
 
 ## Règles Supabase (`supabase/scenarios.sql`)
 

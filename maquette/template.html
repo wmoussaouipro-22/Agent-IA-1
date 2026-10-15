@@ -322,8 +322,6 @@ table.grid .r { text-align: right; }
 .act { grid-column: 2; display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); border: 0; border-left: 3px solid var(--ink-3); text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; }
 .act:hover { filter: brightness(0.97); }
 .act > div { flex: 1; }
-.act-go { align-self: center; display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 600; color: var(--link); white-space: nowrap; }
-@media (max-width: 520px) { .act-go { display: none; } }
 .act > .ms { margin-top: 2px; }
 .act div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .act b { font-size: 15px; }
@@ -722,7 +720,7 @@ function viewDashboard() {
     const when = x.dd < 0 ? `prévue le ${fmt(x.d)} · <b>${lateN} jour${lateN > 1 ? "s" : ""} de retard</b>` : x.dd === 0 ? `<b>à faire aujourd'hui</b>${x.last && x.last.relanceOrig ? ` · initialement prévue le ${fmt(x.last.relanceOrig)}` : ""}` : rep ? `reportée au ${fmtLong(x.d).toLowerCase()} · initialement prévue le ${fmt(x.last.relanceOrig)}` : `prévue le ${fmtLong(x.d).toLowerCase()}`;
     return `<li class="trow ${st}"><span class="when ${st}">${lbl}</span>
       <span class="t"><button class="ens" data-open="${c.id}">${esc(c.enseigne)}</button><small>${esc(c.ville)} · <span class="num">${esc(c.tel || "pas de téléphone")}</span></small></span>
-      <button type="button" class="act ${st}" data-act="${c.id}" title="Saisir le résultat dans la fiche">${ms(act.ic)}<div><span class="act-k">${x.dd < 0 ? tierK : x.dd === 0 ? "Action du jour" : rep ? "Reportée" : "Action prévue"}</span><b>${esc(act.l)}</b><small>${when}</small></div><span class="act-go">Saisir le résultat ${ms("chevron_right")}</span></button>
+      <button type="button" class="act ${st}" data-act="${c.id}" title="Saisir le résultat dans la fiche">${ms(act.ic)}<div><span class="act-k">${x.dd < 0 ? tierK : x.dd === 0 ? "Action du jour" : rep ? "Reportée" : "Action prévue"}</span><b>${esc(act.l)}</b><small>${when}</small></div></button>
       <span class="acts"><span class="grow"></span>
         <button class="btn sm secondary" data-panel="${c.id}:done" type="button" aria-expanded="${open === "done"}">${ms("task_alt")}Fait</button>
         ${tier === "stale" ? `<button class="btn sm" data-stale="${c.id}" type="button">${ms("phone_disabled")}Classer injoignable</button>` : `<button class="btn sm" data-panel="${c.id}:report" type="button" aria-expanded="${open === "report"}">${ms("update")}Reporter</button>`}</span>
@@ -731,7 +729,7 @@ function viewDashboard() {
     </li>`; };
   const list = B[ui.todoTab] || [];
   const empty = { jour: "Aucune relance prévue aujourd'hui.", retard: "Aucune relance en retard.", todo: "Aucune relance reportée. Quand tu reportes une relance, elle arrive ici." }[ui.todoTab];
-  const todoRdv = rdvs.slice(0, 5).map(i => { const c = commerce(i.commerceId); return `<li><span class="when rdv">${fmtShort(i.rdv)}</span><span class="t"><button class="ens" data-open="${c.id}">${esc(c.enseigne)}</button><small>${fmtHeure(i.rdv)} · ${esc(i.rdvObjet || "Rendez-vous")} · ${esc(c.ville)}</small></span><button class="btn sm secondary" data-open="${c.id}" type="button">Préparer</button></li>`; }).join("");
+  const todoRdv = rdvs.slice(0, 5).map(i => { const c = commerce(i.commerceId); return `<li><span class="when rdv">${fmtShort(i.rdv)}</span><span class="t"><button class="ens" data-open="${c.id}">${esc(c.enseigne)}</button><small>${fmtHeure(i.rdv)} · ${esc(i.rdvObjet || "Rendez-vous")} · ${esc(c.ville)}</small></span></li>`; }).join("");
   const relList = `<ul class="todo-list">${list.map(rowRel).join("") || `<li class="muted" style="list-style:none;padding:12px 0">${empty}</li>`}</ul>`;
   const todoBody = ui.todoTab !== "todo" ? relList : `<h3 class="todo-sub">${ms("update")}Relances reportées <span class="hint">${list.length}</span></h3>${relList}
     ${tourneeCard(true)}
@@ -1023,20 +1021,30 @@ function viewRecherches() {
   </div>`;
 }
 
+/* Tableau de bord d'illustration : le nom de l'enseigne ouvre la vraie fiche si elle existe, sinon la création */
+function ouvrirDepuisDemo(id) {
+  const dc = DEMO_S && DEMO_S.commerces.find(x => x.id === id); if (!dc) return;
+  const norm = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  S = REAL_S;
+  const real = REAL_S.commerces.find(x => norm(x.enseigne) === norm(dc.enseigne) && (!dc.ville || !x.ville || norm(x.ville) === norm(dc.ville)));
+  if (real) return go("fiche", real.id);
+  ui.modal = { type: "prospect", pre: { enseigne: dc.enseigne, type: dc.type, zone: dc.zone, ville: dc.ville, cp: dc.cp, contact: dc.contact, tel: dc.tel, email: dc.email, potentiel: dc.potentiel } };
+  go("prospects"); toast(`${dc.enseigne} n'a pas encore de fiche : complète et crée-la`, "add_business");
+}
 /* ---------- Modales ---------- */
-function prospectForm(c) {
-  const v = k => esc(c ? c[k] || "" : "");
+function prospectForm(c, pre) {
+  const src = c || pre, v = k => esc(src ? src[k] || "" : "");
   return `<form id="f-prospect" class="body">
     <div class="form-grid">
       <label class="field full"><span>Enseigne *</span><input class="input" id="p-enseigne" required value="${v("enseigne")}"></label>
-      <label class="field"><span>Type *</span><select class="input" id="p-type">${TYPES.map(t => `<option ${c && c.type === t ? "selected" : ""}>${t}</option>`).join("")}</select></label>
-      <label class="field"><span>Zone</span><select class="input" id="p-zone">${ZONES.map(z => `<option ${(c ? c.zone : ME.zone) === z ? "selected" : ""}>${z}</option>`).join("")}</select></label>
+      <label class="field"><span>Type *</span><select class="input" id="p-type">${TYPES.map(t => `<option ${src && src.type === t ? "selected" : ""}>${t}</option>`).join("")}</select></label>
+      <label class="field"><span>Zone</span><select class="input" id="p-zone">${ZONES.map(z => `<option ${(src && src.zone ? src.zone : ME.zone) === z ? "selected" : ""}>${z}</option>`).join("")}</select></label>
       <label class="field"><span>Ville *</span><input class="input" id="p-ville" required value="${v("ville")}"></label>
       <label class="field"><span>Code postal</span><input class="input" id="p-cp" inputmode="numeric" value="${v("cp")}"></label>
       <label class="field"><span>Gérant</span><input class="input" id="p-contact" value="${v("contact")}"></label>
       <label class="field"><span>Téléphone</span><input class="input" id="p-tel" value="${v("tel")}"></label>
       <label class="field"><span>E-mail</span><input class="input" id="p-email" type="email" value="${v("email")}"></label>
-      <label class="field"><span>Potentiel</span><select class="input" id="p-pot"><option value="">Non évalué</option>${POTENTIELS.map(p => `<option ${c && c.potentiel === p ? "selected" : ""}>${p}</option>`).join("")}</select></label>
+      <label class="field"><span>Potentiel</span><select class="input" id="p-pot"><option value="">Non évalué</option>${POTENTIELS.map(p => `<option ${src && src.potentiel === p ? "selected" : ""}>${p}</option>`).join("")}</select></label>
     </div>
   </form>`;
 }
@@ -1047,7 +1055,7 @@ function renderModal() {
   if (m.type === "prospect") {
     const c = m.id ? commerce(m.id) : null;
     h = c ? `Modifier ${esc(c.enseigne)}` : "Nouveau prospect";
-    body = prospectForm(c);
+    body = prospectForm(c, m.pre);
     foot = `<button class="btn" data-close type="button">Annuler</button><button class="btn primary" type="submit" form="f-prospect">${c ? "Enregistrer" : "Créer la fiche"}</button>`;
   } else if (m.type === "delete") {
     const c = commerce(m.id); h = "Supprimer ce prospect ?";
@@ -1187,7 +1195,7 @@ document.addEventListener("click", e => {
   if (d.mail) { ui.modal = { type: "maildraft", id: +d.mail }; return render(); }
   if (d.mailtab) { ui.mailTab = d.mailtab; return render(); }
   if (d.week !== undefined) { ui.week = +d.week === 0 ? 0 : (ui.week || 0) + +d.week; return render(); }
-  if (onDemo() && (d.open || d.act)) return toast("Tableau de bord d'illustration : fiche fictive, non disponible", "info");
+  if (onDemo() && (d.open || d.act)) return ouvrirDepuisDemo(+(d.open || d.act));
   if (d.open) return go("fiche", +d.open);
   if (d.menu) { ui.menu = ui.menu === +d.menu ? null : +d.menu; return render(); }
   if (d.edit) { ui.menu = null; ui.modal = { type: "prospect", id: +d.edit }; return render(); }
@@ -1289,6 +1297,7 @@ document.addEventListener("submit", e => {
     const m = ui.modal, data = { enseigne: val("p-enseigne"), type: val("p-type"), zone: val("p-zone"), ville: val("p-ville"), cp: val("p-cp") || null, contact: val("p-contact") || null, tel: val("p-tel") || null, email: val("p-email") || null, potentiel: val("p-pot") || null };
     if (!data.enseigne || !data.ville) return toast("Enseigne et ville sont obligatoires", "error");
     if (m.id) { Object.assign(commerce(m.id), data); ui.modal = null; save(); toast("Fiche mise à jour"); return render(); }
+    if (LIVE.on && !S.demo) return liveCreateCommerce(data);
     const nid = nextId(S.commerces), com = COMMERCIAUX.find(x => x.zone === data.zone);
     S.commerces.push({ id: nid, code: "Co-" + String(nid).padStart(3, "0"), ...data, statut: "Nouveau", categorie: "Prospect", commercialId: com ? com.id : null, siret: null, adresse: null, site: null, note: null, avis: null, opposition: null, horaires: null });
     ui.modal = null; save(); toast(`${data.enseigne} ajouté au portefeuille`); return go("fiche", nid);
@@ -1296,6 +1305,14 @@ document.addEventListener("submit", e => {
 
 });
 
+async function liveCreateCommerce(data) {
+  const q = `insert into public.commerce (enseigne, type_commerce, zone, ville, code_postal, nom_contact, telephone, email, potentiel, commercial_id, source) values (${[data.enseigne, data.type, data.zone, data.ville, data.cp, data.contact, data.tel, data.email, data.potentiel].map(sqlTxt).join(", ")}, ${Number(ME_ID)}, 'Saisie manuelle') returning id;`;
+  try {
+    const r = await sqlLive(q), row = rowsOf(r, 0, "id");
+    ui.modal = null; renderModal(); toast(`${data.enseigne} ajouté au portefeuille`, "add_business"); await loadLive(true);
+    return row ? go("fiche", row.id) : go("prospects");
+  } catch (e) { toast(`Fiche non créée (${(e && e.code) || "erreur"})`, "error"); }
+}
 function applyResult(c, res) {
   const auto = { "RDV pris": "RDV pris", "Signature": "Signé", "Pas intéressé": "Pas intéressé", "À rappeler": "À rappeler", "Sans réponse": c.statut === "Nouveau" ? "Contacté" : c.statut, "Intéressé": "Contacté" }[res];
   if (auto && c.statut !== "Signé") c.statut = auto;
@@ -1682,7 +1699,7 @@ function itineraire(t) {
 function tourneeCard(inner) {
   if (S.demo && REAL_S) { const prev = S; S = REAL_S; try { return tourneeCard(inner); } finally { S = prev; } }
   const wrap = h => inner ? h.replace(/^<section class="card card-pad tour-card">/, '<div class="tour-card tour-in">').replace(/<\/section>$/, "</div>") : h;
-  const t = nextTournee(); if (!t) return wrap(`<section class="card card-pad tour-card"><b>${ms("route")}Ma tournée</b><span class="muted">Aucune tournée prévue.</span><button class="btn sm" data-go="tournees" type="button">Préparer une tournée</button></section>`);
+  const t = nextTournee(); if (!t) return wrap(`<section class="card card-pad tour-card"><b>${ms("route")}Ma tournée</b><span class="muted">Aucune tournée prévue.</span><button class="btn sm" data-go="tournees" type="button">Planifier une tournée</button></section>`);
   const st = t.arrets.map(stopInfo).filter(Boolean), nc = st.filter(s => s.kind === "c").length, np = st.length - nc, faits = t.arrets.filter(a => a.resultat).length;
   const mos = st.map(s => motifVisite(s.kind, s.ref, t.date)), n1 = mos.filter(m => m.k === "first").length, nr = mos.filter(m => m.k === "relance").length, rdvs = mos.filter(m => m.k === "rdv");
   const detail = [n1 ? `${n1} 1re${n1 > 1 ? "s" : ""} visite${n1 > 1 ? "s" : ""}` : "", nr ? `${nr} relance${nr > 1 ? "s" : ""}` : "", rdvs.length ? `${rdvs.length} RDV commercial${rdvs.length > 1 ? "aux" : ""} (${rdvs.map(m => heureTxt(m.rdv.rdv)).join(", ")})` : ""].filter(Boolean).join(" · ");
