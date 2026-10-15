@@ -29,6 +29,7 @@ simulés, les scénarios Supabase annulent tout ce qu'ils créent, et n8n est co
 | P15 | Reporter une relance | « Cette semaine » devient « Ma to do » : une relance reportée (« Reporter » dans « En retard ») y passe, avec sa date d'origine, et le report est enregistré dans Supabase (date_relance_initiale) ; l'onglet regroupe aussi la prochaine tournée et les 5 prochains RDV |
 | P16 | Plusieurs tournées le même jour | Signalées, puis regroupées en une seule (arrêts déplacés, tournées vides supprimées) |
 | P17 | Ouvrir un prospect depuis « À traiter » | Le nom de l'enseigne ouvre sa fiche ; sans fiche réelle, le formulaire de création s'ouvre pré-rempli et la fiche est créée dans Supabase ; plus de « Saisir le résultat » ni de bouton « Préparer » |
+| P18 | Consulter la liste des prospects | Colonne « E-mail » (adresse fournie par Google Maps), vide si le commerce n'en a pas |
 
 ## Règles Supabase (`supabase/scenarios.sql`)
 

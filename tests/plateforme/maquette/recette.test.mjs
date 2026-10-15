@@ -459,3 +459,17 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
   assert.deepEqual(m.errs, []);
 });
 function location(m) { return m.w.location.hash; }
+
+/* P18 */ test("P18 · Liste des prospects : colonne E-mail, vide quand Google Maps n'en a pas fourni", async () => {
+  const m = await ouvrir("live");
+  m.data.commerces[0][8] = "contact@ancienne.fr";
+  m.click('[data-action="live"]'); await m.wait(80);
+  m.click("[data-go=prospects]");
+  const th = [...m.d.querySelectorAll("thead th")].map(x => x.textContent);
+  assert.ok(th.includes("E-mail"), "colonne E-mail absente");
+  const col = th.indexOf("E-mail");
+  const cell = nom => [...m.d.querySelectorAll("tbody tr")].find(r => r.textContent.includes(nom)).children[col].textContent.trim();
+  assert.equal(cell("Boulangerie Ancienne"), "contact@ancienne.fr");
+  assert.equal(cell("Boulangerie Récente"), "", "sans e-mail, la case reste vide");
+  assert.deepEqual(m.errs, []);
+});

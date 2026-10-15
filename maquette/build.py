@@ -14,6 +14,38 @@ for k,(c,(j,h,st,obj)) in enumerate(zip(sud,[('2026-10-14','15:00','Confirmé','
     rel={'2026-10-14':'2026-10-14','2026-10-15':'2026-10-14'}.get(j)  # RDV du jour ; confirmation la veille du RDV de demain
     demo['interactions'].append([nid+k,c[0],2,'2026-10-0'+str(k+5),'Appel','RDV pris','Rendez-vous fixé avec le gérant.',rel,f'{j}T{h}:00+02:00',st,obj])
     c[10]='RDV pris'
+# Illustration conforme aux règles de relance (jours ouvrés) : chaque prochaine étape est recalculée
+import datetime as dt
+def ouvres(iso,n):
+    d=dt.date.fromisoformat(iso[:10]); k=0
+    while k<n:
+        d+=dt.timedelta(days=1)
+        if d.weekday()<5: k+=1
+    return d.isoformat()
+def jours(iso,n): return (dt.date.fromisoformat(iso[:10])+dt.timedelta(days=n)).isoformat()
+for i in demo['interactions']+d['interactions']:
+    if i[4]=='SMS': i[4]='Appel'   # canal SMS retiré de la plateforme
+par={}
+for i in demo['interactions']: par.setdefault(i[1],[]).append(i)
+statut={c[0]:c for c in demo['commerces']}
+futur=iter([d for d in (jours('2026-10-16',k) for k in range(60)) if dt.date.fromisoformat(d).weekday()<5])
+heures=iter(['10:00','14:30','11:00','16:00']*30)
+for cid,h in par.items():
+    h.sort(key=lambda i:(i[3] or '',i[0]),reverse=True); last=h[0]; c=statut.get(cid)
+    if not c or c[10] in ('Signé','Pas intéressé'): continue
+    r=last[5]
+    if r=='Intéressé': last[7]=ouvres(last[3],1)                      # présentation par e-mail à J+1
+    elif r=='Sans réponse':
+        k=0
+        for i in h:
+            if i[5]=='Sans réponse': k+=1
+            else: break
+        if k>=5 or c[10]=='Injoignable': last[7]=jours(last[3],90); c[10]='Injoignable'   # injoignable : nouvel essai à J+90
+        elif k>=3: last[7]=ouvres(last[3],5)                            # visite sur place à J+5
+        else: last[7]=ouvres(last[3],2)                                 # nouvel appel à J+2
+    elif r=='À rappeler' and not last[7]: last[7]=ouvres(last[3],7)     # rappel à J+7 (sauf date convenue)
+    elif r=='RDV pris' and (not last[8] or last[8][:10]<'2026-10-14'):
+        j=next(futur); last[8]=f'{j}T{next(heures)}:00+02:00'; last[9]='Planifié'; last[7]=jours(j,-1)   # RDV à venir, confirmation la veille
 g=json.load(open('google.json'))
 gids={r[0] for r in d['recherches'] if r[3]=='Google Maps'}
 d['recherches']=[r for r in d['recherches'] if r[0] in gids]

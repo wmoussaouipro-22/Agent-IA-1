@@ -259,6 +259,7 @@ table.grid .r { text-align: right; }
 .stop-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .stop-a { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px; } .stop-a .grow { flex: 1; }
 .warn-txt { color: var(--red) !important; font-weight: 600; }
+.mail-cell { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
 .tour-pick { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .tour-add { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
 .b-rdv { background: var(--cold-bg); color: var(--cold); border-color: transparent; font-weight: 700; }
@@ -601,10 +602,16 @@ function nextAction(last) {
   const r = last.resultat, ch = last.canal;
   if (r === "RDV pris" && last.rdv && last.rdv.slice(0, 10) === TODAY) return { ic: "event", l: `Rendez-vous aujourd'hui à ${fmtHeure(last.rdv)}${last.rdvObjet ? " · " + last.rdvObjet : ""}`, canal: "Visite" };
   if (r === "RDV pris" && last.rdv && last.rdv.slice(0, 10) > TODAY) { const mm = (S.mails || []).find(x => x.interactionId === last.id); return mm && mm.statut === "Envoyé" ? { ic: "event", l: `Rendez-vous le ${fmt(last.rdv)} à ${fmtHeure(last.rdv)} · confirmation envoyée`, canal: "Visite" } : mm ? { ic: "drafts", l: `Valider l'e-mail de confirmation du RDV du ${fmt(last.rdv)}`, canal: "E-mail" } : { ic: "mail", l: `Confirmer le RDV du ${fmt(last.rdv)} par e-mail`, canal: "E-mail" }; }
-  if (r === "RDV pris") return { ic: "event", l: "Faire le suivi du rendez-vous", canal: "Visite" };
-  if (r === "Intéressé") return ch === "E-mail" ? { ic: "mail", l: "Relancer après l'envoi de la documentation", canal: "E-mail" } : { ic: "event_available", l: "Proposer un rendez-vous", canal: "Appel", res: "RDV pris" };
+  if (r === "RDV pris") return last.rdv ? { ic: "event", l: `Mettre à jour le RDV du ${fmt(last.rdv)} (réalisé, reporté ou annulé)`, canal: "Visite" } : { ic: "event", l: "Indiquer la date du RDV", canal: "Appel", res: "RDV pris" };
+  if (r === "Intéressé") return { ic: "mail", l: "Envoyer la présentation par e-mail", canal: "E-mail" };
   if (r === "À rappeler") return { ic: "call", l: "Rappeler le gérant", canal: "Appel" };
-  if (r === "Sans réponse") return ch === "E-mail" ? { ic: "mail", l: "Relancer par e-mail", canal: "E-mail" } : { ic: "call", l: "Nouvelle tentative d'appel", canal: "Appel" };
+  if (r === "Sans réponse") {
+    let k = 0; for (const i of interOf(last.commerceId)) { if (i.resultat === "Sans réponse") k++; else break; }
+    const c = commerce(last.commerceId);
+    if (k >= 5 || (c && c.statut === "Injoignable")) return { ic: "call", l: "Nouvel essai (injoignable)", canal: "Appel" };
+    if (k >= 3) return { ic: "storefront", l: "Visite sur place", canal: "Visite" };
+    return { ic: "call", l: "Nouvelle tentative d'appel", canal: "Appel" };
+  }
   return { ic: "task_alt", l: "Relancer le commerce", canal: "Appel" };
 }
 function whyLine(x) { const r = x.last && x.last.resultat === "Intéressé" ? "Intéressé" : x.c.statut === "RDV pris" ? "RDV en cours" : null; const p = x.c.potentiel === "Élevé" ? "potentiel élevé" : null; return [r, p].filter(Boolean).join(" · "); }
@@ -810,16 +817,17 @@ function viewProspects() {
     ${ui.sel.size ? `<div class="bulk"><span>${ui.sel.size} sélectionné${ui.sel.size > 1 ? "s" : ""}</span><select class="input" id="bulk-statut" aria-label="Nouveau statut"><option value="">Changer le statut…</option>${STATUTS.map(s => `<option>${s}</option>`).join("")}</select><button class="btn sm secondary" data-action="bulk-apply" type="button">Appliquer</button><button class="btn sm" data-action="bulk-clear" type="button">Désélectionner</button></div>` : ""}
     <div class="table-wrap" style="overflow-x:auto;overflow-y:visible">
       <table class="grid">
-        <thead><tr><th style="width:44px"><input type="checkbox" class="cb" data-selall ${allSel ? "checked" : ""} aria-label="Tout sélectionner" style="width:18px;height:18px;accent-color:var(--primary)"></th><th>Enseigne</th><th>Type</th><th>Ville</th><th>Contact (Gérant)</th><th>Téléphone</th><th>Potentiel</th><th>Statut</th><th class="r">Actions</th></tr></thead>
+        <thead><tr><th style="width:44px"><input type="checkbox" class="cb" data-selall ${allSel ? "checked" : ""} aria-label="Tout sélectionner" style="width:18px;height:18px;accent-color:var(--primary)"></th><th>Enseigne</th><th>Type</th><th>Ville</th><th>Contact (Gérant)</th><th>Téléphone</th><th>E-mail</th><th>Potentiel</th><th>Statut</th><th class="r">Actions</th></tr></thead>
         <tbody>${rows.map(c => `<tr class="${ui.sel.has(c.id) ? "sel" : ""}">
           <td><input type="checkbox" data-sel="${c.id}" ${ui.sel.has(c.id) ? "checked" : ""} aria-label="Sélectionner ${esc(c.enseigne)}" style="width:18px;height:18px;accent-color:var(--primary)"></td>
           <td><button class="ens" data-open="${c.id}">${esc(c.enseigne)}</button>${incomplete(c) ? ` <span class="pill-inc" title="Gérant, e-mail, téléphone ou potentiel à renseigner">à compléter</span>` : ""}${stopped(c) ? ` <span class="badge b-red">Ne plus contacter</span>` : ""}</td>
           <td>${esc(c.type)}</td><td>${esc(c.ville)}</td>
           <td>${c.contact ? esc(c.contact) : `<span class="ital">Non renseigné</span>`}</td>
           <td class="num">${c.tel ? esc(c.tel) : `<span class="ital">—</span>`}</td>
+          <td class="mail-cell">${c.email ? `<span title="${esc(c.email)}">${esc(c.email)}</span>` : ""}</td>
           <td>${potBadge(c.potentiel)}</td><td>${stopped(c) ? `<span class="badge b-red">Opposition</span>` : statutBadge(c.statut)}</td>
           <td class="r"><span class="rel"><button class="iconbtn" data-menu="${c.id}" aria-haspopup="true" aria-expanded="${ui.menu === c.id}" aria-label="Actions">${ms("more_vert")}</button>${ui.menu === c.id ? `<span class="menu" role="menu"><button role="menuitem" data-open="${c.id}">${ms("open_in_new")}Ouvrir la fiche</button><button role="menuitem" data-edit="${c.id}">${ms("edit")}Modifier</button><button role="menuitem" class="del" data-del="${c.id}">${ms("delete")}Supprimer</button></span>` : ""}</span></td>
-        </tr>`).join("") || `<tr><td colspan="9"><div class="empty">Aucun commerce ne correspond à ces filtres. <button class="linkbtn" style="color:var(--link)" data-action="clear-filters">Réinitialiser les filtres</button></div></td></tr>`}</tbody>
+        </tr>`).join("") || `<tr><td colspan="10"><div class="empty">Aucun commerce ne correspond à ces filtres. <button class="linkbtn" style="color:var(--link)" data-action="clear-filters">Réinitialiser les filtres</button></div></td></tr>`}</tbody>
       </table>
     </div>
     <div class="pager">
