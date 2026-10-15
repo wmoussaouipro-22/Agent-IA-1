@@ -944,6 +944,7 @@ function viewFiche() {
         <div class="card-body">${hist.length ? `<ul class="tl">${hist.map(i => `<li><span class="dot">${ms(CANAL_ICON[i.canal] || "chat")}</span><div>
           <div class="head"><b>${esc(i.canal)}</b><span class="muted">${fmt(i.date)}</span><span class="badge ${isRdvRes(i.resultat) || ["Signature", "Intéressé", "Informations complémentaires demandées"].includes(i.resultat) ? "b-sage" : ["À rappeler", "À relancer"].includes(i.resultat) ? "b-amber" : "b-grey"}">${esc(i.resultat)}</span>${i.motif ? `<span class="muted">${esc(i.motif)}</span>` : ""}${i.statutPropose ? `<span class="badge ${i.statutApplique ? "b-sage" : "b-out"}">${i.statutApplique ? "Statut appliqué" : "Statut proposé"} : ${esc(i.statutPropose)}</span>` : ""}</div>
           ${i.commentaire ? `<p>${esc(i.commentaire)}</p>` : ""}
+          ${i.commentaire && LIVE.on && !S.demo && !stopped(c) ? ((S.infos || []).some(x => x.interactionId === i.id) ? `<small class="muted">${ms("bolt", ' style="font-size:16px"')} Informations énergétiques extraites de ce compte rendu</small>` : `<button class="btn sm secondary" data-extract="${i.id}" type="button" ${ui.extracting === i.id ? "disabled" : ""}>${ms("auto_awesome")}${ui.extracting === i.id ? "Extraction en cours…" : "Extraire avec l'IA"}</button>`) : ""}
           <div class="meta"><span>${ms("person", ' style="font-size:16px"')} ${esc(comName(i.commercialId))}</span>${i.rdv ? `<span>${ms("event", ' style="font-size:16px"')} RDV ${fmt(i.rdv)} à ${fmtHeure(i.rdv)} · ${esc(i.rdvObjet || "")} · ${esc(i.rdvStatut || "")}</span>` : ""}${i.relance ? `<span>${ms("schedule", ' style="font-size:16px"')} Relance prévue le ${fmt(i.relance)}</span>` : ""}</div>
         </div></li>`).join("")}</ul>` : `<p class="muted">Aucun échange enregistré. Le premier contact se saisit ci-dessous.</p>`}</div>
       </section>
@@ -1284,7 +1285,7 @@ function autoRelance(c, res, date, rdvIso, hist) {
 
 /* ---------- Interactions ---------- */
 document.addEventListener("click", e => {
-  const t = e.target.closest("[data-go],[data-open],[data-menu],[data-edit],[data-del],[data-page],[data-sel],[data-selall],[data-scope],[data-rech],[data-tri],[data-keep],[data-drop],[data-known],[data-undo],[data-relance],[data-range],[data-today],[data-act],[data-pot],[data-pin],[data-tour],[data-chip],[data-mapmode],[data-zoom],[data-todo],[data-copy],[data-panel],[data-result],[data-postpone],[data-stale],[data-mail],[data-tourp],[data-tdate],[data-dash],[data-apply],[data-infoval],[data-tmove],[data-tdel],[data-tres],[data-tpage],[data-mailtab],[data-week],[data-action],[data-close],[data-veil]");
+  const t = e.target.closest("[data-go],[data-open],[data-menu],[data-edit],[data-del],[data-page],[data-sel],[data-selall],[data-scope],[data-rech],[data-tri],[data-keep],[data-drop],[data-known],[data-undo],[data-relance],[data-range],[data-today],[data-act],[data-pot],[data-pin],[data-tour],[data-chip],[data-mapmode],[data-zoom],[data-todo],[data-copy],[data-panel],[data-result],[data-postpone],[data-stale],[data-mail],[data-tourp],[data-tdate],[data-dash],[data-apply],[data-infoval],[data-extract],[data-tmove],[data-tdel],[data-tres],[data-tpage],[data-mailtab],[data-week],[data-action],[data-close],[data-veil]");
   if (!t) { if (ui.menu) { ui.menu = null; render(); } return; }
   const d = t.dataset;
   if (d.veil !== undefined && e.target !== t) return;
@@ -1313,6 +1314,7 @@ document.addEventListener("click", e => {
   if (d.scope) { ui.scope = d.scope; return render(); }
   if (d.pot) { const k = d.pot.indexOf(":"), x = S.candidats.find(c => c.id === +d.pot.slice(0, k)), p = d.pot.slice(k + 1); x.potentiel = x.potentiel === p ? null : p; ui.selCand = x.id; save(); toast(`${x.enseigne} : ${TEMP_LABEL[temp(x).k].toLowerCase()}`, "flag"); return render(); }
   if (d.apply) return applyStatut(+d.apply);
+  if (d.extract) return extractInfos(+d.extract);
   if (d.infoval) { const [iid, st] = d.infoval.split(":"); return validateInfo(+iid, st); }
   if (d.act) { const c = commerce(+d.act), t0 = openTache(c.id), act = t0 ? actionTache(t0) : nextAction(interOf(c.id)[0]); ui.panel = null; ui.prefill = { canal: act.canal, res: act.res || null, label: act.l }; return go("fiche", c.id); }
   if (d.stale && LIVE.on && !S.demo) { const c = commerce(+d.stale), last = interOf(c.id)[0], dd = addDays(TODAY, 90); ui.panel = null;
@@ -1634,7 +1636,22 @@ async function doRetire(ids) {
 
 /* ---------- Échanges, e-mails et agenda enregistrés dans Supabase ---------- */
 const WAIT = ms => (window.__RECETTE_RAPIDE ? 5 : ms); /* attentes raccourcies pendant la recette automatique */
-const WF_BROUILLON = "PhjyhtFAAnD4Xog6", WF_ENVOI = "0YDc66J34yXL3ywe";
+const WF_BROUILLON = "PhjyhtFAAnD4Xog6", WF_ENVOI = "0YDc66J34yXL3ywe", WF_EXTRACTION = "AvnNhTBFErl2jVzK";
+/* Extraction IA d'un compte rendu : les informations arrivent « À confirmer » dans la fiche */
+async function extractInfos(iid) {
+  const it = S.interactions.find(i => i.id === iid), c = it && commerce(it.commerceId); if (!c || !it.commentaire) return;
+  const avant = (S.infos || []).filter(x => x.commerceId === c.id).length;
+  ui.extracting = iid; render(); toast("L'IA lit le compte rendu…", "auto_awesome");
+  try {
+    await LIVE.mcp.callTool("n8n", "execute_workflow", { workflowId: WF_EXTRACTION, executionMode: "manual", triggerNodeName: "Extraction demandée sur la plateforme", inputs: { webhookData: { method: "POST", body: { commerce_id: c.id, interaction_id: iid, source: "Compte rendu d'échange", texte: it.commentaire } } } }, { cache: false });
+  } catch (e) { ui.extracting = null; toast(`Extraction non lancée (${(e && e.code) || "erreur"}) : n8n doit être autorisé pour cette page`, "error"); return render(); }
+  for (let n = 0; n < 6; n++) {
+    await new Promise(ok => setTimeout(ok, WAIT(n ? 4000 : 6000))); await loadLive(true);
+    const k = (S.infos || []).filter(x => x.commerceId === c.id).length - avant;
+    if (k > 0) { ui.extracting = null; toast(`${k} information${k > 1 ? "s" : ""} à confirmer`, "bolt"); render(); const el = $("#energie"); if (el) el.scrollIntoView({ block: "start" }); return; }
+  }
+  ui.extracting = null; toast("Aucune information énergétique trouvée dans ce compte rendu", "info"); render();
+}
 const OBJETS_MAIL = ["Présentation du pré-diagnostic", "Diagnostic", "Présentation devis", "Signature"];
 async function sqlLive(query) { return LIVE.mcp.callTool("Supabase", "execute_sql", { project_id: "kwbpsefdtbacdrilpviy", query }, { cache: false }); }
 async function liveSaveInteraction(it, c, ar) {

@@ -57,6 +57,7 @@ async function ouvrir(mode = "live", hash = "") {
         if (server === "n8n") {
           const body = input.inputs?.webhookData?.body || {};
           if (body.interaction_id) data.mails.unshift([41, 170, 2, body.interaction_id, "Présentation de votre proposition le 22 octobre", "Bonjour,\n\nBrouillon IA.", "Brouillon IA", null, "2026-10-14", null, "RDV · Présentation devis", false]);
+          if (body.texte) data.infos.push([800 + data.infos.length, body.commerce_id, "Cuisson (fours, plaques)", "2 fours électriques", null, body.source, body.interaction_id, "2026-10-14", true, "À confirmer", null, null, "Extrait par l’IA : à confirmer par le commercial."]);
           if (body.mail_id) { const m = data.mails.find(x => x[0] === body.mail_id); if (m) { m[6] = "Envoyé"; m[9] = "2026-10-14"; } }
           return { content: [{ type: "text", text: '{"executionId":"1"}' }] };
         }
@@ -573,5 +574,22 @@ const commerceOuvert = m => m.w.eval("commerce(ui.ficheId).enseigne");
   const v = m.d.querySelector("#view").textContent;
   for (const s of ["Nouveau", "Contacté", "En qualification", "Audit en préparation", "Audit prêt", "Rendez-vous confirmé", "Injoignable"]) assert.ok(v.includes(s), `étape absente du pipeline : ${s}`);
   assert.doesNotMatch(v.slice(v.indexOf("Pipeline commercial")), /À rappeler\d|RDV pris\d/);
+  assert.deepEqual(m.errs, []);
+});
+
+/* P22 */ test("P22 · Extraction IA d'un compte rendu : n8n appelé, informations « À confirmer » puis validées", async () => {
+  const m = await ouvrir("live");
+  m.data.interactions[0][6] = "Le gérant a 2 fours électriques et une vitrine réfrigérée.";
+  m.click('[data-action="live"]'); await m.wait(80);
+  m.w.eval("go('fiche', 160)");
+  m.click("[data-extract='900']"); await m.wait(150);
+  const call = m.calls.find(c => c.server === "n8n" && c.input.workflowId === "AvnNhTBFErl2jVzK");
+  assert.ok(call, "le workflow d'extraction doit être appelé");
+  assert.deepEqual(JSON.parse(JSON.stringify(call.input.inputs.webhookData.body)), { commerce_id: 160, interaction_id: 900, source: "Compte rendu d'échange", texte: "Le gérant a 2 fours électriques et une vitrine réfrigérée." });
+  const e = m.d.querySelector("#energie").textContent;
+  assert.match(e, /Cuisson \(fours, plaques\).*2 fours électriques.*extrait par l'IA.*À confirmer/s);
+  assert.equal(m.d.querySelector("[data-extract='900']"), null, "le bouton disparaît une fois l'extraction faite");
+  m.click("[data-infoval='800:Validée']"); await m.wait(80);
+  assert.ok(m.calls.some(c => /update public\.info_energetique set statut_validation = 'Validée', valide_par = 2, valide_le = now\(\) where id = 800;/.test(c.input.query || "")));
   assert.deepEqual(m.errs, []);
 });

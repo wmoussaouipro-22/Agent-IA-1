@@ -33,6 +33,7 @@ simulés, les scénarios Supabase annulent tout ce qu'ils créent, et n8n est co
 | P19 | Présenter le tableau de bord | Données d'illustration par défaut, datées par rapport au jour réel ; bouton « Mes données » pour basculer « À traiter » et les RDV sur Supabase |
 | P20 | Saisir un échange (modèle du 15/10) | Motif + résultat ; le statut est seulement proposé (case à cocher, jamais d'office) puis validé depuis la fiche ; l'échange ferme les tâches ouvertes et crée la suivante (table `tache`) ; informations énergétiques avec source, date et validation |
 | P21 | Lire le pipeline | Nouveau → Contacté → En qualification → Audit en préparation → Audit prêt → Rendez-vous confirmé, puis Injoignable |
+| P22 | Extraire les informations énergétiques d'un compte rendu | Bouton « Extraire avec l'IA » : workflow n8n d'extraction appelé avec le texte et sa source ; informations « À confirmer » dans la fiche, puis validées par le commercial |
 
 ## Règles Supabase (`supabase/scenarios.sql`)
 
