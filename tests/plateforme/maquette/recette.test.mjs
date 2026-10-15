@@ -82,6 +82,16 @@ async function ouvrir(mode = "live", hash = "") {
           for (const tr of data.tournees) for (const a of tr[5]) if (a[0] === id) a[4] = r;
           return { content: [] };
         }
+        if (q.startsWith("delete from public.tournee_arret where tournee_id")) {
+          const id = +/tournee_id = (\d+)/.exec(q)[1]; data.tournees = data.tournees.filter(x => x[0] !== id); return { content: [] };
+        }
+        if (q.startsWith("update public.tournee set")) {
+          const id = +/where id = (\d+)/.exec(q)[1], tr = data.tournees.find(x => x[0] === id);
+          tr[1] = /date_tournee = '([^']+)'/.exec(q)[1]; tr[2] = /nom = (null|'([^']*)')/.exec(q)[2] || null; return { content: [] };
+        }
+        if (q.startsWith("update public.interaction set rdv_statut")) {
+          const id = +/where id = (\d+)/.exec(q)[1], i = data.interactions.find(x => x[0] === id); if (i) i[9] = /rdv_statut = '([^']+)'/.exec(q)[1]; return { content: [] };
+        }
         if (q.startsWith("delete from public.tournee_arret")) {
           const id = +/where id = (\d+)/.exec(q)[1]; for (const tr of data.tournees) tr[5] = tr[5].filter(a => a[0] !== id); return { content: [] };
         }
@@ -318,5 +328,53 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
   assert.ok(m.calls.some(c => /insert into public\.interaction.*'Visite', 'À rappeler'/s.test(c.input.query || "")), "la visite doit être enregistrée comme échange");
   m.click("[data-go=dashboard]");
   assert.match(m.d.querySelector("#view").textContent, /Ma prochaine tournée.*Roubaix centre.*2 arrêts.*1 candidat.*1 prospect/s);
+  assert.deepEqual(m.errs, []);
+});
+
+/* P14 */ test("P14 · Tournée : motif de visite (1re visite, relance, RDV commercial), recherche paginée, modifier et supprimer", async () => {
+  const m = await ouvrir("live");
+  for (let k = 0; k < 23; k++) m.data.commerces.push(COM(200 + k, `Commerce test ${String(k).padStart(2, "0")}`, { ville: "Lille" }));
+  m.click('[data-action="live"]'); await m.wait(80);
+  m.click("[data-go=tournees]");
+  m.change("#t-date", "2026-10-20"); m.d.querySelector("#t-nom").value = "Roubaix centre";
+  m.click('[data-action="tour-create"]'); await m.wait(80);
+  // RDV du jour hors tournée : proposé avec un bouton, pas ajouté d'office
+  const box = m.d.querySelector(".rdv-day");
+  assert.ok(box, "les RDV commerciaux du jour doivent être proposés");
+  assert.match(box.textContent, /10 h 00 · Boulangerie Ancienne.*Ajouter à la tournée/s);
+  assert.equal(m.d.querySelectorAll(".stop").length, 0, "un RDV ne s'ajoute pas tout seul à la tournée");
+  // Recherche + liste paginée (20 par page)
+  assert.match(m.d.querySelector(".pick-nav").textContent, /1–20 sur 25/);
+  m.click("[data-tpage='2']");
+  assert.match(m.d.querySelector(".pick-nav").textContent, /21–25 sur 25/);
+  const q = m.d.querySelector("#t-q"); q.value = "récente"; q.dispatchEvent(new m.w.Event("input", { bubbles: true }));
+  let rows = [...m.d.querySelectorAll(".pick-list .pick-row")];
+  assert.equal(rows.length, 1); assert.match(rows[0].textContent, /Boulangerie Récente.*1re visite/s);
+  m.click(rows[0].querySelector("[data-tourp='170']")); await m.wait(80);
+  m.click(m.d.querySelector(".rdv-day [data-tourp='160']")); await m.wait(80);
+  let stops = [...m.d.querySelectorAll(".stop")];
+  assert.equal(stops.length, 2);
+  assert.match(stops[0].textContent, /1re visite.*Prospect.*Boulangerie Récente/s);
+  assert.match(stops[1].textContent, /RDV commercial · 10 h 00.*Boulangerie Ancienne.*RDV Diagnostic · heure fixe 10 h 00/s);
+  assert.ok(stops[1].classList.contains("mot-rdv"));
+  assert.deepEqual([...stops[1].querySelectorAll("[data-tres]")].map(b => b.textContent), ["RDV réalisé", "Reporté", "Annulé"]);
+  m.click("[data-go=dashboard]");
+  assert.match(m.d.querySelector("#view").textContent, /1 1re visite · 1 RDV commercial \(10 h 00\)/);
+  m.click("[data-go=tournees]");
+  stops = [...m.d.querySelectorAll(".stop")];
+  m.click(stops[1].querySelector("[data-tres$=':RDV réalisé']")); await m.wait(120);
+  assert.ok(m.calls.some(c => /update public\.interaction set rdv_statut = 'Réalisé' where id = 900/.test(c.input.query || "")));
+  // Modifier la tournée
+  m.click('[data-action="tour-edit"]');
+  m.d.querySelector("#te-date").value = "2026-10-21"; m.d.querySelector("#te-nom").value = "Lille sud";
+  m.click('[data-action="tour-save"]'); await m.wait(80);
+  assert.ok(m.calls.some(c => /update public\.tournee set date_tournee = '2026-10-21', nom = 'Lille sud' where id = 70/.test(c.input.query || "")));
+  assert.match(m.d.querySelector(".card-head h2").textContent, /Lille sud/);
+  // Supprimer : confirmation dans la page, puis suppression des arrêts et de la tournée
+  m.click('[data-action="tour-askdel"]');
+  assert.match(m.d.querySelector(".tour-del").textContent, /Supprimer « Lille sud » et ses 2 arrêts/);
+  m.click('[data-action="tour-del"]'); await m.wait(80);
+  assert.ok(m.calls.some(c => /delete from public\.tournee_arret where tournee_id = 70; delete from public\.tournee where id = 70;/.test(c.input.query || "")));
+  assert.equal(m.d.querySelectorAll(".tour-chip").length, 0);
   assert.deepEqual(m.errs, []);
 });

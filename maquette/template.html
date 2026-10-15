@@ -257,7 +257,19 @@ table.grid .r { text-align: right; }
 .stop-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .stop-a { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px; } .stop-a .grow { flex: 1; }
 .warn-txt { color: var(--red) !important; font-weight: 600; }
-.tour-add { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.tour-add { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.b-rdv { background: var(--cold-bg); color: var(--cold); border-color: transparent; font-weight: 700; }
+.b-first { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-line); }
+.stop.mot-rdv { border-left-color: var(--cold); background: var(--cold-bg); } .stop.mot-rdv .stop-n { background: var(--cold); color: var(--surface); }
+.tour-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tour-edit { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.tour-del { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--red-line); background: var(--red-bg); color: var(--red); }
+.rdv-day { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--cold-bg); }
+.rdv-day > b { color: var(--cold); display: inline-flex; align-items: center; gap: 6px; }
+.pick-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 8px; }
+.pick-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--line-soft); flex-wrap: wrap; } .pick-row:first-child { border-top: 0; }
+.pick-row > div { flex: 1; min-width: 180px; display: flex; flex-direction: column; } .pick-row small { color: var(--ink-2); }
+.pick-nav { display: flex; align-items: center; gap: 8px; justify-content: flex-end; color: var(--ink-2); }
 .mail-list { list-style: none; margin: 0; padding: 8px 8px 12px; display: flex; flex-direction: column; gap: 4px; }
 .mail-open { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .mail-open:hover { background: var(--surface-2); }
@@ -1154,14 +1166,15 @@ function autoRelance(c, res, date, rdvIso, hist) {
 
 /* ---------- Interactions ---------- */
 document.addEventListener("click", e => {
-  const t = e.target.closest("[data-go],[data-open],[data-menu],[data-edit],[data-del],[data-page],[data-sel],[data-selall],[data-scope],[data-rech],[data-tri],[data-keep],[data-drop],[data-known],[data-undo],[data-relance],[data-range],[data-today],[data-act],[data-pot],[data-pin],[data-tour],[data-chip],[data-mapmode],[data-zoom],[data-todo],[data-copy],[data-panel],[data-result],[data-postpone],[data-stale],[data-mail],[data-tourp],[data-tsel],[data-tmove],[data-tdel],[data-tres],[data-mailtab],[data-week],[data-action],[data-close],[data-veil]");
+  const t = e.target.closest("[data-go],[data-open],[data-menu],[data-edit],[data-del],[data-page],[data-sel],[data-selall],[data-scope],[data-rech],[data-tri],[data-keep],[data-drop],[data-known],[data-undo],[data-relance],[data-range],[data-today],[data-act],[data-pot],[data-pin],[data-tour],[data-chip],[data-mapmode],[data-zoom],[data-todo],[data-copy],[data-panel],[data-result],[data-postpone],[data-stale],[data-mail],[data-tourp],[data-tsel],[data-tmove],[data-tdel],[data-tres],[data-tpage],[data-mailtab],[data-week],[data-action],[data-close],[data-veil]");
   if (!t) { if (ui.menu) { ui.menu = null; render(); } return; }
   const d = t.dataset;
   if (d.veil !== undefined && e.target !== t) return;
   if (t.tagName === "A") e.preventDefault();
   if (d.go) return go(d.go);
   if (d.tourp) return toggleArret("p", +d.tourp);
-  if (d.tsel) { ui.tourId = +d.tsel; return render(); }
+  if (d.tsel) { ui.tourId = +d.tsel; ui.tourEdit = ui.tourDel = null; ui.tpage = 1; return render(); }
+  if (d.tpage) { ui.tpage = +d.tpage; return render(); }
   if (d.tmove) { const [id, dir] = d.tmove.split(":"); return moveArret(+id, +dir); }
   if (d.tdel) return removeArret(+d.tdel);
   if (d.tres) { const k = d.tres.indexOf(":"); return arretResult(+d.tres.slice(0, k), d.tres.slice(k + 1)); }
@@ -1211,7 +1224,11 @@ document.addEventListener("click", e => {
   if (a === "confirm-delete") { const id = ui.modal.id, c = commerce(id); S.commerces = S.commerces.filter(x => x.id !== id); S.interactions = S.interactions.filter(i => i.commerceId !== id); ui.sel.delete(id); ui.modal = null; save(); toast(`${c.enseigne} supprimé`, "delete"); if (ui.view === "fiche") return go("prospects"); return render(); }
   if (a === "confirm-oppose") { const c = commerce(ui.ficheId); c.opposition = TODAY; ui.modal = null; save(); toast("Opposition enregistrée", "block"); return render(); }
   if (a === "tour-create") return createTournee();
-  if (a === "tour-addp") { const v = +($("#t-addp") && $("#t-addp").value); return v ? toggleArret("p", v) : toast("Choisis un prospect", "info"); }
+  if (a === "tour-edit") { const t = curTournee(); ui.tourEdit = t && t.id; ui.tourDel = null; return render(); }
+  if (a === "tour-askdel") { const t = curTournee(); ui.tourDel = t && t.id; ui.tourEdit = null; return render(); }
+  if (a === "tour-cancel") { ui.tourEdit = ui.tourDel = null; return render(); }
+  if (a === "tour-save") return updateTournee();
+  if (a === "tour-del") return deleteTournee();
   if (a === "mail-save") return saveMail(ui.modal.id, false);
   if (a === "mail-send") return saveMail(ui.modal.id, true);
   if (a === "confirm-retire") return doRetire(ui.modal.ids);
@@ -1227,6 +1244,7 @@ document.addEventListener("click", e => {
 document.addEventListener("keydown", e => { if (e.key === "Escape") { if (ui.modal) { ui.modal = null; renderModal(); } else if (ui.menu) { ui.menu = null; render(); } } });
 
 document.addEventListener("input", e => {
+  if (e.target.id === "t-q") { ui.tq = e.target.value; ui.tpage = 1; const pos = e.target.selectionStart; render(); const q = $("#t-q"); q.focus(); try { q.setSelectionRange(pos, pos); } catch (err) {} return; }
   if (e.target.id === "f-q") { ui.f.q = e.target.value; ui.page = 1; const pos = e.target.selectionStart; render(); const q = $("#f-q"); q.focus(); try { q.setSelectionRange(pos, pos); } catch (err) {} }
 });
 document.addEventListener("change", e => {
@@ -1554,6 +1572,19 @@ function stopInfo(a) {
   const c = commerce(a.commerceId);
   return c ? { kind: "p", nom: c.enseigne, type: c.type, adresse: [c.adresse, c.cp, c.ville].filter(Boolean).join(" "), tel: c.tel, horaires: c.horaires, sub: `Prospect · ${c.statut}`, ref: c, step: nextStep(c) } : null;
 }
+/* Motif de la visite : 1re visite, relance terrain ou RDV commercial (heure fixe) */
+const jourParis = iso => new Date(iso).toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" });
+const heureTxt = iso => fmtHeure(iso).replace(":", " h ");
+function rdvDuJour(cid, day) { return S.interactions.filter(i => i.commerceId === cid && i.rdv && ["Planifié", "Confirmé"].includes(i.rdvStatut) && jourParis(i.rdv) === day).sort((a, b) => a.rdv.localeCompare(b.rdv))[0] || null; }
+function rdvsDuJour(day) { return S.interactions.filter(i => i.commercialId === ME_ID && i.rdv && ["Planifié", "Confirmé"].includes(i.rdvStatut) && jourParis(i.rdv) === day && commerce(i.commerceId)).sort((a, b) => a.rdv.localeCompare(b.rdv)); }
+function motifVisite(kind, ref, day) {
+  if (kind === "c") return { k: "first", label: "1re visite" };
+  const r = day && rdvDuJour(ref.id, day);
+  if (r) return { k: "rdv", label: `RDV commercial · ${heureTxt(r.rdv)}`, rdv: r };
+  if (!interOf(ref.id).length) return { k: "first", label: "1re visite" };
+  return { k: "relance", label: "Relance terrain" };
+}
+const motifBadge = m => `<span class="badge ${m.k === "rdv" ? "b-rdv" : m.k === "first" ? "b-first" : "b-sage"}">${esc(m.label)}</span>`;
 function horairesDuJour(h, iso) {
   if (!h) return null;
   const j = JOURS[new Date(iso + "T12:00:00").getDay()];
@@ -1609,7 +1640,14 @@ async function arretResult(arretId, res) {
     if (res === "Retenir") return LIVE.on && !S.demo ? liveTri(a.candidatId, "Retenu", null) : keepCandidate(a.candidatId);
     save(); toast(`${s.nom} : absent, à repasser`, "storefront"); return render();
   }
-  const c = s.ref;
+  const c = s.ref, mo = motifVisite("p", c, t.date);
+  if (mo.k === "rdv" && ["RDV réalisé", "Reporté", "Annulé"].includes(res)) {
+    const r = mo.rdv, st = res === "RDV réalisé" ? "Réalisé" : res;
+    a.resultat = res; r.rdvStatut = st; await mark();
+    if (LIVE.on && !S.demo) await tourSql(`update public.interaction set rdv_statut = ${sqlTxt(st)} where id = ${Number(r.id)};`, null); else save();
+    if (res === "Reporté") { ui.prefill = { canal: "Visite", res: "RDV pris", label: "Nouvelle date du RDV" }; toast("Indique la nouvelle date du rendez-vous", "event"); return go("fiche", c.id); }
+    toast(`${c.enseigne} : ${res === "RDV réalisé" ? "RDV réalisé" : "RDV annulé"}`, "event"); return render();
+  }
   if (res === "RDV pris") { a.resultat = res; await mark(); ui.prefill = { canal: "Visite", res: "RDV pris", label: "Visite" }; toast("Indique la date du rendez-vous", "event"); return go("fiche", c.id); }
   if (res === "Pas intéressé") { a.resultat = res; await mark(); return askRetire([c.id]); }
   const r = res === "Absent" ? "Sans réponse" : res, ar = autoRelance(c, r, TODAY, null);
@@ -1628,39 +1666,74 @@ function tourneeCard() {
   if (S.demo && REAL_S) { const prev = S; S = REAL_S; try { return tourneeCard(); } finally { S = prev; } }
   const t = curTournee(); if (!t) return `<section class="card card-pad tour-card"><b>${ms("route")}Ma tournée</b><span class="muted">Aucune tournée prévue.</span><button class="btn sm" data-go="tournees" type="button">Planifier une tournée</button></section>`;
   const st = t.arrets.map(stopInfo).filter(Boolean), nc = st.filter(s => s.kind === "c").length, np = st.length - nc, faits = t.arrets.filter(a => a.resultat).length;
+  const mos = st.map(s => motifVisite(s.kind, s.ref, t.date)), n1 = mos.filter(m => m.k === "first").length, nr = mos.filter(m => m.k === "relance").length, rdvs = mos.filter(m => m.k === "rdv");
+  const detail = [n1 ? `${n1} 1re${n1 > 1 ? "s" : ""} visite${n1 > 1 ? "s" : ""}` : "", nr ? `${nr} relance${nr > 1 ? "s" : ""}` : "", rdvs.length ? `${rdvs.length} RDV commercial${rdvs.length > 1 ? "aux" : ""} (${rdvs.map(m => heureTxt(m.rdv.rdv)).join(", ")})` : ""].filter(Boolean).join(" · ");
   return `<section class="card card-pad tour-card"><b>${ms("route")}${t.date === TODAY ? "Ma tournée du jour" : "Ma prochaine tournée"}</b>
     <span><b>${esc(tourName(t))}</b> · ${fmtLong(t.date)}</span>
     <span class="muted">${st.length} arrêt${st.length > 1 ? "s" : ""} · <span class="kind-c">${nc} candidat${nc > 1 ? "s" : ""}</span> · <span class="kind-p">${np} prospect${np > 1 ? "s" : ""}</span>${faits ? ` · ${faits} visité${faits > 1 ? "s" : ""}` : ""}</span>
+    ${detail ? `<span class="muted">${detail}</span>` : ""}
     <button class="btn sm secondary" data-tsel="${t.id}" data-go="tournees" type="button">${ms("map")}Ouvrir la tournée</button></section>`;
 }
 function viewTournees() {
   const ts = myTournees(), t = curTournee();
   const list = ts.map(x => `<button type="button" class="tour-chip" data-tsel="${x.id}" aria-pressed="${t && x.id === t.id}"><b>${fmt(x.date)}</b><small>${esc(x.nom || "Tournée")} · ${x.arrets.length} arrêt${x.arrets.length > 1 ? "s" : ""}</small></button>`).join("");
-  const RES_C = ["Retenir", "Écarter", "Absent"], RES_P = ["Absent", "À rappeler", "Intéressé", "RDV pris", "Pas intéressé"];
+  const RES_C = ["Retenir", "Écarter", "Absent"], RES_P = ["Absent", "À rappeler", "Intéressé", "RDV pris", "Pas intéressé"], RES_R = ["RDV réalisé", "Reporté", "Annulé"];
   const stops = t ? [...t.arrets].sort((a, b) => a.ordre - b.ordre || a.id - b.id) : [];
-  const stop = (a, k) => { const s = stopInfo(a); if (!s) return "";
-    const hj = horairesDuJour(s.horaires, t.date), cr = CRENEAUX[s.type];
-    return `<li class="stop kind-${s.kind}"><span class="stop-n">${k + 1}</span><div class="stop-b">
-      <div class="stop-h"><span class="badge ${s.kind === "c" ? "b-amber" : "b-sage"}">${s.kind === "c" ? "Candidat" : "Prospect"}</span>${s.kind === "p" ? `<button class="ens" data-open="${s.ref.id}">${esc(s.nom)}</button>` : `<b>${esc(s.nom)}</b>`}${a.resultat ? `<span class="badge b-solid">${esc(a.resultat)}</span>` : ""}</div>
-      <small>${esc(s.sub)}${s.kind === "p" && s.step ? ` · prochaine étape : ${esc(s.step.label)}` : ""}</small>
+  const info = stops.map(a => { const s = stopInfo(a); return s ? { a, s, m: motifVisite(s.kind, s.ref, t.date) } : null; }).filter(Boolean);
+  const rdvOrder = info.filter(x => x.m.k === "rdv").map(x => x.m.rdv.rdv), horsOrdre = rdvOrder.some((r, i) => i && r < rdvOrder[i - 1]);
+  const stop = ({ a, s, m }, k) => {
+    const hj = horairesDuJour(s.horaires, t.date), cr = CRENEAUX[s.type], rdv = m.k === "rdv";
+    const sub = rdv ? `RDV ${m.rdv.rdvObjet || "commercial"} · heure fixe ${heureTxt(m.rdv.rdv)}` : `${s.sub}${s.kind === "p" && s.step ? ` · prochaine étape : ${s.step.label}` : ""}`;
+    return `<li class="stop kind-${s.kind} mot-${m.k}"><span class="stop-n">${k + 1}</span><div class="stop-b">
+      <div class="stop-h">${motifBadge(m)}<span class="badge ${s.kind === "c" ? "b-amber" : "b-sage"}">${s.kind === "c" ? "Candidat" : "Prospect"}</span>${s.kind === "p" ? `<button class="ens" data-open="${s.ref.id}">${esc(s.nom)}</button>` : `<b>${esc(s.nom)}</b>`}${a.resultat ? `<span class="badge b-solid">${esc(a.resultat)}</span>` : ""}</div>
+      <small>${esc(sub)}</small>
       <small>${ms("location_on")}${esc(s.adresse || "adresse inconnue")}${s.tel ? ` · ${esc(s.tel)}` : ""}</small>
-      <small class="${hj && hj.ferme ? "warn-txt" : ""}">${ms("schedule")}${hj ? (hj.ferme ? `Fermé le ${hj.jour}` : `Ouvert le ${hj.jour} : ${esc(hj.txt)}`) : "Horaires inconnus"}${cr ? ` · créneau conseillé ${cr}` : ""}</small>
-      <div class="stop-a">${a.resultat ? "" : (s.kind === "c" ? RES_C : RES_P).map(r => `<button class="btn sm${r === "Retenir" || r === "RDV pris" ? " primary" : ""}" data-tres="${a.id}:${r}" type="button">${r}</button>`).join("")}<span class="grow"></span>
-        <button class="iconbtn" data-tmove="${a.id}:-1" type="button" title="Monter" ${k === 0 ? "disabled" : ""}>${ms("arrow_upward")}</button><button class="iconbtn" data-tmove="${a.id}:1" type="button" title="Descendre" ${k === stops.length - 1 ? "disabled" : ""}>${ms("arrow_downward")}</button><button class="iconbtn" data-tdel="${a.id}" type="button" title="Retirer de la tournée">${ms("close")}</button></div>
+      <small class="${hj && hj.ferme ? "warn-txt" : ""}">${ms("schedule")}${hj ? (hj.ferme ? `Fermé le ${hj.jour}` : `Ouvert le ${hj.jour} : ${esc(hj.txt)}`) : "Horaires inconnus"}${cr && !rdv ? ` · créneau conseillé ${cr}` : ""}</small>
+      <div class="stop-a">${a.resultat ? "" : (s.kind === "c" ? RES_C : rdv ? RES_R : RES_P).map(r => `<button class="btn sm${["Retenir", "RDV pris", "RDV réalisé"].includes(r) ? " primary" : ""}" data-tres="${a.id}:${r}" type="button">${r}</button>`).join("")}<span class="grow"></span>
+        <button class="iconbtn" data-tmove="${a.id}:-1" type="button" title="Monter" ${k === 0 ? "disabled" : ""}>${ms("arrow_upward")}</button><button class="iconbtn" data-tmove="${a.id}:1" type="button" title="Descendre" ${k === info.length - 1 ? "disabled" : ""}>${ms("arrow_downward")}</button><button class="iconbtn" data-tdel="${a.id}" type="button" title="Retirer de la tournée">${ms("close")}</button></div>
     </div></li>`; };
   const inT = new Set(stops.map(a => a.commerceId).filter(Boolean));
-  const sugg = S.commerces.filter(c => !stopped(c) && !inT.has(c.id) && !["Signé"].includes(c.statut)).map(c => ({ c, s: nextStep(c) })).sort((a, b) => (b.s.label === "Visite sur place") - (a.s.label === "Visite sur place") || a.c.enseigne.localeCompare(b.c.enseigne));
+  const rdvJour = t ? rdvsDuJour(t.date).filter(i => !inT.has(i.commerceId)) : [];
+  /* Recherche + liste de tous les prospects, 20 par page */
+  const q = (ui.tq || "").trim().toLowerCase(), PER = 20;
+  const pool = t ? S.commerces.filter(c => !stopped(c) && !inT.has(c.id) && c.statut !== "Signé")
+    .filter(c => !q || [c.enseigne, c.ville, c.type, c.statut, c.cp].some(v => String(v || "").toLowerCase().includes(q)))
+    .map(c => ({ c, m: motifVisite("p", c, t.date), s: nextStep(c) }))
+    .sort((a, b) => (b.m.k === "rdv") - (a.m.k === "rdv") || (b.s.label === "Visite sur place") - (a.s.label === "Visite sur place") || a.c.enseigne.localeCompare(b.c.enseigne)) : [];
+  const pages = Math.max(1, Math.ceil(pool.length / PER)), pg = Math.min(Math.max(1, ui.tpage || 1), pages), slice = pool.slice((pg - 1) * PER, pg * PER);
   const url = t && itineraire(t);
   return `
-  <div class="page-head"><div><h1>Tournées</h1><p>Prospection terrain : candidats issus de tes recherches et prospects à revoir, dans l'ordre que tu choisis.</p></div></div>
+  <div class="page-head"><div><h1>Tournées</h1><p>Prospection terrain : candidats issus de tes recherches, prospects à revoir et RDV commerciaux, dans l'ordre que tu choisis.</p></div></div>
   <section class="card card-pad tour-new"><b>Nouvelle tournée</b><label class="field"><span>Date</span><input class="input" type="date" id="t-date" min="${TODAY}" value="${addOuvres(TODAY, 1)}"></label><label class="field" style="flex:1;min-width:180px"><span>Nom (facultatif)</span><input class="input" id="t-nom" placeholder="ex. Roubaix centre"></label><button class="btn primary" data-action="tour-create" type="button">${ms("add")}Créer</button></section>
   ${ts.length ? `<div class="tour-chips">${list}</div>` : `<p class="muted">Aucune tournée pour l'instant : crée-la, puis ajoute des commerces depuis Recherche (« Tournée ») ou depuis une fiche prospect.</p>`}
   ${t ? `<section class="card">
-    <div class="card-head"><h2>${esc(tourName(t))} · ${fmtLong(t.date)}</h2><span class="hint"><span class="kind-c">${stops.filter(a => a.candidatId).length} candidat(s)</span> · <span class="kind-p">${stops.filter(a => a.commerceId).length} prospect(s)</span></span></div>
+    <div class="card-head"><h2>${esc(tourName(t))} · ${fmtLong(t.date)}</h2><div class="tour-tools"><span class="hint"><span class="kind-c">${stops.filter(a => a.candidatId).length} candidat(s)</span> · <span class="kind-p">${stops.filter(a => a.commerceId).length} prospect(s)</span></span>
+      <button class="btn sm secondary" data-action="tour-edit" type="button">${ms("edit")}Modifier</button><button class="btn sm secondary" data-action="tour-askdel" type="button">${ms("delete")}Supprimer</button></div></div>
+    ${ui.tourEdit === t.id ? `<div class="tour-edit"><label class="field"><span>Date</span><input class="input" type="date" id="te-date" value="${t.date}"></label><label class="field" style="flex:1;min-width:180px"><span>Nom (facultatif)</span><input class="input" id="te-nom" value="${esc(t.nom || "")}" placeholder="ex. Roubaix centre"></label><button class="btn primary" data-action="tour-save" type="button">Enregistrer</button><button class="btn" data-action="tour-cancel" type="button">Annuler</button></div>` : ""}
+    ${ui.tourDel === t.id ? `<div class="tour-del">${ms("warning")}<span style="flex:1;min-width:200px">Supprimer « ${esc(tourName(t))} » et ses ${stops.length} arrêt${stops.length > 1 ? "s" : ""} ? Les échanges déjà enregistrés restent sur les fiches.</span><button class="btn sm danger" data-action="tour-del" type="button">Supprimer la tournée</button><button class="btn sm" data-action="tour-cancel" type="button">Annuler</button></div>` : ""}
     <div class="card-body">${url ? `<a class="btn secondary" href="${url}" target="_blank" rel="noopener">${ms("map")}Itinéraire dans Google Maps</a>` : ""}
-      <ol class="stops">${stops.map(stop).join("") || `<li class="muted" style="list-style:none">Aucun arrêt. Ajoute des candidats depuis Recherche, ou un prospect ci-dessous.</li>`}</ol>
-      <div class="tour-add"><label class="field" style="flex:1;min-width:220px"><span>Ajouter un prospect à revoir</span><select class="input" id="t-addp"><option value="">Choisir…</option>${sugg.map(({ c, s }) => `<option value="${c.id}">${esc(c.enseigne)} · ${esc(c.ville || "")}${s.label === "Visite sur place" ? " · visite prévue" : ""}</option>`).join("")}</select></label><button class="btn" data-action="tour-addp" type="button">${ms("add")}Ajouter</button></div>
+      ${horsOrdre ? `<p class="warn-txt" style="margin:12px 0 0">${ms("warning")}Les RDV commerciaux ne sont pas dans l'ordre de leurs heures : vérifie l'ordre de passage.</p>` : ""}
+      <ol class="stops">${info.map(stop).join("") || `<li class="muted" style="list-style:none">Aucun arrêt. Ajoute des candidats depuis Recherche, ou un prospect ci-dessous.</li>`}</ol>
+      ${rdvJour.length ? `<div class="rdv-day"><b>${ms("event")}RDV commerciaux ce jour-là, hors tournée</b>${rdvJour.map(i => { const c = commerce(i.commerceId); return `<div class="pick-row" style="border:0;padding:4px 0"><div><b>${heureTxt(i.rdv)} · ${esc(c.enseigne)}</b><small>RDV ${esc(i.rdvObjet || "commercial")} · ${esc(c.ville || "")}</small></div><button class="btn sm primary" data-tourp="${c.id}" type="button">${ms("add")}Ajouter à la tournée</button></div>`; }).join("")}</div>` : ""}
+      <div class="tour-add"><label class="field"><span>Ajouter un prospect</span><input class="input" id="t-q" type="search" value="${esc(ui.tq || "")}" placeholder="Rechercher par nom, ville, type ou statut" autocomplete="off"></label>
+        <ul class="pick-list">${slice.map(({ c, m, s }) => `<li class="pick-row"><div><b>${esc(c.enseigne)}</b><small>${esc([c.type, c.ville, c.statut].filter(Boolean).join(" · "))}${m.k !== "rdv" && s.label ? ` · prochaine étape : ${esc(s.label)}` : ""}</small></div>${motifBadge(m)}<button class="btn sm" data-tourp="${c.id}" type="button">${ms("add")}Ajouter</button></li>`).join("") || `<li class="pick-row muted">Aucun prospect ne correspond${q ? ` à « ${esc(ui.tq)} »` : ""}.</li>`}</ul>
+        ${pool.length > PER ? `<div class="pick-nav"><span>${(pg - 1) * PER + 1}–${Math.min(pg * PER, pool.length)} sur ${pool.length}</span><button class="btn sm" data-tpage="${pg - 1}" type="button" ${pg <= 1 ? "disabled" : ""}>Précédent</button><button class="btn sm" data-tpage="${pg + 1}" type="button" ${pg >= pages ? "disabled" : ""}>Suivant</button></div>` : pool.length ? `<div class="pick-nav"><span>${pool.length} prospect${pool.length > 1 ? "s" : ""}</span></div>` : ""}
+      </div>
     </div></section>` : ""}`;
+}
+async function updateTournee() {
+  const t = curTournee(); if (!t) return;
+  const date = $("#te-date").value, nom = $("#te-nom").value.trim() || null;
+  if (!date) return toast("Choisis la date de la tournée", "event");
+  ui.tourEdit = null;
+  if (LIVE.on && !S.demo) return tourSql(`update public.tournee set date_tournee = ${sqlTxt(date)}, nom = ${sqlTxt(nom)} where id = ${Number(t.id)};`, "Tournée modifiée");
+  t.date = date; t.nom = nom; save(); toast("Tournée modifiée", "route"); render();
+}
+async function deleteTournee() {
+  const t = curTournee(); if (!t) return;
+  ui.tourDel = null; ui.tourId = null;
+  if (LIVE.on && !S.demo) return tourSql(`delete from public.tournee_arret where tournee_id = ${Number(t.id)}; delete from public.tournee where id = ${Number(t.id)};`, `${tourName(t)} supprimée`);
+  S.tournees = S.tournees.filter(x => x.id !== t.id); save(); toast(`${tourName(t)} supprimée`, "delete"); render();
 }
 const SNAPSHOT = RAW;
 const sqlTxt = v => v == null ? "null" : "'" + String(v).replace(/'/g, "''") + "'";
