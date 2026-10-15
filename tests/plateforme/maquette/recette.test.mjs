@@ -33,6 +33,7 @@ function liveData() {
     tournees: [],
     taches: [[1, 160, 2, 900, "E-mail", "Confirmer le RDV par e-mail", "2026-10-19", null, "À faire", null, "Règle J+X", "la veille du RDV"]],
     infos: [],
+    historique: [[1, 160, null, "Nouveau", "2026-10-14T08:00:00Z", null, "Reprise", "État au 15/10/2026"]],
     mails: [[40, 160, 2, 900, "Confirmation de notre rendez-vous diagnostic du 20 octobre", "Madame, Monsieur,\n\nTexte rédigé par l'IA.", "Brouillon IA", "contact@ancienne.fr", "2026-10-14", null, "RDV · Diagnostic", false]],
   };
 }
@@ -110,9 +111,12 @@ async function ouvrir(mode = "live", hash = "") {
           const id = +/where id = (\d+)/.exec(q)[1], t = data.taches.find(x => x[0] === id), d = /echeance = '([^']+)'/.exec(q)[1];
           if (t) { t[7] = t[7] || t[6]; t[6] = d; } return { content: [] };
         }
-        if (/^update public\.commerce set statut_prospection = '[^']+' where id = \d+; update public\.interaction set statut_applique = true/.test(q)) {
-          const m2 = /statut_prospection = '([^']+)' where id = (\d+);.*where id = (\d+);/s.exec(q), c = data.commerces.find(x => x[0] === +m2[2]), i = data.interactions.find(x => x[0] === +m2[3]);
-          if (c) c[10] = m2[1]; if (i) i[15] = true; return { content: [] };
+        if (q.startsWith("select set_config") && !q.includes("with i as (insert into public.interaction")) {
+          const st = /update public\.commerce set statut_prospection = '([^']+)' where id (?:= (\d+)|in \(([\d,]+)\))/.exec(q);
+          const ids = st[2] ? [+st[2]] : st[3].split(",").map(Number), motif = /'eco\.motif', '((?:[^']|'')*)'/.exec(q)?.[1] || null, orig = /'eco\.origine', '([^']+)'/.exec(q)[1];
+          for (const id of ids) { const c = data.commerces.find(x => x[0] === id); if (c) { data.historique.unshift([900 + data.historique.length, id, c[10], st[1], "2026-10-14T10:00:00Z", 2, orig, motif]); c[10] = st[1]; } }
+          const ia = /update public\.interaction set statut_applique = true where id = (\d+)/.exec(q); if (ia) { const i = data.interactions.find(x => x[0] === +ia[1]); if (i) i[15] = true; }
+          return { content: [] };
         }
         if (q.startsWith("insert into public.info_energetique")) {
           const v = [...q.matchAll(/'((?:[^']|'')*)'|null/g)].map(x => x[1] == null ? null : x[1]);
@@ -136,7 +140,7 @@ async function ouvrir(mode = "live", hash = "") {
         if (q.startsWith("delete from public.tournee_arret")) {
           const id = +/where id = (\d+)/.exec(q)[1]; for (const tr of data.tournees) tr[5] = tr[5].filter(a => a[0] !== id); return { content: [] };
         }
-        if (q.startsWith("with i as (insert into public.interaction")) {
+        if (q.includes("with i as (insert into public.interaction")) {
           const id = 950 + data.interactions.length, cid = +/where commerce_id = (\d+) and statut = 'À faire'/.exec(q)[1];
           const prop = /, (null|'([^']*)'), (true|false)\) returning id\)/.exec(q);
           data.interactions.push([id, cid, 2, "2026-10-14", "Appel", /'(Rendez-vous pris|RDV pris|Sans réponse|Absent|Intéressé|À rappeler|À relancer)'/.exec(q)?.[1] || "Appel", null, null, /'(2026-[^']+T[^']+)'/.exec(q)?.[1] || null, "Planifié", /'(Présentation du pré-diagnostic|Diagnostic|Présentation devis|Signature)'/.exec(q)?.[1] || null, null, null, null, prop ? prop[2] || null : null, prop ? prop[3] === "true" : false]);
@@ -315,19 +319,21 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
   assert.equal(m.d.querySelector("#view").textContent.includes("Pas intéressé"), false, "le pipeline ne doit plus afficher « Pas intéressé »");
 });
 
-/* P10 */ test("P10 · RDV « Présentation du pré-diagnostic » : échange enregistré, statut validé par le commercial, brouillon IA demandé à n8n", async () => {
+/* P10 */ test("P10 · RDV « Présentation du pré-diagnostic » : échange enregistré, tâche J-2 si l'audit n'est pas prêt, brouillon IA demandé à n8n", async () => {
   const m = await ouvrir("live");
   m.w.eval("go('fiche', 170)");
   m.change("#i-res", "Rendez-vous pris"); m.change("#i-rdv", "2026-10-22T10:00");
   assert.deepEqual([...m.d.querySelectorAll("#i-rdvobj option")].map(o => o.textContent), ["Présentation du pré-diagnostic"]);
-  assert.match(m.d.querySelector("#st-prop").textContent, /Passer de « Nouveau » à « Rendez-vous confirmé »/);
+  assert.match(m.d.querySelector("#st-prop").textContent, /Passer de « Nouveau » à « Contacté »/, "« Rendez-vous confirmé » n'est jamais proposé par un échange : il arrive avec l'invitation");
   m.d.querySelector("#i-stapp").checked = true;
   m.d.querySelector("#f-inter").dispatchEvent(new m.w.Event("submit", { bubbles: true, cancelable: true }));
   await m.wait(300);
-  const ins = m.calls.find(c => (c.input.query || "").startsWith("with i as (insert into public.interaction"));
+  const ins = m.calls.find(c => (c.input.query || "").includes("with i as (insert into public.interaction"));
   assert.ok(ins, "l'échange n'a pas été enregistré dans Supabase");
-  assert.match(ins.input.query, /'Rendez-vous pris'.*'Présentation du pré-diagnostic'.*'Planifié'.*'Rendez-vous confirmé', true/s);
-  assert.match(ins.input.query, /update public\.commerce set statut_prospection = 'Rendez-vous confirmé' where id = 170/);
+  assert.match(ins.input.query, /'Rendez-vous pris'.*'Présentation du pré-diagnostic'.*'Planifié'.*'Contacté', true/s);
+  assert.match(ins.input.query, /update public\.commerce set statut_prospection = 'Contacté' where id = 170/);
+  assert.match(ins.input.query, /set_config\('eco\.origine', 'Échange', true\)/, "le changement de statut est historisé avec son origine");
+  assert.match(ins.input.query, /'Finaliser l''audit avant le RDV', '2026-10-20'/, "RDV avant l'audit prêt : tâche à J-2 ouvrés");
   assert.match(ins.input.query, /insert into public\.tache .*'E-mail', 'Confirmer le RDV par e-mail', '2026-10-21'/s, "la confirmation la veille doit devenir une tâche");
   const n8n = m.calls.find(c => c.server === "n8n");
   assert.ok(n8n, "n8n n'a pas été appelé pour le brouillon");
@@ -551,7 +557,7 @@ const commerceOuvert = m => m.w.eval("commerce(ui.ficheId).enseigne");
   assert.equal(m.d.querySelector("#st-prop").hidden, false);
   assert.equal(m.d.querySelector("#i-stapp").checked, false, "le changement de statut n'est jamais coché d'office");
   m.d.querySelector("#f-inter").dispatchEvent(new m.w.Event("submit", { bubbles: true, cancelable: true })); await m.wait(150);
-  const ins = m.calls.find(c => (c.input.query || "").startsWith("with i as (insert into public.interaction"));
+  const ins = m.calls.find(c => (c.input.query || "").includes("with i as (insert into public.interaction"));
   assert.match(ins.input.query, /'Appel', 'Premier contact', 'Sans réponse'.*'Contacté', false\) returning id/s);
   assert.doesNotMatch(ins.input.query, /update public\.commerce/, "le résultat ne change pas le statut tout seul");
   assert.match(ins.input.query, /update public\.tache set statut = 'Faite'.*where commerce_id = 170 and statut = 'À faire'/s);
@@ -591,5 +597,57 @@ const commerceOuvert = m => m.w.eval("commerce(ui.ficheId).enseigne");
   assert.equal(m.d.querySelector("[data-extract='900']"), null, "le bouton disparaît une fois l'extraction faite");
   m.click("[data-infoval='800:Validée']"); await m.wait(80);
   assert.ok(m.calls.some(c => /update public\.info_energetique set statut_validation = 'Validée', valide_par = 2, valide_le = now\(\) where id = 800;/.test(c.input.query || "")));
+  assert.deepEqual(m.errs, []);
+});
+
+/* P23 */ test("P23 · Statut : changement manuel avec motif, historique, données minimales et validation du pré-diagnostic", async () => {
+  const m = await ouvrir("live");
+  m.w.eval("go('fiche', 160)");
+  assert.match(m.d.querySelector("#statut").textContent, /Historique.*Nouveau.*Reprise/s);
+  // Données minimales incomplètes : pas de passage en « Audit en préparation »
+  assert.equal(m.d.querySelector("[data-stset='Audit en préparation']"), null);
+  assert.match(m.d.querySelector(".prediag").textContent, /PDF du pré-diagnostic : hypothèse du MVP/);
+  // Changement manuel : retour en arrière impossible sans motif
+  m.click('[data-action="st-edit"]'); m.change("#st-new", "En qualification");
+  m.click('[data-action="st-save"]'); await m.wait(80);
+  assert.ok(m.calls.some(c => /set_config\('eco\.origine', 'Manuel', true\).*update public\.commerce set statut_prospection = 'En qualification' where id = 160;/s.test(c.input.query || "")));
+  assert.match(m.d.querySelector("#statut").textContent, /Nouveau → En qualification.*Manuel/s);
+  m.click('[data-action="st-edit"]'); m.change("#st-new", "Contacté"); m.click('[data-action="st-save"]');
+  assert.match(m.toasts(), /Indique le motif/);
+  // Données minimales validées : bouton « Audit en préparation » puis « Valider le pré-diagnostic »
+  const add = (id, rub, val) => m.data.infos.push([id, 160, rub, val, null, "Visite sur place", null, "2026-10-14", false, "Validée", 2, "2026-10-14T10:00:00Z", null]);
+  m.data.commerces.find(c => c[0] === 160)[20] = "lundi 07:00 to 19:00";
+  add(71, "Surface du local", "60 m²"); add(72, "Cuisson (fours, plaques)", "2 fours"); add(73, "Facture d'énergie", "800 €/mois");
+  m.click('[data-action="live"]'); await m.wait(80);
+  m.click("[data-stset='Audit en préparation']"); await m.wait(80);
+  assert.ok(m.calls.some(c => /statut_prospection = 'Audit en préparation' where id = 160/.test(c.input.query || "")));
+  m.click("[data-stset='Audit prêt']"); await m.wait(80);
+  assert.ok(m.calls.some(c => /'eco\.motif', 'Pré-diagnostic validé \(PDF : hypothèse du MVP\)'.*statut_prospection = 'Audit prêt' where id = 160/s.test(c.input.query || "")));
+  assert.match(m.d.querySelector("#statut").textContent, /Audit en préparation → Audit prêt/);
+  assert.deepEqual(m.errs, []);
+});
+
+/* P24 */ test("P24 · RDV : annulation (événement Google retiré par n8n, historique gardé), réponse à l'invitation, règle Injoignable", async () => {
+  const m = await ouvrir("live");
+  m.data.interactions[0][11] = "evt-1"; m.data.interactions[0].length = 17; m.data.interactions[0][16] = "En attente";
+  m.click('[data-action="live"]'); await m.wait(80);
+  m.w.eval("go('fiche', 160)");
+  assert.match(m.d.querySelector(".rdv-b").textContent, /invitation envoyée, réponse : En attente/);
+  m.change("#rdv-rep", "Refusée"); await m.wait(80);
+  assert.ok(m.calls.some(c => /update public\.interaction set rdv_reponse_invitation = 'Refusée' where id = 900;.*'Recontacter le gérant \(invitation refusée\)'/s.test(c.input.query || "")));
+  m.click("[data-rdvact='900:Annulé']"); await m.wait(80);
+  assert.ok(m.calls.some(c => /update public\.interaction set rdv_statut = 'Annulé' where id = 900;/.test(c.input.query || "")));
+  const n8n = m.calls.find(c => c.server === "n8n" && c.input.workflowId === "xRCeRygwGbkOewC5");
+  assert.ok(n8n, "le workflow d'annulation Google Agenda doit être appelé");
+  // Règle Injoignable : 5 tentatives d'affilée sur au moins 2 canaux
+  m.w.eval(`S.interactions = S.interactions.filter(i => i.commerceId !== 170);
+    ["Appel", "Appel", "E-mail", "Appel"].forEach((canal, k) => S.interactions.push({ id: 9100 + k, commerceId: 170, commercialId: 2, date: "2026-10-0" + (k + 1), canal, resultat: "Sans réponse" }));
+    go("fiche", 170);`);
+  m.change("#i-canal", "Appel"); m.change("#i-res", "Sans réponse");
+  assert.match(m.d.querySelector("#i-auto").textContent, /5e tentative sans réponse sur 2 canaux → J\+90/);
+  assert.match(m.d.querySelector("#st-prop").textContent, /« Injoignable »/);
+  m.w.eval(`S.interactions.filter(i => i.commerceId === 170).forEach(i => { i.canal = "Appel"; }); render();`);
+  m.change("#i-canal", "Appel"); m.change("#i-res", "Sans réponse");
+  assert.match(m.d.querySelector("#i-auto").textContent, /Visite sur place · 5e tentative par appel : changer de canal/);
   assert.deepEqual(m.errs, []);
 });

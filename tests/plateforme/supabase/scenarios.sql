@@ -148,9 +148,40 @@ begin
   raise exception 'RECETTE_OK S10-S12 %', jsonb_build_object('rdv_objet', v_i.rdv_objet, 'tache', v_t, 'ia', v_e.statut_validation);
 end $$;
 
+-- S13-S14 · Pipeline : changements de statut contrôlés et historisés (refonte du 15/10/2026)
+do $$
+declare v_com bigint; v_refus int := 0; v_h historique_statut%rowtype; v_n int;
+begin
+  insert into commerce (enseigne, type_commerce, ville, zone, google_place_id, statut_prospection, categorie) values ('Épicerie Recette S13', 'Épicerie', 'Lille', 'Nord', 'RECETTE-S13', 'Contacté', 'Prospect') returning id into v_com;
+  -- S13 : « Audit en préparation » refusé sans données minimales
+  begin update commerce set statut_prospection = 'Audit en préparation' where id = v_com; exception when others then if sqlerrm like 'Statut refusé%' then v_refus := v_refus + 1; else raise; end if; end;
+  -- S13 : « Audit prêt » refusé hors « Audit en préparation »
+  begin update commerce set statut_prospection = 'Audit prêt' where id = v_com; exception when others then if sqlerrm like 'Statut refusé%' then v_refus := v_refus + 1; else raise; end if; end;
+  -- S13 : « Rendez-vous confirmé » refusé sans RDV confirmé avec invitation envoyée
+  begin update commerce set statut_prospection = 'Rendez-vous confirmé' where id = v_com; exception when others then if sqlerrm like 'Statut refusé%' then v_refus := v_refus + 1; else raise; end if; end;
+  if v_refus <> 3 then raise exception 'RECETTE_KO S13 : % refus sur 3', v_refus; end if;
+  -- S13 : avec les données minimales validées, le parcours passe
+  update commerce set horaires = 'Lun-Sam 8h-19h' where id = v_com;
+  insert into info_energetique (commerce_id, rubrique, valeur, source, extrait_par_ia, statut_validation) values
+    (v_com, 'Surface du local', '60 m²', 'Visite', false, 'Validée'),
+    (v_com, 'Froid (vitrines, chambres froides)', '2 vitrines', 'Visite', false, 'Validée'),
+    (v_com, 'Facture d''énergie', '400 €/mois', 'Visite', false, 'Validée');
+  perform set_config('eco.origine', 'Manuel', true);
+  perform set_config('eco.motif', 'Recette S14', true);
+  update commerce set statut_prospection = 'Audit en préparation' where id = v_com;
+  update commerce set statut_prospection = 'Audit prêt' where id = v_com;
+  -- S14 : chaque changement est historisé (ancien, nouveau, origine, motif)
+  select count(*) into v_n from historique_statut where commerce_id = v_com;
+  select * into v_h from historique_statut where commerce_id = v_com order by id desc limit 1;
+  if v_n <> 3 or v_h.ancien <> 'Audit en préparation' or v_h.nouveau <> 'Audit prêt' or v_h.origine <> 'Manuel' or v_h.motif <> 'Recette S14' then
+    raise exception 'RECETTE_KO S14 : historique incomplet (% lignes, %→%, %, %)', v_n, v_h.ancien, v_h.nouveau, v_h.origine, v_h.motif;
+  end if;
+  raise exception 'RECETTE_OK S13-S14 %', jsonb_build_object('refus', v_refus, 'historique', v_n, 'dernier', v_h.nouveau);
+end $$;
+
 -- S8 · Lecture de la maquette : la requête maquette/live.sql s'exécute et respecte le format attendu
 -- (à lancer tel quel : requête en lecture seule, sans bloc DO)
--- select json_array_length(d->'commerces'->0) = 22 as commerces_ok,
+-- select json_array_length(d->'commerces'->0) = 23 as commerces_ok,
 --        coalesce(json_array_length(d->'candidats'->0), 13) = 13 as candidats_ok,
 --        not exists (select 1 from json_array_elements(d->'commerces') e where e->>10 = 'Pas intéressé') as sans_pas_interesse
 -- from ( <contenu de maquette/live.sql> ) s;

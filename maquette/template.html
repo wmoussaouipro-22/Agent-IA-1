@@ -262,9 +262,14 @@ table.grid .r { text-align: right; }
 .warn-txt { color: var(--red) !important; font-weight: 600; }
 .mail-cell { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
 .dash-src { margin-top: 8px; }
-.banner.prop { border-color: var(--line); background: var(--cold-bg); color: var(--cold); } .banner.prop > span { flex: 1; min-width: 200px; } .banner.prop .btn { flex: none; }
+.banner.prop { border-color: var(--line); background: var(--cold-bg); color: var(--cold); } .banner.prop > span:not(.ms) { flex: 1; min-width: 200px; } .banner.prop .btn { flex: none; }
 .energie { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; } .energie li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid var(--line-soft); } .energie li:first-child { border-top: 0; }
 .energie li > div { flex: 1; min-width: 200px; display: flex; flex-direction: column; } .energie small { color: var(--ink-2); }
+.banner.rdv-b { border-color: var(--line); background: var(--sage); color: var(--sage-ink); flex-wrap: wrap; } .banner.rdv-b > span:not(.ms) { flex: 1; min-width: 220px; } .rdv-b select { width: auto; }
+.st-edit { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 8px; background: var(--surface-2); }
+.hist { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; } .hist li { display: flex; flex-direction: column; font-size: 13px; } .hist small { color: var(--ink-2); }
+.prediag { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); } .prediag > b { display: inline-flex; align-items: center; gap: 6px; }
+.dm { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; } .dm li { display: inline-flex; align-items: center; gap: 4px; } .dm li.ok { color: var(--sage-ink); } .dm li.ko { color: var(--ink-3); } .dm .ms { font-size: 16px; }
 .tour-pick { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .tour-add { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
 .b-rdv { background: var(--cold-bg); color: var(--cold); border-color: transparent; font-weight: 700; }
@@ -554,22 +559,30 @@ const RESULTATS = ["Sans réponse", "Absent", "À rappeler", "Informations compl
 const isRdvRes = r => r === "Rendez-vous pris" || r === "RDV pris";
 const MOTIFS_ECH = ["Premier contact", "Qualification", "Collecte d'informations", "Relance", "Présentation du pré-diagnostic", "Confirmation de rendez-vous"];
 const OBJETS_RDV = ["Présentation du pré-diagnostic"];
-const RUBRIQUES_ENERGIE = ["Froid (vitrines, chambres froides)", "Cuisson (fours, plaques)", "Chauffage / climatisation", "Éclairage", "Facture d'énergie", "Consommation annuelle", "Surface du local", "Autre"];
+const RUBRIQUES_ENERGIE = ["Froid (vitrines, chambres froides)", "Cuisson (fours, plaques)", "Chauffage / climatisation", "Éclairage", "Facture d'énergie", "Consommation annuelle", "Surface du local", "Horaires d'ouverture", "Autre"];
+const RUB_EQUIP = ["Froid (vitrines, chambres froides)", "Cuisson (fours, plaques)", "Chauffage / climatisation", "Éclairage"];
+/* Données minimales pour préparer le pré-diagnostic (mêmes règles que Supabase : donnees_minimales_ok) */
+function donneesMinimales(c) {
+  const ok = r => (S.infos || []).some(x => x.commerceId === c.id && x.validation === "Validée" && (Array.isArray(r) ? r.includes(x.rubrique) : x.rubrique === r));
+  const L = [["Activité", !!c.type], ["Horaires", !!c.horaires || ok("Horaires d'ouverture")], ["Surface", ok("Surface du local")], ["Un équipement", ok(RUB_EQUIP)], ["Facture ou consommation", ok(["Facture d'énergie", "Consommation annuelle"])]];
+  return { L, ok: L.every(x => x[1]) };
+}
 const SOURCES_ENERGIE = ["Gérant (oral)", "Facture", "Visite sur place", "Google Maps", "E-mail du gérant"];
 const CANAL_ICON = { "Appel": "call", "E-mail": "mail", "Visite": "storefront", "SMS": "sms" };
 const MOTIFS = ["Hors cible", "Fermé définitivement", "Trop petit", "Déjà client d'un concurrent", "Autre"];
 
 /* ---------- Données ---------- */
 function seed() {
-  const commerces = RAW.commerces.map(c => ({ id: c[0], code: c[1], enseigne: c[2], type: c[3], ville: c[4], cp: c[5], zone: c[6], tel: c[7], email: c[8], contact: c[9], statut: c[10], potentiel: c[11], categorie: c[12], commercialId: c[13], siret: c[14], adresse: c[15], site: c[16], note: c[17], avis: c[18], opposition: c[19], horaires: c[20], heures: c[21] != null ? +c[21] : null }));
-  const interactions = RAW.interactions.map(i => ({ id: i[0], commerceId: i[1], commercialId: i[2], date: i[3], canal: i[4], resultat: i[5], commentaire: i[6], relance: i[7], rdv: i[8], rdvStatut: i[9], rdvObjet: i[10], agenda: i[11] || null, relanceOrig: i[12] || undefined, motif: i[13] || null, statutPropose: i[14] || null, statutApplique: !!i[15] }));
+  const commerces = RAW.commerces.map(c => ({ id: c[0], code: c[1], enseigne: c[2], type: c[3], ville: c[4], cp: c[5], zone: c[6], tel: c[7], email: c[8], contact: c[9], statut: c[10], potentiel: c[11], categorie: c[12], commercialId: c[13], siret: c[14], adresse: c[15], site: c[16], note: c[17], avis: c[18], opposition: c[19], horaires: c[20], heures: c[21] != null ? +c[21] : null, montant: c[22] != null ? +c[22] : null }));
+  const interactions = RAW.interactions.map(i => ({ id: i[0], commerceId: i[1], commercialId: i[2], date: i[3], canal: i[4], resultat: i[5], commentaire: i[6], relance: i[7], rdv: i[8], rdvStatut: i[9], rdvObjet: i[10], agenda: i[11] || null, relanceOrig: i[12] || undefined, motif: i[13] || null, statutPropose: i[14] || null, statutApplique: !!i[15], reponseInvit: i[16] || null }));
   const recherches = RAW.recherches.map(r => ({ id: r[0], code: r[1], date: r[2], source: r[3], commercialId: r[4], zone: r[5], types: r[6] || [], ville: r[7], cp: r[8], rayon: r[9], statut: r[10], commentaire: r[11], requete: RAW.gr[r[0]] || null }));
   const candidats = RAW.candidats.map(x => { const g = RAW.gx[x[0]] || []; return { id: x[0], rechercheId: x[1], enseigne: x[2], type: x[3], ville: x[4], zone: x[5], note: x[6], avis: x[7], potentiel: x[8], tri: x[9] === "Connu" ? "Doublon" : x[9], motif: x[10], known: x[11] ? { statut: x[11][0], stop: !!x[11][1], com: x[11][2] } : null, heures: x[12] != null ? +x[12] : null, tel: g[0] || null, site: g[1] || null, adresse: g[2] || null, cp: g[3] || null, horaires: g[4] || null, placeId: g[5] || null, commerceId: null }; });
   const mails = (RAW.mails || []).map(m => ({ id: m[0], commerceId: m[1], commercialId: m[2], interactionId: m[3], objet: m[4] || "", corps: m[5] || "", statut: m[6], dest: m[7], cree: m[8], envoye: m[9], type: m[10], modifie: !!m[11] }));
   const tournees = (RAW.tournees || []).map(x => ({ id: x[0], date: x[1], nom: x[2], statut: x[3], commercialId: x[4], arrets: (x[5] || []).map(a => ({ id: a[0], ordre: a[1], candidatId: a[2], commerceId: a[3], resultat: a[4], visite: a[5] })) }));
   const taches = RAW.taches ? RAW.taches.map(t => ({ id: t[0], commerceId: t[1], commercialId: t[2], origineId: t[3], type: t[4], libelle: t[5], echeance: t[6], echeanceInitiale: t[7] || null, statut: t[8], faiteLe: t[9], source: t[10], regle: t[11] })) : null;
   const infos = (RAW.infos || []).map(x => ({ id: x[0], commerceId: x[1], rubrique: x[2], valeur: x[3], unite: x[4], source: x[5], interactionId: x[6], collecte: x[7], ia: !!x[8], validation: x[9], validePar: x[10], valideLe: x[11], commentaire: x[12] }));
-  return { commerces, interactions, recherches, candidats, mails, tournees, taches, infos };
+  const historique = (RAW.historique || []).map(h => ({ id: h[0], commerceId: h[1], ancien: h[2], nouveau: h[3], le: h[4], auteur: h[5], origine: h[6], motif: h[7] }));
+  return { commerces, interactions, recherches, candidats, mails, tournees, taches, infos, historique };
 }
 let S;
 try { const saved = localStorage.getItem(STORE_KEY); S = saved ? JSON.parse(saved) : seed(); } catch (e) { S = seed(); }
@@ -737,7 +750,7 @@ function viewDashboard() {
   const ca = signes.length * moy;
   const yearStart = TODAY.slice(0, 4) + "-01-01";
   const sigDate = c => { const s = interOf(c.id).find(i => i.resultat === "Signature"); return s ? s.date : null; };
-  const caAnnee = signes.filter(c => { const d = sigDate(c); return d && d >= yearStart; }).length * moy;
+  const caAnnee = signes.filter(c => { const d = sigDate(c); return d && d >= yearStart; }).reduce((t, c) => t + (c.montant != null ? c.montant : moy), 0);
 
   const pipe = ["Nouveau", "Contacté", "En qualification", "Audit en préparation", "Audit prêt", "Rendez-vous confirmé"].map(s => ({ l: s, v: actifs.filter(c => c.statut === s).length }));
   const sorties = ["Injoignable"].map((s, k) => ({ l: s, v: actifs.filter(c => c.statut === s).length, soft: true, sep: k === 0 }));
@@ -842,10 +855,10 @@ function viewProspects() {
     </div>
   </section>
   <section class="card" style="overflow:visible">
-    ${ui.sel.size ? `<div class="bulk"><span>${ui.sel.size} sélectionné${ui.sel.size > 1 ? "s" : ""}</span><select class="input" id="bulk-statut" aria-label="Nouveau statut"><option value="">Changer le statut…</option>${STATUTS.map(s => `<option>${s}</option>`).join("")}</select><button class="btn sm secondary" data-action="bulk-apply" type="button">Appliquer</button><button class="btn sm" data-action="bulk-clear" type="button">Désélectionner</button></div>` : ""}
+    ${ui.sel.size ? `<div class="bulk"><span>${ui.sel.size} sélectionné${ui.sel.size > 1 ? "s" : ""}</span><select class="input" id="bulk-statut" aria-label="Nouveau statut"><option value="">Changer le statut…</option>${STATUTS.map(s => `<option>${s}</option>`).join("")}</select><input class="input" id="bulk-motif" placeholder="Motif du changement" style="width:auto;min-width:180px"><button class="btn sm secondary" data-action="bulk-apply" type="button">Appliquer</button><button class="btn sm" data-action="bulk-clear" type="button">Désélectionner</button></div>` : ""}
     <div class="table-wrap" style="overflow-x:auto;overflow-y:visible">
       <table class="grid">
-        <thead><tr><th style="width:44px"><input type="checkbox" class="cb" data-selall ${allSel ? "checked" : ""} aria-label="Tout sélectionner" style="width:18px;height:18px;accent-color:var(--primary)"></th><th>Enseigne</th><th>Type</th><th>Ville</th><th>Contact (Gérant)</th><th>Téléphone</th><th>E-mail</th><th>Potentiel</th><th>Statut</th><th class="r">Actions</th></tr></thead>
+        <thead><tr><th style="width:44px"><input type="checkbox" class="cb" data-selall ${allSel ? "checked" : ""} aria-label="Tout sélectionner" style="width:18px;height:18px;accent-color:var(--primary)"></th><th>Enseigne</th><th>Type</th><th>Ville</th><th>Contact (Gérant)</th><th>Téléphone</th><th>E-mail</th><th class="r">CA contrat</th><th>Potentiel</th><th>Statut</th><th class="r">Actions</th></tr></thead>
         <tbody>${rows.map(c => `<tr class="${ui.sel.has(c.id) ? "sel" : ""}">
           <td><input type="checkbox" data-sel="${c.id}" ${ui.sel.has(c.id) ? "checked" : ""} aria-label="Sélectionner ${esc(c.enseigne)}" style="width:18px;height:18px;accent-color:var(--primary)"></td>
           <td><button class="ens" data-open="${c.id}">${esc(c.enseigne)}</button>${incomplete(c) ? ` <span class="pill-inc" title="Gérant, e-mail, téléphone ou potentiel à renseigner">à compléter</span>` : ""}${stopped(c) ? ` <span class="badge b-red">Ne plus contacter</span>` : ""}</td>
@@ -853,9 +866,10 @@ function viewProspects() {
           <td>${c.contact ? esc(c.contact) : `<span class="ital">Non renseigné</span>`}</td>
           <td class="num">${c.tel ? esc(c.tel) : `<span class="ital">—</span>`}</td>
           <td class="mail-cell">${c.email ? `<span title="${esc(c.email)}">${esc(c.email)}</span>` : ""}</td>
+          <td class="r num">${c.montant != null ? c.montant.toLocaleString("fr-FR") + " €" : ""}</td>
           <td>${potBadge(c.potentiel)}</td><td>${stopped(c) ? `<span class="badge b-red">Opposition</span>` : statutBadge(c.statut)}</td>
           <td class="r"><span class="rel"><button class="iconbtn" data-menu="${c.id}" aria-haspopup="true" aria-expanded="${ui.menu === c.id}" aria-label="Actions">${ms("more_vert")}</button>${ui.menu === c.id ? `<span class="menu" role="menu"><button role="menuitem" data-open="${c.id}">${ms("open_in_new")}Ouvrir la fiche</button><button role="menuitem" data-edit="${c.id}">${ms("edit")}Modifier</button><button role="menuitem" class="del" data-del="${c.id}">${ms("delete")}Supprimer</button></span>` : ""}</span></td>
-        </tr>`).join("") || `<tr><td colspan="10"><div class="empty">Aucun commerce ne correspond à ces filtres. <button class="linkbtn" style="color:var(--link)" data-action="clear-filters">Réinitialiser les filtres</button></div></td></tr>`}</tbody>
+        </tr>`).join("") || `<tr><td colspan="11"><div class="empty">Aucun commerce ne correspond à ces filtres. <button class="linkbtn" style="color:var(--link)" data-action="clear-filters">Réinitialiser les filtres</button></div></td></tr>`}</tbody>
       </table>
     </div>
     <div class="pager">
@@ -868,6 +882,32 @@ function viewProspects() {
   </section>`;
 }
 
+/* RDV reporté ou annulé : l'historique reste (statut du RDV), l'événement Google est retiré par n8n */
+const WF_ANNULATION = "xRCeRygwGbkOewC5";
+async function rdvAction(iid, st) {
+  const it = S.interactions.find(i => i.id === iid), c = it && commerce(it.commerceId); if (!c) return;
+  it.rdvStatut = st;
+  if (LIVE.on && !S.demo) {
+    try {
+      await sqlLive(`update public.interaction set rdv_statut = ${sqlTxt(st)} where id = ${Number(iid)}; update public.tache set statut = 'Annulée', faite_le = now() where commerce_id = ${Number(c.id)} and statut = 'À faire' and libelle in ('Confirmer le RDV par e-mail', 'Finaliser l''audit avant le RDV');`);
+      if (it.agenda) await LIVE.mcp.callTool("n8n", "execute_workflow", { workflowId: WF_ANNULATION, executionMode: "manual", triggerNodeName: "RDV annulé ou reporté sur la plateforme", inputs: { webhookData: { method: "POST", body: { interaction_id: iid } } } }, { cache: false }).catch(() => toast("Événement Google Agenda non retiré : n8n doit être autorisé pour cette page", "error"));
+      await loadLive(true);
+    } catch (e) { toast(`RDV non mis à jour (${(e && e.code) || "erreur"})`, "error"); return render(); }
+  } else save();
+  if (st === "Reporté") { ui.prefill = { canal: "Appel", res: "Rendez-vous pris", label: "Nouvelle date du RDV" }; toast("RDV reporté : indique la nouvelle date", "event"); return go("fiche", c.id); }
+  toast(`RDV du ${fmt(it.rdv)} annulé${it.agenda ? " · retiré de Google Agenda" : ""}`, "event_busy"); render();
+}
+async function rdvReponse(iid, rep) {
+  const it = S.interactions.find(i => i.id === iid), c = it && commerce(it.commerceId); if (!c) return;
+  it.reponseInvit = rep;
+  if (LIVE.on && !S.demo) {
+    const tq = rep === "Refusée" ? ` insert into public.tache (commerce_id, commercial_id, interaction_origine_id, type, libelle, echeance, source, regle) values (${Number(c.id)}, ${Number(ME_ID)}, ${Number(iid)}, 'Appel', 'Recontacter le gérant (invitation refusée)', ${sqlTxt(addOuvres(TODAY, 1))}, 'Règle J+X', 'invitation refusée → J+1 ouvré');` : "";
+    try { await sqlLive(`update public.interaction set rdv_reponse_invitation = ${sqlTxt(rep)} where id = ${Number(iid)};${tq}`); await loadLive(true); }
+    catch (e) { return toast(`Réponse non enregistrée (${(e && e.code) || "erreur"})`, "error"); }
+  } else save();
+  toast(rep === "Refusée" ? "Invitation refusée : tâche « Recontacter le gérant » créée" : `Invitation : ${rep.toLowerCase()}`, "event"); render();
+}
+
 /* ---------- Informations énergétiques (source, date, validation) ---------- */
 function infosCard(c) {
   const L = (S.infos || []).filter(x => x.commerceId === c.id).sort((a, b) => (b.collecte || "").localeCompare(a.collecte || "") || b.id - a.id);
@@ -878,6 +918,7 @@ function infosCard(c) {
     <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
       ${L.length ? `<ul class="energie">${L.map(x => `<li><div><span><b>${esc(x.rubrique)}</b> : ${esc(x.valeur)}${x.unite ? ` ${esc(x.unite)}` : ""}</span><small>${esc(x.source)} · ${fmt(x.collecte)}${x.ia ? " · extrait par l'IA" : ""}${x.valideLe ? ` · ${x.validation === "Rejetée" ? "rejetée" : "validée"} le ${fmt(x.valideLe)}` : ""}</small></div>${vb(x.validation)}${x.validation === "À confirmer" ? `<button class="btn sm primary" data-infoval="${x.id}:Validée" type="button">Valider</button><button class="btn sm" data-infoval="${x.id}:Rejetée" type="button">Rejeter</button>` : ""}</li>`).join("")}</ul>` : `<p class="muted" style="margin:0">Aucune information collectée pour l'instant.</p>`}
       <p class="note" style="margin:0">${ms("info")}Seules les informations validées alimentent le pré-diagnostic. Une information extraite par l'IA arrive toujours « À confirmer ».</p>
+      ${preDiagBox(c)}
       ${stopped(c) ? "" : `<form id="f-energie" class="form-grid">
         <label class="field"><span>Rubrique</span><select class="input" id="e-rub">${RUBRIQUES_ENERGIE.map(x => `<option>${x}</option>`).join("")}</select></label>
         <label class="field"><span>Source</span><select class="input" id="e-src">${SOURCES_ENERGIE.map(x => `<option>${x}</option>`).join("")}</select></label>
@@ -886,6 +927,14 @@ function infosCard(c) {
         <div class="form-actions full"><button class="btn" type="submit">${ms("add")}Ajouter l'information</button></div>
       </form>`}
     </div></section>`;
+}
+function preDiagBox(c) {
+  const dm = donneesMinimales(c), st = c.statut;
+  return `<div class="prediag"><b>${ms("fact_check")}Pré-diagnostic</b>
+    <ul class="dm">${dm.L.map(([l, v]) => `<li class="${v ? "ok" : "ko"}">${ms(v ? "check_circle" : "radio_button_unchecked")}${esc(l)}</li>`).join("")}</ul>
+    ${stopped(c) ? "" : ["Contacté", "En qualification", "Nouveau"].includes(st) ? (dm.ok ? `<button class="btn sm primary" data-stset="Audit en préparation" type="button">Passer en « Audit en préparation »</button>` : `<small class="muted">Données minimales à compléter et valider avant de préparer l'audit.</small>`)
+      : st === "Audit en préparation" ? `<button class="btn sm primary" data-stset="Audit prêt" type="button">${ms("verified")}Valider le pré-diagnostic</button>` : (RANG_STATUT[st] ?? 0) >= 4 ? `<small class="muted">Pré-diagnostic validé.</small>` : ""}
+    <small class="muted">PDF du pré-diagnostic : hypothèse du MVP, non généré.</small></div>`;
 }
 async function addInfo(c) {
   const v = k => ($("#" + k) && $("#" + k).value.trim()) || "";
@@ -923,7 +972,11 @@ function viewFiche() {
     </div>
   </div>
   ${stopped(c) ? `<div class="banner">${ms("block")}Ce commerçant a demandé à ne plus être sollicité le ${fmt(c.opposition)}. Aucune action commerciale n'est possible.</div>` : ""}
-  ${rdv ? `<div class="banner" style="border-color:var(--line);background:var(--sage);color:var(--sage-ink)">${ms("event")}<span>RDV le <b>${fmtLong(rdv.rdv)}</b> à ${fmtHeure(rdv.rdv)}${rdv.rdvObjet ? ` · ${esc(rdv.rdvObjet)}` : ""} · ${esc(rdv.rdvStatut || "")}</span></div>` : ""}
+  ${rdv ? `<div class="banner rdv-b">${ms("event")}<span>RDV le <b>${fmtLong(rdv.rdv)}</b> à ${fmtHeure(rdv.rdv)}${rdv.rdvObjet ? ` · ${esc(rdv.rdvObjet)}` : ""} · ${esc(rdv.rdvStatut || "")}${rdv.agenda ? ` · invitation ${rdv.reponseInvit ? `envoyée, réponse : <b>${esc(rdv.reponseInvit)}</b>` : "à envoyer avec l'e-mail de confirmation"}` : ""}</span>
+    ${rdv.agenda && rdv.reponseInvit ? `<select class="input" id="rdv-rep" data-iid="${rdv.id}" aria-label="Réponse à l'invitation">${["En attente", "Acceptée", "Refusée"].map(x => `<option ${x === rdv.reponseInvit ? "selected" : ""}>${x}</option>`).join("")}</select>` : ""}
+    <button class="btn sm" data-rdvact="${rdv.id}:Reporté" type="button">Reporter</button><button class="btn sm danger" data-rdvact="${rdv.id}:Annulé" type="button">Annuler</button></div>` : ""}
+  ${rdv && (RANG_STATUT[c.statut] ?? 9) < 4 && !stopped(c) ? `<div class="banner prop">${ms("assignment_late")}<span>Audit à finaliser avant le RDV du <b>${fmt(rdv.rdv)}</b> (statut actuel : ${esc(c.statut)}).</span></div>` : ""}
+  ${!rdv && c.statut === "Rendez-vous confirmé" ? `<div class="banner prop">${ms("event_busy")}<span>Plus aucun RDV à venir : revenir à « ${esc(statutPrecedent(c))} » ?</span><button class="btn sm primary" data-stback="${esc(statutPrecedent(c))}" type="button">Revenir</button></div>` : ""}
   ${(() => { const p1 = hist.find(i => i.statutPropose); return p1 && !p1.statutApplique && p1.statutPropose !== c.statut && !stopped(c) ? `<div class="banner prop">${ms("published_with_changes")}<span>L'échange du ${fmt(p1.date)} (« ${esc(p1.resultat)} ») propose de passer le prospect de « ${esc(c.statut)} » à <b>${esc(p1.statutPropose)}</b>.</span><button class="btn sm primary" data-apply="${p1.id}" type="button">Appliquer</button></div>` : ""; })()}
   ${incomplete(c) && !stopped(c) ? `<div class="banner" style="border-color:var(--line);background:var(--sage);color:var(--ink-2)">${ms("info")}Fiche à compléter : ${[!c.contact && "gérant", !c.tel && "téléphone", !c.email && "e-mail", !c.potentiel && "potentiel"].filter(Boolean).join(", ")} à renseigner.</div>` : ""}
   <div class="fiche">
@@ -969,6 +1022,7 @@ function viewFiche() {
       ${infosCard(c)}
     </div>
     <div class="side-stack">
+      ${statutCard(c)}
       <section class="card">
         <div class="card-head"><h3>Contact gérant</h3><button class="btn sm" data-edit="${c.id}" type="button">Modifier</button></div>
         <div class="card-body">
@@ -1123,6 +1177,7 @@ function prospectForm(c, pre) {
       <label class="field"><span>Gérant</span><input class="input" id="p-contact" value="${v("contact")}"></label>
       <label class="field"><span>Téléphone</span><input class="input" id="p-tel" value="${v("tel")}"></label>
       <label class="field"><span>E-mail</span><input class="input" id="p-email" type="email" value="${v("email")}"></label>
+      <label class="field"><span>Montant du contrat <small class="muted">· € HT, si signé</small></span><input class="input" id="p-montant" type="number" min="0" step="50" value="${src && src.montant != null ? src.montant : ""}"></label>
       <label class="field"><span>Potentiel</span><select class="input" id="p-pot"><option value="">Non évalué</option>${POTENTIELS.map(p => `<option ${src && src.potentiel === p ? "selected" : ""}>${p}</option>`).join("")}</select></label>
     </div>
   </form>`;
@@ -1235,13 +1290,14 @@ function proposeStatut(c, res, ar) {
   const cur = c.statut, r = RANG_STATUT[cur] ?? -1, up = s => (RANG_STATUT[s] > r ? s : null);
   if (res === "Pas intéressé") return cur === "Non intéressé" ? null : "Non intéressé";
   if (ar && ar.statut === "Injoignable") return cur === "Injoignable" ? null : "Injoignable";
-  if (isRdvRes(res)) return up("Rendez-vous confirmé");
+  if (isRdvRes(res)) return cur === "Nouveau" ? "Contacté" : null; /* « Rendez-vous confirmé » arrive avec l'invitation envoyée */
   if (res === "Intéressé" || res === "Informations complémentaires demandées") return up("En qualification");
   if (cur === "Nouveau") return "Contacté";
   if (cur === "Injoignable" && !["Sans réponse", "Absent"].includes(res)) return "Contacté";
   return null;
 }
 /* Règles de relance (jours ouvrés) — le commercial ne saisit plus de date */
+function subOuvres(iso, n) { const d = new Date(iso.slice(0, 10) + "T12:00:00"); let k = 0; while (k < n) { d.setDate(d.getDate() - 1); const w = d.getDay(); if (w !== 0 && w !== 6) k++; } return d.toISOString().slice(0, 10); }
 function addOuvres(iso, n) { const d = new Date(iso.slice(0, 10) + "T12:00:00"); let k = 0; while (k < n) { d.setDate(d.getDate() + 1); const w = d.getDay(); if (w !== 0 && w !== 6) k++; } return d.toISOString().slice(0, 10); }
 /* Prochaine étape d'un commerce : déduite du dernier échange et des règles J+X */
 function nextStep(c) {
@@ -1250,7 +1306,7 @@ function nextStep(c) {
   if (t) return { label: t.libelle, rule: t.echeanceInitiale ? "date reportée" : (t.regle || t.source || "tâche"), date: t.echeance, after: last ? `« ${last.resultat} » (${last.canal.toLowerCase()} du ${fmt(last.date)})` : null };
   if (S.taches && last) return { label: "Aucune tâche en cours", rule: "", date: null };
   if (!last) return { label: "Premier appel", rule: "nouveau prospect", date: null };
-  const ar = autoRelance(c, last.resultat, last.date, last.rdv, h.slice(1));
+  const ar = autoRelance(c, last.resultat, last.date, last.rdv, h.slice(1), last.canal);
   const date = last.relance || ar.date;
   const rule = last.relance && last.relance !== ar.date ? (last.relanceOrig ? "date reportée" : last.resultat === "À rappeler" ? "date convenue avec le gérant" : "date planifiée") : ar.rule;
   return { label: ar.label, rule, date, after: `« ${last.resultat} » (${last.canal.toLowerCase()} du ${fmt(last.date)})` };
@@ -1264,16 +1320,18 @@ function nextStepBox(c) {
   const quand = !s.date ? "à faire dès que possible" : late ? `date limite dépassée : ${fmt(s.date)} (J+${n})` : today ? "à faire aujourd'hui" : `avant le <b>${fmtLong(s.date)}</b>`;
   return `<div class="next-step act ${tone}">${ms("flag")}<div><span class="act-k">Prochaine étape</span><b>${esc(s.label)}</b><small>${quand} · ${esc(s.rule)}${s.after ? ` · après ${esc(s.after)}` : ""}</small></div></div>`;
 }
-function autoRelance(c, res, date, rdvIso, hist) {
+function autoRelance(c, res, date, rdvIso, hist, canal) {
   const base = (date || TODAY).slice(0, 10);
-  if (res === "Sans réponse") {
-    let k = 1; for (const i of (hist || interOf(c.id))) { if (i.resultat === "Sans réponse") k++; else break; }
-    if (k >= 5) return { date: addDays(base, 90), label: "Nouvel essai (injoignable)", rule: `${k}e sans réponse → J+90`, statut: "Injoignable" };
+  if (res === "Sans réponse" || res === "Absent") {
+    const cur = canal || ($("#i-canal") && $("#i-canal").value) || (res === "Absent" ? "Visite" : "Appel"), canaux = new Set([cur]);
+    let k = 1; for (const i of (hist || interOf(c.id))) { if (["Sans réponse", "Absent"].includes(i.resultat)) { k++; canaux.add(i.canal); } else break; }
+    if (k >= 5 && canaux.size >= 2) return { date: addDays(base, 90), label: "Nouvel essai (injoignable)", rule: `${k}e tentative sans réponse sur ${canaux.size} canaux → J+90`, statut: "Injoignable", type: "Appel" };
+    if (k >= 5) return { date: addOuvres(base, 5), label: "Visite sur place", rule: `${k}e tentative par ${cur.toLowerCase()} : changer de canal → J+5 ouvrés`, type: "Visite" };
+    if (res === "Absent") return { date: addOuvres(base, 2), label: "Nouvelle visite", rule: "J+2 ouvrés", type: "Visite" };
     if (k >= 3) return { date: addOuvres(base, 5), label: "Visite sur place", rule: `${k}e sans réponse → J+5 ouvrés`, type: "Visite" };
     return { date: addOuvres(base, 2), label: "Nouvelle tentative d'appel", rule: "J+2 ouvrés" };
   }
   if (res === "À rappeler") { const conv = $("#i-rap") && $("#i-rap").value; return conv ? { date: conv, label: "Rappel", rule: "date convenue avec le gérant" } : { date: addOuvres(base, 7), label: "Rappel", rule: "J+7 ouvrés" }; }
-  if (res === "Absent") return { date: addOuvres(base, 2), label: "Nouvelle visite", rule: "J+2 ouvrés", type: "Visite" };
   if (res === "Informations complémentaires demandées") return { date: addOuvres(base, 1), label: "Envoyer les informations demandées", rule: "J+1 ouvré", type: "E-mail" };
   if (res === "À relancer") return { date: addOuvres(base, 3), label: "Relancer le commerce", rule: "J+3 ouvrés", type: "Appel" };
   if (res === "Intéressé") return { date: addOuvres(base, 1), label: "Envoyer la présentation par e-mail", rule: "J+1 ouvré", type: "E-mail" };
@@ -1285,7 +1343,7 @@ function autoRelance(c, res, date, rdvIso, hist) {
 
 /* ---------- Interactions ---------- */
 document.addEventListener("click", e => {
-  const t = e.target.closest("[data-go],[data-open],[data-menu],[data-edit],[data-del],[data-page],[data-sel],[data-selall],[data-scope],[data-rech],[data-tri],[data-keep],[data-drop],[data-known],[data-undo],[data-relance],[data-range],[data-today],[data-act],[data-pot],[data-pin],[data-tour],[data-chip],[data-mapmode],[data-zoom],[data-todo],[data-copy],[data-panel],[data-result],[data-postpone],[data-stale],[data-mail],[data-tourp],[data-tdate],[data-dash],[data-apply],[data-infoval],[data-extract],[data-tmove],[data-tdel],[data-tres],[data-tpage],[data-mailtab],[data-week],[data-action],[data-close],[data-veil]");
+  const t = e.target.closest("[data-go],[data-open],[data-menu],[data-edit],[data-del],[data-page],[data-sel],[data-selall],[data-scope],[data-rech],[data-tri],[data-keep],[data-drop],[data-known],[data-undo],[data-relance],[data-range],[data-today],[data-act],[data-pot],[data-pin],[data-tour],[data-chip],[data-mapmode],[data-zoom],[data-todo],[data-copy],[data-panel],[data-result],[data-postpone],[data-stale],[data-mail],[data-tourp],[data-tdate],[data-dash],[data-apply],[data-infoval],[data-extract],[data-stset],[data-stback],[data-rdvact],[data-tmove],[data-tdel],[data-tres],[data-tpage],[data-mailtab],[data-week],[data-action],[data-close],[data-veil]");
   if (!t) { if (ui.menu) { ui.menu = null; render(); } return; }
   const d = t.dataset;
   if (d.veil !== undefined && e.target !== t) return;
@@ -1314,6 +1372,9 @@ document.addEventListener("click", e => {
   if (d.scope) { ui.scope = d.scope; return render(); }
   if (d.pot) { const k = d.pot.indexOf(":"), x = S.candidats.find(c => c.id === +d.pot.slice(0, k)), p = d.pot.slice(k + 1); x.potentiel = x.potentiel === p ? null : p; ui.selCand = x.id; save(); toast(`${x.enseigne} : ${TEMP_LABEL[temp(x).k].toLowerCase()}`, "flag"); return render(); }
   if (d.apply) return applyStatut(+d.apply);
+  if (d.stset) { const c = commerce(ui.ficheId); return changeStatut(c, d.stset, d.stset === "Audit prêt" ? "Pré-diagnostic validé (PDF : hypothèse du MVP)" : "Données minimales validées", "Manuel"); }
+  if (d.stback) { const c = commerce(ui.ficheId); return changeStatut(c, d.stback, "Plus aucun RDV à venir (RDV annulé ou reporté)", "Manuel"); }
+  if (d.rdvact) { const [iid, st] = d.rdvact.split(":"); return rdvAction(+iid, st); }
   if (d.extract) return extractInfos(+d.extract);
   if (d.infoval) { const [iid, st] = d.infoval.split(":"); return validateInfo(+iid, st); }
   if (d.act) { const c = commerce(+d.act), t0 = openTache(c.id), act = t0 ? actionTache(t0) : nextAction(interOf(c.id)[0]); ui.panel = null; ui.prefill = { canal: act.canal, res: act.res || null, label: act.l }; return go("fiche", c.id); }
@@ -1356,6 +1417,9 @@ document.addEventListener("click", e => {
   if (a === "confirm-delete") { const id = ui.modal.id, c = commerce(id); S.commerces = S.commerces.filter(x => x.id !== id); S.interactions = S.interactions.filter(i => i.commerceId !== id); ui.sel.delete(id); ui.modal = null; save(); toast(`${c.enseigne} supprimé`, "delete"); if (ui.view === "fiche") return go("prospects"); return render(); }
   if (a === "confirm-oppose") { const c = commerce(ui.ficheId); c.opposition = TODAY; ui.modal = null; save(); toast("Opposition enregistrée", "block"); return render(); }
   if (a === "tour-merge") return mergeTournees();
+  if (a === "st-edit") { ui.stEdit = true; return render(); }
+  if (a === "st-cancel") { ui.stEdit = false; return render(); }
+  if (a === "st-save") return saveStatut();
   if (a === "tour-edit") { const t = curTournee(); ui.tourEdit = t && t.id; ui.tourDel = null; return render(); }
   if (a === "tour-askdel") { const t = curTournee(); ui.tourDel = t && t.id; ui.tourEdit = null; return render(); }
   if (a === "tour-cancel") { ui.tourEdit = ui.tourDel = null; return render(); }
@@ -1367,7 +1431,7 @@ document.addEventListener("click", e => {
   if (a === "confirm-keep") return liveTri(ui.modal.id, "Retenu", null);
   if (a === "confirm-drop" && LIVE.on) return liveTri(ui.modal.id, "Écarté", $("#d-motif").value);
   if (a === "confirm-drop") { const x = S.candidats.find(k => k.id === ui.modal.id); x.tri = "Écarté"; x.motif = $("#d-motif").value; ui.modal = null; save(); toast(`${x.enseigne} écarté`, "do_not_disturb_on"); return render(); }
-  if (a === "bulk-apply") { const s = $("#bulk-statut").value; if (!s) return toast("Choisissez d'abord un statut", "info"); if (s === "Non intéressé") return askRetire([...ui.sel].filter(id => { const c = commerce(id); return c && !stopped(c); })); let n = 0; ui.sel.forEach(id => { const c = commerce(id); if (c && !stopped(c)) { c.statut = s; n++; } }); ui.sel.clear(); save(); toast(`${n} fiche${n > 1 ? "s" : ""} passée${n > 1 ? "s" : ""} en « ${s} »`); return render(); }
+  if (a === "bulk-apply") { const s = $("#bulk-statut").value; if (!s) return toast("Choisissez d'abord un statut", "info"); if (s === "Non intéressé") return askRetire([...ui.sel].filter(id => { const c = commerce(id); return c && !stopped(c); })); const motif = ($("#bulk-motif") && $("#bulk-motif").value.trim()) || ""; if (!motif) { toast("Indique le motif du changement groupé", "edit_note"); return $("#bulk-motif").focus(); } const ids = [...ui.sel].filter(id => { const c = commerce(id); return c && !stopped(c) && c.statut !== s; }); if (LIVE.on && !S.demo) return bulkStatut(ids, s, motif); ids.forEach(id => { const c = commerce(id); S.historique = S.historique || []; S.historique.unshift({ id: nextId(S.historique), commerceId: id, ancien: c.statut, nouveau: s, le: new Date().toISOString(), auteur: ME_ID, origine: "Manuel", motif }); c.statut = s; }); ui.sel.clear(); save(); toast(`${ids.length} fiche${ids.length > 1 ? "s" : ""} passée${ids.length > 1 ? "s" : ""} en « ${s} »`); return render(); }
   if (a === "bulk-clear") { ui.sel.clear(); return render(); }
   if (a === "clear-filters") { ui.f = { q: "", statut: "", type: "", potentiel: "", incomplete: false, showStop: false }; ui.page = 1; return render(); }
   if (a === "live") return loadLive(true);
@@ -1387,6 +1451,7 @@ document.addEventListener("change", e => {
   if (id === "f-stop") { f.showStop = e.target.checked; ui.page = 1; return render(); }
   if (id === "r-from" || id === "r-to") { const v = e.target.value; if (id === "r-from") ui.resFrom = v; else ui.resTo = v; if (ui.resFrom && ui.resTo && ui.resFrom > ui.resTo) { toast("La date de début doit précéder la date de fin", "error"); if (id === "r-from") ui.resTo = ui.resFrom; else ui.resFrom = ui.resTo; } return render(); }
   if (id === "ca-moy") { const v = Math.max(0, Math.round(+e.target.value || 0)); S.caMoyen = v; save(); toast(`Montant moyen : ${v.toLocaleString("fr-FR")} € par contrat`, "euro"); return render(); }
+  if (id === "rdv-rep") return rdvReponse(+e.target.dataset.iid, e.target.value);
   if (id === "t-day") { if (!e.target.value) return; ui.tourDate = e.target.value; ui.tourEdit = ui.tourDel = null; ui.tpage = 1; return render(); }
   if (id === "r-hist") { ui.rechId = +e.target.value; ui.selCand = null; ui.triFilter = ""; ui.zoom = 1; syncSearchForm(S.recherches.find(x => x.id === ui.rechId)); return render(); }
   if (id === "r-rayon") { ui.rRayon = +e.target.value; ui.rq = `${(ui.rq || "").split(",")[0].trim()}, ${ui.rRayon} km`; return render(); }
@@ -1415,8 +1480,9 @@ document.addEventListener("submit", e => {
   }
   if (id === "f-energie") return addInfo(commerce(ui.ficheId));
   if (id === "f-prospect") {
-    const m = ui.modal, data = { enseigne: val("p-enseigne"), type: val("p-type"), zone: val("p-zone"), ville: val("p-ville"), cp: val("p-cp") || null, contact: val("p-contact") || null, tel: val("p-tel") || null, email: val("p-email") || null, potentiel: val("p-pot") || null };
+    const m = ui.modal, data = { enseigne: val("p-enseigne"), type: val("p-type"), zone: val("p-zone"), ville: val("p-ville"), cp: val("p-cp") || null, contact: val("p-contact") || null, tel: val("p-tel") || null, email: val("p-email") || null, potentiel: val("p-pot") || null, montant: val("p-montant") === "" ? null : Math.max(0, +val("p-montant")) };
     if (!data.enseigne || !data.ville) return toast("Enseigne et ville sont obligatoires", "error");
+    if (m.id && LIVE.on && !S.demo) return liveUpdateCommerce(m.id, data);
     if (m.id) { Object.assign(commerce(m.id), data); ui.modal = null; save(); toast("Fiche mise à jour"); return render(); }
     if (LIVE.on && !S.demo) return liveCreateCommerce(data);
     const nid = nextId(S.commerces), com = COMMERCIAUX.find(x => x.zone === data.zone);
@@ -1426,6 +1492,11 @@ document.addEventListener("submit", e => {
 
 });
 
+async function liveUpdateCommerce(id, data) {
+  const q = `update public.commerce set enseigne = ${sqlTxt(data.enseigne)}, type_commerce = ${sqlTxt(data.type)}, zone = ${sqlTxt(data.zone)}, ville = ${sqlTxt(data.ville)}, code_postal = ${sqlTxt(data.cp)}, nom_contact = ${sqlTxt(data.contact)}, telephone = ${sqlTxt(data.tel)}, email = ${sqlTxt(data.email)}, potentiel = ${sqlTxt(data.potentiel)}, montant_contrat = ${data.montant == null ? "null" : Number(data.montant)} where id = ${Number(id)};`;
+  try { await sqlLive(q); ui.modal = null; renderModal(); toast("Fiche mise à jour", "check_circle"); return loadLive(true); }
+  catch (e) { toast(`Fiche non mise à jour (${(e && e.code) || "erreur"})`, "error"); }
+}
 async function liveCreateCommerce(data) {
   const q = `insert into public.commerce (enseigne, type_commerce, zone, ville, code_postal, nom_contact, telephone, email, potentiel, commercial_id, source) values (${[data.enseigne, data.type, data.zone, data.ville, data.cp, data.contact, data.tel, data.email, data.potentiel].map(sqlTxt).join(", ")}, ${Number(ME_ID)}, 'Saisie manuelle') returning id;`;
   try {
@@ -1438,22 +1509,59 @@ function quickResult(cid, res) {
   const c = commerce(cid); ui.panel = null;
   if (isRdvRes(res)) { ui.prefill = "Rendez-vous pris"; toast("Indiquez la date du rendez-vous", "event"); return go("fiche", cid); }
   if (res === "Pas intéressé") return askRetire([cid]);
-  const t0 = openTache(cid), ar = autoRelance(c, res, TODAY, null), relance = ar.date, prop = proposeStatut(c, res, ar);
+  const t0 = openTache(cid), ar = autoRelance(c, res, TODAY, null, null, t0 ? actionTache(t0).canal : "Appel"), relance = ar.date, prop = proposeStatut(c, res, ar);
   const it = { id: nextId(S.interactions), commerceId: cid, commercialId: ME_ID, date: TODAY, canal: t0 ? actionTache(t0).canal : "Appel", motif: "Relance", resultat: res, commentaire: null, relance, rdv: null, rdvStatut: null, rdvObjet: null, statutPropose: prop, statutApplique: false };
   S.interactions.push(it); save();
   if (LIVE.on && !S.demo) { liveSaveInteraction(it, c, ar); return render(); }
   toast(`${c.enseigne} : ${res}${relance ? ` · prochaine tâche le ${fmt(relance)}` : ""}${prop ? ` · statut proposé : ${prop} (à valider sur la fiche)` : ""}`); render();
+}
+/* Changement de statut : toujours historisé par Supabase (origine, auteur, motif) ; contrôles de cohérence côté base */
+const errMsg = e => { const t = String((e && (e.message || e.text)) || e || ""); const m = /Statut refusé[^"\\]*/.exec(t); return m ? m[0].replace(/\.?$/, ".") : ""; };
+async function changeStatut(c, st, motif, origine = "Manuel", iid = null) {
+  if (st === c.statut) return toast("Le prospect a déjà ce statut", "info");
+  if (LIVE.on && !S.demo) {
+    const q = `select set_config('eco.origine', ${sqlTxt(origine)}, true), set_config('eco.auteur', '${Number(ME_ID)}', true), set_config('eco.motif', ${sqlTxt(motif || "")}, true), set_config('eco.interaction', '${iid ? Number(iid) : ""}', true); update public.commerce set statut_prospection = ${sqlTxt(st)} where id = ${Number(c.id)};${iid ? ` update public.interaction set statut_applique = true where id = ${Number(iid)};` : ""}`;
+    try { await sqlLive(q); toast(`${c.enseigne} : statut « ${st} »`, "check_circle"); ui.stEdit = false; return loadLive(true); }
+    catch (e) { toast(errMsg(e) || `Statut non enregistré (${(e && e.code) || "erreur"})`, "error"); return render(); }
+  }
+  S.historique = S.historique || []; S.historique.unshift({ id: nextId(S.historique), commerceId: c.id, ancien: c.statut, nouveau: st, le: new Date().toISOString(), auteur: ME_ID, origine, motif: motif || null });
+  c.statut = st; if (iid) { const it = S.interactions.find(i => i.id === iid); if (it) it.statutApplique = true; }
+  ui.stEdit = false; save(); toast(`${c.enseigne} : statut « ${st} »`, "check_circle"); render();
+}
+const histOf = id => (S.historique || []).filter(h => h.commerceId === id).sort((a, b) => (b.le || "").localeCompare(a.le || "") || b.id - a.id);
+function statutPrecedent(c) { const h = histOf(c.id).find(x => x.nouveau === c.statut && x.ancien); return h ? h.ancien : "Audit prêt"; }
+function statutCard(c) {
+  const H = histOf(c.id).slice(0, 6);
+  return `<section class="card" id="statut">
+    <div class="card-head"><h3>Statut du prospect</h3>${stopped(c) ? "" : `<button class="btn sm" data-action="st-edit" type="button">${ms("edit")}Changer</button>`}</div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+      <div>${statutBadge(c.statut)}</div>
+      ${ui.stEdit ? `<div class="st-edit"><label class="field"><span>Nouveau statut</span><select class="input" id="st-new">${STATUTS.filter(x => x !== c.statut).map(x => `<option>${x}</option>`).join("")}</select></label>
+        <label class="field"><span>Motif <small class="muted">· obligatoire pour un retour en arrière ou une sortie</small></span><input class="input" id="st-motif" placeholder="ex. RDV annulé par le gérant"></label>
+        <div class="form-actions"><button class="btn sm" data-action="st-cancel" type="button">Annuler</button><button class="btn sm primary" data-action="st-save" type="button">Enregistrer</button></div></div>` : ""}
+      <div><span class="muted" style="font-size:12px;font-weight:600">Historique</span>${H.length ? `<ul class="hist">${H.map(h => `<li><b>${h.ancien ? `${esc(h.ancien)} → ` : ""}${esc(h.nouveau || "—")}</b><small>${fmt(h.le)} · ${esc(h.origine)}${h.auteur ? ` · ${esc(comName(h.auteur))}` : ""}${h.motif ? ` · ${esc(h.motif)}` : ""}</small></li>`).join("")}</ul>` : `<p class="muted" style="margin:4px 0 0">Aucun changement enregistré.</p>`}</div>
+    </div></section>`;
+}
+async function bulkStatut(ids, s, motif) {
+  if (!ids.length) return toast("Aucune fiche à changer", "info");
+  try {
+    await sqlLive(`select set_config('eco.origine', 'Manuel', true), set_config('eco.auteur', '${Number(ME_ID)}', true), set_config('eco.motif', ${sqlTxt(motif)}, true); update public.commerce set statut_prospection = ${sqlTxt(s)} where id in (${ids.map(Number).join(",")});`);
+    ui.sel.clear(); toast(`${ids.length} fiche${ids.length > 1 ? "s" : ""} passée${ids.length > 1 ? "s" : ""} en « ${s} »`, "check_circle"); return loadLive(true);
+  } catch (e) { toast(errMsg(e) || `Changement refusé (${(e && e.code) || "erreur"})`, "error"); render(); }
+}
+function saveStatut() {
+  const c = commerce(ui.ficheId), st = $("#st-new").value, motif = $("#st-motif").value.trim();
+  const back = (RANG_STATUT[st] ?? 9) < (RANG_STATUT[c.statut] ?? -1), exit = ["Injoignable", "Non intéressé"].includes(st);
+  if ((back || exit) && !motif) { toast("Indique le motif de ce changement", "edit_note"); return $("#st-motif").focus(); }
+  if (st === "Non intéressé") { ui.stEdit = false; return askRetire([c.id]); }
+  return changeStatut(c, st, motif, "Manuel");
 }
 /* Appliquer le statut proposé par un échange (validation du commercial) */
 async function applyStatut(iid) {
   const it = S.interactions.find(i => i.id === iid), c = it && commerce(it.commerceId); if (!c || !it.statutPropose) return;
   const st = it.statutPropose;
   if (st === "Non intéressé") return askRetire([c.id]);
-  if (LIVE.on && !S.demo) {
-    try { await sqlLive(`update public.commerce set statut_prospection = ${sqlTxt(st)} where id = ${Number(c.id)}; update public.interaction set statut_applique = true where id = ${Number(iid)};`); toast(`${c.enseigne} : statut « ${st} »`, "check_circle"); return loadLive(true); }
-    catch (e) { toast(`Statut non enregistré (${(e && e.code) || "erreur"})`, "error"); return render(); }
-  }
-  c.statut = st; it.statutApplique = true; save(); toast(`${c.enseigne} : statut « ${st} »`, "check_circle"); render();
+  return changeStatut(c, st, `Proposé par l'échange du ${fmt(it.date)} (« ${it.resultat} »)`, "Échange", iid);
 }
 function postpone(cid, n) {
   let d;
@@ -1657,10 +1765,12 @@ async function sqlLive(query) { return LIVE.mcp.callTool("Supabase", "execute_sq
 async function liveSaveInteraction(it, c, ar) {
   ar = ar || {};
   const cid = Number(c.id);
-  const q = `with i as (insert into public.interaction (date_interaction, canal, motif, resultat, commentaire, date_relance, commerce_id, commercial_id, rdv_date_heure, rdv_objet, rdv_statut, statut_propose, statut_applique)
+  const audit = isRdvRes(it.resultat) && it.rdv && (RANG_STATUT[it.statutApplique ? it.statutPropose : c.statut] ?? 0) < 4 ? subOuvres(it.rdv.slice(0, 10), 2) : null;
+  const q = `select set_config('eco.origine', 'Échange', true), set_config('eco.auteur', '${Number(ME_ID)}', true), set_config('eco.motif', ${sqlTxt(`Échange « ${it.resultat} »`)}, true); with i as (insert into public.interaction (date_interaction, canal, motif, resultat, commentaire, date_relance, commerce_id, commercial_id, rdv_date_heure, rdv_objet, rdv_statut, statut_propose, statut_applique)
     values (${sqlTxt(it.date)}, ${sqlTxt(it.canal)}, ${sqlTxt(it.motif)}, ${sqlTxt(it.resultat)}, ${sqlTxt(it.commentaire)}, ${sqlTxt(it.relance)}, ${cid}, ${Number(ME_ID)}, ${sqlTxt(it.rdv)}, ${sqlTxt(it.rdvObjet)}, ${sqlTxt(it.rdvStatut)}, ${sqlTxt(it.statutPropose)}, ${it.statutApplique ? "true" : "false"}) returning id),
     f as (update public.tache set statut = 'Faite', faite_le = now(), interaction_cloture_id = (select id from i) where commerce_id = ${cid} and statut = 'À faire' returning id)${it.relance ? `,
-    t as (insert into public.tache (commerce_id, commercial_id, interaction_origine_id, type, libelle, echeance, source, regle) select ${cid}, ${Number(ME_ID)}, i.id, ${sqlTxt(ar.type || it.canal || "Appel")}, ${sqlTxt(ar.label || "Relancer le commerce")}, ${sqlTxt(it.relance)}, 'Règle J+X', ${sqlTxt(ar.rule || null)} from i returning id)` : ""}${it.statutApplique ? `,
+    t as (insert into public.tache (commerce_id, commercial_id, interaction_origine_id, type, libelle, echeance, source, regle) select ${cid}, ${Number(ME_ID)}, i.id, ${sqlTxt(ar.type || it.canal || "Appel")}, ${sqlTxt(ar.label || "Relancer le commerce")}, ${sqlTxt(it.relance)}, 'Règle J+X', ${sqlTxt(ar.rule || null)} from i returning id)` : ""}${audit ? `,
+    t2 as (insert into public.tache (commerce_id, commercial_id, interaction_origine_id, type, libelle, echeance, source, regle) select ${cid}, ${Number(ME_ID)}, i.id, 'Autre', 'Finaliser l''audit avant le RDV', ${sqlTxt(audit < TODAY ? TODAY : audit)}, 'Règle J+X', 'J-2 ouvrés avant le RDV' from i returning id)` : ""}${it.statutApplique ? `,
     u as (update public.commerce set statut_prospection = ${sqlTxt(it.statutPropose)} where id = ${cid} returning id)` : ""}
     select i.id as interaction_id from i;`;
   toast("Enregistrement de l'échange dans Supabase…", "sync");
@@ -1827,14 +1937,16 @@ async function arretResult(arretId, res) {
   const c = s.ref, mo = motifVisite("p", c, t.date);
   if (mo.k === "rdv" && ["RDV réalisé", "Reporté", "Annulé"].includes(res)) {
     const r = mo.rdv, st = res === "RDV réalisé" ? "Réalisé" : res;
-    a.resultat = res; r.rdvStatut = st; await mark();
+    a.resultat = res; await mark();
+    if (st !== "Réalisé") return rdvAction(r.id, st);
+    r.rdvStatut = st;
     if (LIVE.on && !S.demo) await tourSql(`update public.interaction set rdv_statut = ${sqlTxt(st)} where id = ${Number(r.id)};`, null); else save();
     if (res === "Reporté") { ui.prefill = { canal: "Visite", res: "Rendez-vous pris", label: "Nouvelle date du RDV" }; toast("Indique la nouvelle date du rendez-vous", "event"); return go("fiche", c.id); }
     toast(`${c.enseigne} : ${res === "RDV réalisé" ? "RDV réalisé" : "RDV annulé"}`, "event"); return render();
   }
   if (isRdvRes(res)) { a.resultat = res; await mark(); ui.prefill = { canal: "Visite", res: "Rendez-vous pris", label: "Visite" }; toast("Indique la date du rendez-vous", "event"); return go("fiche", c.id); }
   if (res === "Pas intéressé") { a.resultat = res; await mark(); return askRetire([c.id]); }
-  const r = res, ar = autoRelance(c, r, TODAY, null), prop = proposeStatut(c, r, ar);
+  const r = res, ar = autoRelance(c, r, TODAY, null, null, "Visite"), prop = proposeStatut(c, r, ar);
   const it = { id: nextId(S.interactions), commerceId: c.id, commercialId: ME_ID, date: TODAY, canal: "Visite", motif: "Relance", resultat: r, commentaire: `Visite terrain (${tourName(t)})`, relance: ar.date, rdv: null, rdvStatut: null, rdvObjet: null, statutPropose: prop, statutApplique: false };
   S.interactions.push(it); a.resultat = res; await mark();
   if (LIVE.on && !S.demo) { liveSaveInteraction(it, c, ar); return render(); }

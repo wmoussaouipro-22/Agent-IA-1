@@ -55,6 +55,10 @@ for base in (demo,d):
 # Illustration du pipeline (zone Nord de la commerciale) : un prospect à chaque étape de l'audit, les autres restent « Contacté »
 pool=[c for c in sorted(demo['commerces'],key=lambda c:c[0]) if c[6]=='Nord' and c[10]=='Contacté']
 for c,st in zip(pool,['En qualification','Audit en préparation','Audit prêt','En qualification']): c[10]=st
+# Montant du contrat (€ HT) des commerces signés, pour le « CA réalisé »
+for c in demo['commerces']:
+    while len(c)<22: c.append(None)
+    c[22:]=[ (1800+(c[0]*137)%2600)//50*50 if c[10]=='Signé' else None ]
 g=json.load(open('google.json'))
 gids={r[0] for r in d['recherches'] if r[3]=='Google Maps'}
 d['recherches']=[r for r in d['recherches'] if r[0] in gids]

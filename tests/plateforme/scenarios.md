@@ -34,6 +34,8 @@ simulés, les scénarios Supabase annulent tout ce qu'ils créent, et n8n est co
 | P20 | Saisir un échange (modèle du 15/10) | Motif + résultat ; le statut est seulement proposé (case à cocher, jamais d'office) puis validé depuis la fiche ; l'échange ferme les tâches ouvertes et crée la suivante (table `tache`) ; informations énergétiques avec source, date et validation |
 | P21 | Lire le pipeline | Nouveau → Contacté → En qualification → Audit en préparation → Audit prêt → Rendez-vous confirmé, puis Injoignable |
 | P22 | Extraire les informations énergétiques d'un compte rendu | Bouton « Extraire avec l'IA » : workflow n8n d'extraction appelé avec le texte et sa source ; informations « À confirmer » dans la fiche, puis validées par le commercial |
+| P23 | Changer le statut d'un prospect | Carte « Statut du prospect » : changement manuel, motif obligatoire pour un retour en arrière ou une sortie ; historique affiché (ancien, nouveau, origine, motif) ; « Audit en préparation » seulement avec les données minimales (activité, horaires, surface, un équipement, une facture ou une consommation) ; bouton « Valider le pré-diagnostic » → « Audit prêt », sans PDF (hypothèse du MVP) ; refus de Supabase affiché tel quel |
+| P24 | Reporter ou annuler un RDV | Boutons Reporter / Annuler : statut du RDV mis à jour sans perte d'historique, tâches liées annulées, événement Google Agenda retiré par le workflow n8n ; réponse à l'invitation (En attente / Acceptée / Refusée) distincte de l'envoi, « Refusée » crée « Recontacter le gérant » ; règle Injoignable (5 tentatives sans réponse d'affilée sur au moins 2 canaux) ; colonne « CA contrat » et CA réalisé = somme des contrats signés |
 
 ## Règles Supabase (`supabase/scenarios.sql`)
 
@@ -50,6 +52,8 @@ simulés, les scénarios Supabase annulent tout ce qu'ils créent, et n8n est co
 | S10 | RDV « Rendez-vous pris » | Défauts du RDV (objet « Présentation du pré-diagnostic ») ; le statut du commerce ne change pas tout seul |
 | S11 | Tâche | Reliée à un commerce existant (clé étrangère) ; statut limité à À faire / Faite / Annulée |
 | S12 | Information extraite par l'IA | Toujours « À confirmer », même si l'insertion demande « Validée » |
+| S13 | Changement de statut contrôlé | « Audit en préparation » refusé sans données minimales ; « Audit prêt » refusé hors « Audit en préparation » ; « Rendez-vous confirmé » refusé sans RDV confirmé à venir avec invitation envoyée ; accepté une fois les données validées |
+| S14 | Historique des statuts | Chaque changement est tracé dans `historique_statut` (ancien, nouveau, origine, motif, auteur) |
 | S9 | Arrêt de tournée | Soit un candidat, soit un prospect : un arrêt vide ou double est refusé |
 
 ## n8n (lecture seule)
