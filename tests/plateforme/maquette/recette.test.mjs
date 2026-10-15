@@ -47,7 +47,7 @@ async function ouvrir(mode = "live", hash = "") {
   const dom = new JSDOM(`<!doctype html><body>${HTML}</body>`, {
     runScripts: "dangerously", url: "https://recette.test/" + hash,
     beforeParse(w) {
-      w.scrollTo = () => {}; w.Element.prototype.scrollIntoView = () => {}; w.__RECETTE_RAPIDE = true;
+      w.scrollTo = () => {}; w.Element.prototype.scrollIntoView = () => {}; w.__RECETTE_RAPIDE = true; w.__TODAY = "2026-10-14";
       if (mode === "figee") return;
       w.claude = { use: async () => ({ callTool: async (server, tool, input) => {
         calls.push({ server, tool, input });
@@ -103,6 +103,15 @@ async function ouvrir(mode = "live", hash = "") {
           const id = +/where id = (\d+)/.exec(q)[1], tr = data.tournees.find(x => x[0] === id);
           tr[1] = /date_tournee = '([^']+)'/.exec(q)[1]; tr[2] = /nom = (null|'([^']*)')/.exec(q)[2] || null; return { content: [] };
         }
+        if (q.startsWith("update public.interaction set date_relance_initiale")) {
+          const id = +/where id = (\d+)/.exec(q)[1], i = data.interactions.find(x => x[0] === id), d = /date_relance = '([^']+)'/.exec(q)[1];
+          if (i) { i[12] = i[12] || i[7]; i[7] = d; } return { content: [] };
+        }
+        if (q.startsWith("update public.commerce set statut_prospection = 'Injoignable'")) {
+          const id = +/where id = (\d+)/.exec(q)[1], c = data.commerces.find(x => x[0] === id); if (c) c[10] = "Injoignable";
+          const m2 = /date_relance = '([^']+)' where id = (\d+)/.exec(q); if (m2) { const i = data.interactions.find(x => x[0] === +m2[2]); if (i) i[7] = m2[1]; }
+          return { content: [] };
+        }
         if (q.startsWith("update public.interaction set rdv_statut")) {
           const id = +/where id = (\d+)/.exec(q)[1], i = data.interactions.find(x => x[0] === id); if (i) i[9] = /rdv_statut = '([^']+)'/.exec(q)[1]; return { content: [] };
         }
@@ -131,7 +140,7 @@ async function ouvrir(mode = "live", hash = "") {
   });
   const w = dom.window, d = w.document, errs = [];
   OUVERTES.push(w);
-  w.addEventListener("error", e => errs.push(e.message));
+  w.addEventListener("error", e => errs.push(e.message || String(e.error && e.error.stack || e.error)));
   await new Promise(r => setTimeout(r, 60));
   const click = sel => { const el = typeof sel === "string" ? d.querySelector(sel) : sel; assert.ok(el, "élément absent : " + sel); el.dispatchEvent(new w.MouseEvent("click", { bubbles: true })); };
   const change = (sel, v) => { const el = d.querySelector(sel); assert.ok(el, "champ absent : " + sel); el.value = v; el.dispatchEvent(new w.Event("change", { bubbles: true })); };
@@ -218,18 +227,28 @@ async function ouvrir(mode = "live", hash = "") {
   assert.deepEqual([...m.d.querySelectorAll("tbody .ens")].map(x => x.textContent), ["Boulangerie Ancienne"]);
 });
 
-/* P6 */ test("P6 · Paliers de retard dans « À traiter » : à rattraper, en retard, à requalifier", async () => {
+/* Relances réelles (Supabase) : en retard de 2, 8 et 20 jours, et une pour aujourd'hui (date de la recette : 14/10/2026) */
+async function relancesReelles(m) {
+  const add = (cid, nom, iid, date, res, rel) => { m.data.commerces.push(COM(cid, nom, { statut: "À rappeler", ville: "Lille" })); m.data.interactions.push([iid, cid, 2, date, "Appel", res, null, rel, null, null, null, null]); };
+  add(180, "Rappel J+2", 980, "2026-10-05", "À rappeler", "2026-10-12");
+  add(181, "Rappel J+8", 981, "2026-09-28", "À rappeler", "2026-10-06");
+  add(182, "Rappel J+20", 982, "2026-09-15", "À rappeler", "2026-09-24");
+  add(183, "Rappel du jour", 983, "2026-10-07", "À rappeler", "2026-10-14");
+  m.click('[data-action="live"]'); await m.wait(80);
+}
+
+/* P6 */ test("P6 · « À traiter » sur les vraies relances : aujourd'hui, puis paliers de retard (à rattraper, en retard, à requalifier)", async () => {
   const m = await ouvrir("live");
-  assert.match(m.d.querySelector("h1").textContent, /Données d'illustration/);
+  await relancesReelles(m);
+  assert.match(m.d.querySelector("h1").textContent, /Données d'illustration \(sauf À traiter et RDV\)/);
+  m.click("[data-todo=jour]");
+  assert.match(m.d.querySelector("#todo").textContent, /Rappel du jour.*Action du jour/s, "la relance du jour doit être dans « Aujourd'hui »");
   m.click("[data-todo=retard]");
-  const rows = [...m.d.querySelectorAll(".trow")].map(r => ({ j: +r.querySelector(".when").textContent.slice(2), k: r.querySelector(".act-k").textContent, cls: r.className }));
-  assert.ok(rows.length > 0, "aucune relance en retard dans les données d'illustration");
-  for (const r of rows) {
-    const attendu = r.j <= 3 ? "À rattraper" : r.j <= 14 ? "En retard" : "À requalifier";
-    assert.equal(r.k, attendu, `J+${r.j} devrait être « ${attendu} »`);
-  }
-  const stale = m.d.querySelector("[data-stale]");
-  if (stale) { m.click(stale); assert.match(m.toasts(), /classé injoignable · nouvel essai le/); }
+  const rows = Object.fromEntries([...m.d.querySelectorAll("#todo .trow")].map(r => [r.querySelector(".ens").textContent, r.querySelector(".act-k").textContent]));
+  assert.deepEqual(rows, { "Rappel J+2": "À rattraper", "Rappel J+8": "En retard", "Rappel J+20": "À requalifier" });
+  const stale = m.d.querySelector("#todo [data-stale='182']");
+  m.click(stale); await m.wait(80);
+  assert.ok(m.calls.some(c => /update public\.commerce set statut_prospection = 'Injoignable' where id = 182;/.test(c.input.query || "")), "« Classer injoignable » doit être enregistré dans Supabase");
   assert.equal(m.d.querySelector("[data-scope]"), null, "le sélecteur Ma zone / Équipe doit avoir disparu");
   assert.deepEqual(m.errs, []);
 });
@@ -398,22 +417,21 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
 
 /* P15 */ test("P15 · « Ma to do » : une relance en retard reportée y passe, avec la prochaine tournée et les 5 prochains RDV", async () => {
   const m = await ouvrir("live");
+  await relancesReelles(m);
   assert.ok(m.d.querySelector("[data-todo=todo]"), "l'onglet Ma to do doit exister");
   assert.equal([...m.d.querySelectorAll("[data-todo]")].some(b => /Cette semaine/.test(b.textContent)), false, "l'onglet Cette semaine est remplacé");
   m.click("[data-todo=retard]");
-  const row = [...m.d.querySelectorAll(".trow")].find(r => r.querySelector("[data-panel$=':report']"));
-  assert.ok(row, "aucune relance en retard à reporter");
-  const nom = row.querySelector(".ens").textContent;
-  m.click(row.querySelector("[data-panel$=':report']"));
-  const inp = m.d.querySelector(".panel input[type=date]"); inp.value = "2026-10-21";
-  m.click(m.d.querySelector("[data-postpone]")); await m.wait(60);
+  m.click("#todo [data-panel='181:report']");
+  m.d.querySelector("#rep-181").value = "2026-10-21";
+  m.click("#todo [data-postpone='181:date']"); await m.wait(100);
+  assert.ok(m.calls.some(c => /update public\.interaction set date_relance_initiale = coalesce\(date_relance_initiale, date_relance\), date_relance = '2026-10-21' where id = 981;/.test(c.input.query || "")), "le report doit être enregistré dans Supabase");
   assert.match(m.toasts(), /reporté au 21\/10\/2026 · dans Ma to do/);
-  assert.ok(![...m.d.querySelectorAll(".trow .ens")].some(e => e.textContent === nom), "la relance reportée quitte « En retard »");
+  assert.ok(![...m.d.querySelectorAll("#todo .trow .ens")].some(e => e.textContent === "Rappel J+8"), "la relance reportée quitte « En retard »");
   m.click("[data-todo=todo]");
   const v = m.d.querySelector("#todo").textContent;
-  assert.match(v, new RegExp(`Relances reportées.*${nom.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}.*Reportée.*reportée au mercredi 21 octobre · initialement prévue le`, "s"));
+  assert.match(v, /Relances reportées.*Rappel J\+8.*Reportée.*reportée au mercredi 21 octobre · initialement prévue le 06\/10\/2026/s);
   assert.match(v, /Ma (prochaine )?tournée/);
-  assert.match(v, /Mes 5 prochains RDV/);
+  assert.match(v, /Mes 5 prochains RDV.*Boulangerie Ancienne/s, "les RDV viennent des vraies données");
   assert.ok(m.d.querySelectorAll("#todo .todo li").length <= 5, "pas plus de 5 RDV");
   assert.deepEqual(m.errs, []);
 });
@@ -432,33 +450,29 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
   assert.deepEqual(m.errs, []);
 });
 
-/* P17 */ test("P17 · « À traiter » : le nom de l'enseigne ouvre sa fiche, ou la création d'une fiche si elle n'existe pas", async () => {
+/* P17 */ test("P17 · « À traiter » : le nom de l'enseigne ouvre sa fiche ; un commerce sans fiche ouvre la création", async () => {
   const m = await ouvrir("live");
-  assert.match(m.d.querySelector("h1").textContent, /Données d'illustration/);
+  await relancesReelles(m);
   assert.doesNotMatch(m.d.querySelector("#todo").textContent, /Saisir le résultat/);
   m.click("[data-todo=todo]");
   assert.doesNotMatch(m.d.querySelector("#todo").textContent, /Préparer/);
   m.click("[data-todo=retard]");
-  const nom = m.d.querySelector("#todo .trow .ens").textContent;
-  // 1. Pas encore de fiche réelle : formulaire de création pré-rempli
-  m.click("#todo .trow .ens");
+  m.click([...m.d.querySelectorAll("#todo .trow .ens")].find(e => e.textContent === "Rappel J+20"));
+  assert.equal(m.w.location.hash, "#fiche-182");
+  assert.match(m.d.querySelector("#view").textContent, /Rappel J\+20/);
+  // Commerce fictif sans fiche réelle : formulaire de création pré-rempli, enregistré dans Supabase
+  m.click("[data-go=dashboard]");
+  const nom = m.w.eval("DEMO_S.commerces[0].enseigne");
+  m.w.eval("ouvrirDepuisDemo(DEMO_S.commerces[0].id)");
   assert.equal(m.d.querySelector("#p-enseigne")?.value, nom, "le formulaire de création doit être pré-rempli");
   m.d.querySelector("#f-prospect").dispatchEvent(new m.w.Event("submit", { bubbles: true, cancelable: true })); await m.wait(120);
   const ins = m.calls.find(c => /^insert into public\.commerce \(enseigne, type_commerce, zone, ville/.test(c.input.query || ""));
-  assert.ok(ins, "la fiche doit être créée dans Supabase");
-  assert.ok(ins.input.query.includes(`'${nom.replace(/'/g, "''")}'`));
-  assert.match(m.d.querySelector("#view").textContent, new RegExp(nom.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-  assert.equal(m.d.querySelector("h1").textContent.includes("Données d'illustration"), false, "on doit être sur la vraie fiche");
-  // 2. La fiche existe désormais : le nom ouvre directement la fiche
-  m.click("[data-go=dashboard]"); m.click("[data-todo=retard]");
-  const n0 = m.calls.length;
-  m.click([...m.d.querySelectorAll("#todo .trow .ens")].find(e => e.textContent === nom));
-  assert.equal(m.d.querySelector("#p-enseigne"), null, "pas de création en double");
-  assert.equal(m.calls.slice(n0).some(c => /insert into public\.commerce/.test(c.input.query || "")), false);
-  assert.match(location(m), /^#fiche-\d+$/);
+  assert.ok(ins && ins.input.query.includes(`'${nom.replace(/'/g, "''")}'`), "la fiche doit être créée dans Supabase");
+  assert.equal(m.w.eval("ui.view"), "fiche", "la nouvelle fiche doit s'ouvrir");
+  assert.equal(commerceOuvert(m), nom);
   assert.deepEqual(m.errs, []);
 });
-function location(m) { return m.w.location.hash; }
+const commerceOuvert = m => m.w.eval("commerce(ui.ficheId).enseigne");
 
 /* P18 */ test("P18 · Liste des prospects : colonne E-mail, vide quand Google Maps n'en a pas fourni", async () => {
   const m = await ouvrir("live");

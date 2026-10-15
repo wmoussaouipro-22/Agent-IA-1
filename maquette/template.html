@@ -534,7 +534,7 @@ a.btn { text-decoration: none; }
 let RAW = __DATA__;
 const DEMO_RAW = __DEMO__; /* jeu fictif, seulement pour illustrer le tableau de bord */
 const LIVE_SQL = __SQL__;
-const TODAY = "2026-10-14";
+const TODAY = window.__TODAY || new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" });
 const ME_ID = 2;
 const STORE_KEY = "ecolocaux-maquette-v3";
 const STATUTS = ["Nouveau", "Contacté", "À rappeler", "Injoignable", "RDV pris", "Signé", "Pas intéressé"];
@@ -695,14 +695,17 @@ function hbars(rows, opts = {}) {
 function weekStart(iso) { const d = d0(iso); const k = (d.getDay() + 6) % 7; d.setDate(d.getDate() - k); return d.toISOString().slice(0, 10); }
 
 function viewDashboard() {
+  /* « À traiter », relances et RDV : vraies données Supabase ; indicateurs et pipeline : données d'illustration */
+  const REALV = S.demo && REAL_S ? REAL_S : null;
+  const swap = fn => { if (!REALV) return fn(); const prev = S; S = REALV; try { return fn(); } finally { S = prev; } };
   const { cs, is } = scopeData();
   const actifs = cs.filter(c => !stopped(c));
   const eleves = actifs.filter(c => c.potentiel === "Élevé").length;
   const fermes = ["Signé", "Pas intéressé"];
-  const B = relBuckets(actifs);
+  const B = swap(() => relBuckets(scopeData().cs.filter(c => !stopped(c))));
   const retard = B.retard.length;
   if (!ui.todoTab || ui.todoTab === "semaine") ui.todoTab = ["jour", "retard", "todo"].find(k => B[k].length) || "jour";
-  const rdvs = is.filter(i => i.rdv && i.rdv.slice(0, 10) >= TODAY && ["Planifié", "Confirmé"].includes(i.rdvStatut)).sort((a, b) => a.rdv.localeCompare(b.rdv));
+  const rdvs = swap(() => scopeData().is.filter(i => i.rdv && i.rdv.slice(0, 10) >= TODAY && ["Planifié", "Confirmé"].includes(i.rdvStatut) && commerce(i.commerceId)).sort((a, b) => a.rdv.localeCompare(b.rdv)));
   const touches = new Set(is.map(i => i.commerceId));
   const signes = cs.filter(c => c.statut === "Signé");
   const moy = S.caMoyen || 2400;
@@ -736,8 +739,8 @@ function viewDashboard() {
     </li>`; };
   const list = B[ui.todoTab] || [];
   const empty = { jour: "Aucune relance prévue aujourd'hui.", retard: "Aucune relance en retard.", todo: "Aucune relance reportée. Quand tu reportes une relance, elle arrive ici." }[ui.todoTab];
-  const todoRdv = rdvs.slice(0, 5).map(i => { const c = commerce(i.commerceId); return `<li><span class="when rdv">${fmtShort(i.rdv)}</span><span class="t"><button class="ens" data-open="${c.id}">${esc(c.enseigne)}</button><small>${fmtHeure(i.rdv)} · ${esc(i.rdvObjet || "Rendez-vous")} · ${esc(c.ville)}</small></span></li>`; }).join("");
-  const relList = `<ul class="todo-list">${list.map(rowRel).join("") || `<li class="muted" style="list-style:none;padding:12px 0">${empty}</li>`}</ul>`;
+  const todoRdv = swap(() => rdvs.slice(0, 5).map(i => { const c = commerce(i.commerceId); return `<li><span class="when rdv">${fmtShort(i.rdv)}</span><span class="t"><button class="ens" data-open="${c.id}">${esc(c.enseigne)}</button><small>${fmtHeure(i.rdv)} · ${esc(i.rdvObjet || "Rendez-vous")} · ${esc(c.ville)}</small></span></li>`; }).join(""));
+  const relList = swap(() => `<ul class="todo-list">${list.map(rowRel).join("") || `<li class="muted" style="list-style:none;padding:12px 0">${empty}</li>`}</ul>`);
   const todoBody = ui.todoTab !== "todo" ? relList : `<h3 class="todo-sub">${ms("update")}Relances reportées <span class="hint">${list.length}</span></h3>${relList}
     ${tourneeCard(true)}
     <h3 class="todo-sub">${ms("event")}Mes 5 prochains RDV <span class="hint">${rdvs.length > 5 ? `5 sur ${rdvs.length}` : rdvs.length}</span></h3>
@@ -746,7 +749,7 @@ function viewDashboard() {
 
   return `
   <div class="page-head">
-    <div><h1>Tableau de bord${S.demo ? ` <span class="chip">Données d'illustration</span>` : ""}</h1><p>${ui.scope === "zone" ? `Zone ${esc(ME.zone)} · ${cs.length} commerces suivis` : `Toute l'équipe · ${cs.length} commerces, 5 zones`} · données au ${fmt(TODAY)}</p></div>
+    <div><h1>Tableau de bord${S.demo ? ` <span class="chip">Données d'illustration${REALV ? " (sauf À traiter et RDV)" : ""}</span>` : ""}</h1><p>${ui.scope === "zone" ? `Zone ${esc(ME.zone)} · ${cs.length} commerces suivis` : `Toute l'équipe · ${cs.length} commerces, 5 zones`} · données au ${fmt(TODAY)}</p></div>
 
   </div>
   <section class="kpis" aria-label="Indicateurs clés">
@@ -760,7 +763,7 @@ function viewDashboard() {
   <div class="dash">
     <div class="col">
       <section class="card" id="todo">
-        <div class="card-head"><h2>À traiter</h2><span class="hint">Ma liste d'appels, par priorité</span></div>
+        <div class="card-head"><h2>À traiter</h2><span class="hint">${REALV ? "Mes relances réelles (Supabase), par priorité" : "Ma liste d'appels, par priorité"}</span></div>
         <div class="tabs" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" data-todo="${k}" aria-selected="${ui.todoTab === k}">${l}<span class="n ${k === "retard" && B[k].length ? "late" : ""}">${B[k].length}</span></button>`).join("")}</div>
         <div class="card-body" style="padding-top:4px">${todoBody}</div>
       </section>
@@ -1118,7 +1121,13 @@ Pour ne plus recevoir nos messages, répondez STOP.</textarea></label><p class="
 /* ---------- Rendu ---------- */
 let REAL_S = null, DEMO_S = null;
 function demoS() {
-  if (!DEMO_S) { const r = RAW; RAW = Object.assign({}, r, DEMO_RAW); DEMO_S = seed(); RAW = r; DEMO_S.demo = true; }
+  if (!DEMO_S) {
+    /* le jeu fictif est daté du 14/10/2026 : on le décale pour qu'il reste à jour */
+    const n = Math.round((Date.parse(TODAY + "T12:00:00Z") - Date.parse("2026-10-14T12:00:00Z")) / 864e5);
+    const sh = v => { if (!v || !n) return v; const t = new Date(Date.parse(v.length <= 10 ? v + "T12:00:00Z" : v) + n * 864e5).toISOString(); return v.length <= 10 ? t.slice(0, 10) : t; };
+    const demo = Object.assign({}, DEMO_RAW, { interactions: DEMO_RAW.interactions.map(i => { const x = i.slice(); x[3] = sh(x[3]); x[7] = sh(x[7]); x[8] = sh(x[8]); return x; }) });
+    const r = RAW; RAW = Object.assign({}, r, demo); DEMO_S = seed(); RAW = r; DEMO_S.demo = true;
+  }
   return DEMO_S;
 }
 const onDemo = () => ui.view === "dashboard" && LIVE.on;
@@ -1203,7 +1212,9 @@ document.addEventListener("click", e => {
   if (d.mail) { ui.modal = { type: "maildraft", id: +d.mail }; return render(); }
   if (d.mailtab) { ui.mailTab = d.mailtab; return render(); }
   if (d.week !== undefined) { ui.week = +d.week === 0 ? 0 : (ui.week || 0) + +d.week; return render(); }
-  if (onDemo() && (d.open || d.act)) return ouvrirDepuisDemo(+(d.open || d.act));
+  const inReal = onDemo() && REAL_S && t.closest("#todo, .kpi-link");
+  if (inReal) S = REAL_S;
+  if (onDemo() && !inReal && (d.open || d.act)) return ouvrirDepuisDemo(+(d.open || d.act));
   if (d.open) return go("fiche", +d.open);
   if (d.menu) { ui.menu = ui.menu === +d.menu ? null : +d.menu; return render(); }
   if (d.edit) { ui.menu = null; ui.modal = { type: "prospect", id: +d.edit }; return render(); }
@@ -1214,6 +1225,10 @@ document.addEventListener("click", e => {
   if (d.scope) { ui.scope = d.scope; return render(); }
   if (d.pot) { const k = d.pot.indexOf(":"), x = S.candidats.find(c => c.id === +d.pot.slice(0, k)), p = d.pot.slice(k + 1); x.potentiel = x.potentiel === p ? null : p; ui.selCand = x.id; save(); toast(`${x.enseigne} : ${TEMP_LABEL[temp(x).k].toLowerCase()}`, "flag"); return render(); }
   if (d.act) { const c = commerce(+d.act), act = nextAction(interOf(c.id)[0]); ui.panel = null; ui.prefill = { canal: act.canal, res: act.res || null, label: act.l }; return go("fiche", c.id); }
+  if (d.stale && LIVE.on && !S.demo) { const c = commerce(+d.stale), last = interOf(c.id)[0], dd = addDays(TODAY, 90); ui.panel = null;
+    return sqlLive(`update public.commerce set statut_prospection = 'Injoignable' where id = ${Number(c.id)};${last ? ` update public.interaction set date_relance_initiale = coalesce(date_relance_initiale, date_relance), date_relance = ${sqlTxt(dd)} where id = ${Number(last.id)};` : ""}`)
+      .then(() => { toast(`${c.enseigne} classé injoignable · nouvel essai le ${fmt(dd)}`, "phone_disabled"); return loadLive(true); })
+      .catch(e => { toast(`Non enregistré (${(e && e.code) || "erreur"})`, "error"); render(); }); }
   if (d.stale) { const c = commerce(+d.stale), last = interOf(c.id)[0]; c.statut = "Injoignable"; if (last) last.relance = addDays(TODAY, 90); ui.panel = null; save(); toast(`${c.enseigne} classé injoignable · nouvel essai le ${fmt(addDays(TODAY, 90))}`, "phone_disabled"); return render(); }
   if (d.today) { const c = commerce(+d.today), last = interOf(c.id)[0]; ui.panel = null; if (!last) return render(); return reportRelance(c, last, TODAY, `${c.enseigne} : à faire aujourd'hui`, "today"); }
   if (d.mapmode) { ui.mapMode = d.mapmode; return render(); }
