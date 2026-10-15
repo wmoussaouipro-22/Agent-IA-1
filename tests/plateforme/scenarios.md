@@ -24,9 +24,10 @@ simulés, les scénarios Supabase annulent tout ce qu'ils créent, et n8n est co
 | P10 | Enregistrer un RDV (Diagnostic, Présentation devis, Signature) | Échange et statut enregistrés dans Supabase, brouillon d'e-mail demandé au workflow n8n IA, brouillon ouvert pour relecture |
 | P11 | Relire et envoyer un e-mail | Brouillon modifiable, enregistré, validé puis envoyé par le workflow n8n Gmail ; passe dans « Envoyés » |
 | P12 | Consulter l'agenda | Le RDV apparaît dans sa semaine, avec le repère Google Agenda et l'état de l'e-mail ; clic → fiche |
-| P13 | Préparer et faire une tournée terrain | Tournée à une date choisie ; candidats (recherche) et prospects (à revoir) distingués ; ordre modifiable ; horaires du jour et créneau conseillé ; itinéraire Google Maps ; résultat de visite enregistré comme échange « Visite » ; encart dans le tableau de bord |
+| P13 | Préparer et faire une tournée terrain | Date choisie dans « Ajouter un prospect », tournée créée au premier arrêt (plus de liste ni de formulaire de création) ; candidats (recherche) et prospects (à revoir) distingués ; ordre modifiable ; horaires du jour et créneau conseillé ; itinéraire Google Maps ; résultat de visite enregistré comme échange « Visite » ; encart dans le tableau de bord |
 | P14 | Organiser une tournée | Motif de chaque arrêt : « 1re visite », « Relance terrain » ou « RDV commercial · heure » (heure fixe, boutons RDV réalisé / Reporté / Annulé) ; RDV du jour proposés avec « Ajouter à la tournée », jamais ajoutés d'office ; recherche des prospects avec liste de 20 par page (Précédent / Suivant) ; modifier la date et le nom ; supprimer la tournée après confirmation dans la page |
 | P15 | Reporter une relance | « Cette semaine » devient « Ma to do » : une relance reportée (« Reporter » dans « En retard ») y passe, avec sa date d'origine, et le report est enregistré dans Supabase (date_relance_initiale) ; l'onglet regroupe aussi la prochaine tournée et les 5 prochains RDV |
+| P16 | Plusieurs tournées le même jour | Signalées, puis regroupées en une seule (arrêts déplacés, tournées vides supprimées) |
 
 ## Règles Supabase (`supabase/scenarios.sql`)
 

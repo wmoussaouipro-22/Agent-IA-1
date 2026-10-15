@@ -259,6 +259,7 @@ table.grid .r { text-align: right; }
 .stop-h { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .stop-a { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 4px; } .stop-a .grow { flex: 1; }
 .warn-txt { color: var(--red) !important; font-weight: 600; }
+.tour-pick { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .tour-add { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
 .b-rdv { background: var(--cold-bg); color: var(--cold); border-color: transparent; font-weight: 700; }
 .b-first { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-line); }
@@ -1171,14 +1172,14 @@ function autoRelance(c, res, date, rdvIso, hist) {
 
 /* ---------- Interactions ---------- */
 document.addEventListener("click", e => {
-  const t = e.target.closest("[data-go],[data-open],[data-menu],[data-edit],[data-del],[data-page],[data-sel],[data-selall],[data-scope],[data-rech],[data-tri],[data-keep],[data-drop],[data-known],[data-undo],[data-relance],[data-range],[data-today],[data-act],[data-pot],[data-pin],[data-tour],[data-chip],[data-mapmode],[data-zoom],[data-todo],[data-copy],[data-panel],[data-result],[data-postpone],[data-stale],[data-mail],[data-tourp],[data-tsel],[data-tmove],[data-tdel],[data-tres],[data-tpage],[data-mailtab],[data-week],[data-action],[data-close],[data-veil]");
+  const t = e.target.closest("[data-go],[data-open],[data-menu],[data-edit],[data-del],[data-page],[data-sel],[data-selall],[data-scope],[data-rech],[data-tri],[data-keep],[data-drop],[data-known],[data-undo],[data-relance],[data-range],[data-today],[data-act],[data-pot],[data-pin],[data-tour],[data-chip],[data-mapmode],[data-zoom],[data-todo],[data-copy],[data-panel],[data-result],[data-postpone],[data-stale],[data-mail],[data-tourp],[data-tdate],[data-tmove],[data-tdel],[data-tres],[data-tpage],[data-mailtab],[data-week],[data-action],[data-close],[data-veil]");
   if (!t) { if (ui.menu) { ui.menu = null; render(); } return; }
   const d = t.dataset;
   if (d.veil !== undefined && e.target !== t) return;
   if (t.tagName === "A") e.preventDefault();
+  if (d.tdate) { ui.tourDate = d.tdate; ui.tourEdit = ui.tourDel = null; ui.tpage = 1; }
   if (d.go) return go(d.go);
   if (d.tourp) return toggleArret("p", +d.tourp);
-  if (d.tsel) { ui.tourId = +d.tsel; ui.tourEdit = ui.tourDel = null; ui.tpage = 1; return render(); }
   if (d.tpage) { ui.tpage = +d.tpage; return render(); }
   if (d.tmove) { const [id, dir] = d.tmove.split(":"); return moveArret(+id, +dir); }
   if (d.tdel) return removeArret(+d.tdel);
@@ -1228,7 +1229,7 @@ document.addEventListener("click", e => {
   if (a === "mail-validate") { ui.modal = null; toast("Brouillon validé : prêt à l'envoi par le commercial", "outgoing_mail"); return renderModal(); }
   if (a === "confirm-delete") { const id = ui.modal.id, c = commerce(id); S.commerces = S.commerces.filter(x => x.id !== id); S.interactions = S.interactions.filter(i => i.commerceId !== id); ui.sel.delete(id); ui.modal = null; save(); toast(`${c.enseigne} supprimé`, "delete"); if (ui.view === "fiche") return go("prospects"); return render(); }
   if (a === "confirm-oppose") { const c = commerce(ui.ficheId); c.opposition = TODAY; ui.modal = null; save(); toast("Opposition enregistrée", "block"); return render(); }
-  if (a === "tour-create") return createTournee();
+  if (a === "tour-merge") return mergeTournees();
   if (a === "tour-edit") { const t = curTournee(); ui.tourEdit = t && t.id; ui.tourDel = null; return render(); }
   if (a === "tour-askdel") { const t = curTournee(); ui.tourDel = t && t.id; ui.tourEdit = null; return render(); }
   if (a === "tour-cancel") { ui.tourEdit = ui.tourDel = null; return render(); }
@@ -1260,6 +1261,7 @@ document.addEventListener("change", e => {
   if (id === "f-stop") { f.showStop = e.target.checked; ui.page = 1; return render(); }
   if (id === "r-from" || id === "r-to") { const v = e.target.value; if (id === "r-from") ui.resFrom = v; else ui.resTo = v; if (ui.resFrom && ui.resTo && ui.resFrom > ui.resTo) { toast("La date de début doit précéder la date de fin", "error"); if (id === "r-from") ui.resTo = ui.resFrom; else ui.resFrom = ui.resTo; } return render(); }
   if (id === "ca-moy") { const v = Math.max(0, Math.round(+e.target.value || 0)); S.caMoyen = v; save(); toast(`Montant moyen : ${v.toLocaleString("fr-FR")} € par contrat`, "euro"); return render(); }
+  if (id === "t-day") { if (!e.target.value) return; ui.tourDate = e.target.value; ui.tourEdit = ui.tourDel = null; ui.tpage = 1; return render(); }
   if (id === "r-hist") { ui.rechId = +e.target.value; ui.selCand = null; ui.triFilter = ""; ui.zoom = 1; syncSearchForm(S.recherches.find(x => x.id === ui.rechId)); return render(); }
   if (id === "r-rayon") { ui.rRayon = +e.target.value; ui.rq = `${(ui.rq || "").split(",")[0].trim()}, ${ui.rRayon} km`; return render(); }
   if (id === "r-q") { ui.rq = e.target.value; const m = ui.rq.match(/(\d+)\s*km/i); if (m) ui.rRayon = +m[1]; return render(); }
@@ -1575,12 +1577,12 @@ function viewAgenda() {
 /* ---------- Tournées terrain (date choisie, ordre choisi par le commercial) ---------- */
 const CRENEAUX = { "Boulangerie": "14 h 30 – 16 h 30", "Pizzeria": "15 h – 17 h", "Restaurant": "15 h – 17 h", "Pressing": "10 h – 12 h", "Laverie": "10 h – 12 h", "Boucherie": "début d'après-midi", "Poissonnerie": "début d'après-midi" };
 const JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
-const myTournees = () => ((S.tournees) || []).filter(x => x.commercialId === ME_ID).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
-function curTournee() {
-  const ts = (REAL_S && REAL_S !== DEMO_S ? REAL_S : S).tournees || [];
-  const mine = ts.filter(x => x.commercialId === ME_ID).sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id);
-  return mine.find(x => x.id === ui.tourId) || mine.find(x => x.date >= TODAY) || null;
-}
+/* Une tournée = une date : le commercial choisit le jour, la tournée se crée au premier arrêt ajouté */
+function mesTournees() { const ts = (REAL_S && REAL_S !== DEMO_S ? REAL_S : S).tournees || []; return ts.filter(x => x.commercialId === ME_ID).sort((a, b) => a.date.localeCompare(b.date) || b.arrets.length - a.arrets.length || a.id - b.id); }
+function nextTournee() { return mesTournees().find(x => x.date >= TODAY && x.arrets.length) || null; }
+function tourDay() { if (!ui.tourDate) { const n = nextTournee(); ui.tourDate = n ? n.date : addOuvres(TODAY, 1); } return ui.tourDate; }
+const tourneesDuJour = day => mesTournees().filter(x => x.date === day);
+function curTournee() { return tourneesDuJour(tourDay())[0] || null; }
 const tourName = x => x.nom || `Tournée du ${fmt(x.date)}`;
 function inTournee(kind, id) { const t = curTournee(); return !!t && t.arrets.some(a => kind === "c" ? a.candidatId === id : a.commerceId === id); }
 function stopInfo(a) {
@@ -1615,18 +1617,16 @@ async function tourSql(q, okMsg) {
   try { const r = await sqlLive(q); if (okMsg) toast(okMsg, "route"); await loadLive(true); return r; }
   catch (e) { toast(`Tournée non enregistrée (${(e && e.code) || "erreur"})`, "error"); render(); return null; }
 }
-async function createTournee() {
-  const date = $("#t-date") && $("#t-date").value, nom = ($("#t-nom") && $("#t-nom").value.trim()) || null;
-  if (!date) return toast("Choisis la date de la tournée", "event");
-  if (LIVE.on && !S.demo) {
-    const r = await tourSql(`insert into public.tournee (commercial_id, date_tournee, nom) values (${Number(ME_ID)}, ${sqlTxt(date)}, ${sqlTxt(nom)}) returning id;`, `Tournée du ${fmt(date)} créée`);
-    const row = r && rowsOf(r, 0, "id"); if (row) ui.tourId = row.id; return render();
-  }
-  S.tournees = S.tournees || []; const id = nextId(S.tournees); S.tournees.push({ id, date, nom, statut: "Planifiée", commercialId: ME_ID, arrets: [] }); ui.tourId = id; save(); toast(`Tournée du ${fmt(date)} créée`, "route"); render();
-}
 async function toggleArret(kind, id) {
-  const t = curTournee();
-  if (!t) { toast("Crée d'abord une tournée (date) dans l'écran Tournées", "route"); return go("tournees"); }
+  const t = curTournee(), day = tourDay();
+  const nom0 = (kind === "c" ? (S.candidats.find(k => k.id === id) || {}).enseigne : (commerce(id) || {}).enseigne) || "Commerce", col = kind === "c" ? "candidat_id" : "commerce_id";
+  if (!t) {
+    const msg = `${nom0} ajouté à la tournée du ${fmt(day)}`;
+    if (LIVE.on && !S.demo) return tourSql(`with t as (insert into public.tournee (commercial_id, date_tournee) values (${Number(ME_ID)}, ${sqlTxt(day)}) returning id) insert into public.tournee_arret (tournee_id, ordre, ${col}) select id, 1, ${Number(id)} from t;`, msg);
+    S.tournees = S.tournees || []; const tid = nextId(S.tournees), aid = nextId([].concat(...S.tournees.map(x => x.arrets)));
+    S.tournees.push({ id: tid, date: day, nom: null, statut: "Planifiée", commercialId: ME_ID, arrets: [{ id: aid, ordre: 1, candidatId: kind === "c" ? id : null, commerceId: kind === "p" ? id : null, resultat: null }] });
+    save(); toast(msg, "route"); return render();
+  }
   const ex = t.arrets.find(a => kind === "c" ? a.candidatId === id : a.commerceId === id);
   const nom = (kind === "c" ? (S.candidats.find(k => k.id === id) || {}).enseigne : (commerce(id) || {}).enseigne) || "Commerce";
   if (ex) return removeArret(ex.id);
@@ -1682,7 +1682,7 @@ function itineraire(t) {
 function tourneeCard(inner) {
   if (S.demo && REAL_S) { const prev = S; S = REAL_S; try { return tourneeCard(inner); } finally { S = prev; } }
   const wrap = h => inner ? h.replace(/^<section class="card card-pad tour-card">/, '<div class="tour-card tour-in">').replace(/<\/section>$/, "</div>") : h;
-  const t = curTournee(); if (!t) return wrap(`<section class="card card-pad tour-card"><b>${ms("route")}Ma tournée</b><span class="muted">Aucune tournée prévue.</span><button class="btn sm" data-go="tournees" type="button">Planifier une tournée</button></section>`);
+  const t = nextTournee(); if (!t) return wrap(`<section class="card card-pad tour-card"><b>${ms("route")}Ma tournée</b><span class="muted">Aucune tournée prévue.</span><button class="btn sm" data-go="tournees" type="button">Préparer une tournée</button></section>`);
   const st = t.arrets.map(stopInfo).filter(Boolean), nc = st.filter(s => s.kind === "c").length, np = st.length - nc, faits = t.arrets.filter(a => a.resultat).length;
   const mos = st.map(s => motifVisite(s.kind, s.ref, t.date)), n1 = mos.filter(m => m.k === "first").length, nr = mos.filter(m => m.k === "relance").length, rdvs = mos.filter(m => m.k === "rdv");
   const detail = [n1 ? `${n1} 1re${n1 > 1 ? "s" : ""} visite${n1 > 1 ? "s" : ""}` : "", nr ? `${nr} relance${nr > 1 ? "s" : ""}` : "", rdvs.length ? `${rdvs.length} RDV commercial${rdvs.length > 1 ? "aux" : ""} (${rdvs.map(m => heureTxt(m.rdv.rdv)).join(", ")})` : ""].filter(Boolean).join(" · ");
@@ -1690,17 +1690,16 @@ function tourneeCard(inner) {
     <span><b>${esc(tourName(t))}</b> · ${fmtLong(t.date)}</span>
     <span class="muted">${st.length} arrêt${st.length > 1 ? "s" : ""} · <span class="kind-c">${nc} candidat${nc > 1 ? "s" : ""}</span> · <span class="kind-p">${np} prospect${np > 1 ? "s" : ""}</span>${faits ? ` · ${faits} visité${faits > 1 ? "s" : ""}` : ""}</span>
     ${detail ? `<span class="muted">${detail}</span>` : ""}
-    <button class="btn sm secondary" data-tsel="${t.id}" data-go="tournees" type="button">${ms("map")}Ouvrir la tournée</button></section>`);
+    <button class="btn sm secondary" data-tdate="${t.date}" data-go="tournees" type="button">${ms("map")}Ouvrir la tournée</button></section>`);
 }
 function viewTournees() {
-  const ts = myTournees(), t = curTournee();
-  const list = ts.map(x => `<button type="button" class="tour-chip" data-tsel="${x.id}" aria-pressed="${t && x.id === t.id}"><b>${fmt(x.date)}</b><small>${esc(x.nom || "Tournée")} · ${x.arrets.length} arrêt${x.arrets.length > 1 ? "s" : ""}</small></button>`).join("");
+  const day = tourDay(), memes = tourneesDuJour(day), t = memes[0] || null, autres = memes.slice(1);
   const RES_C = ["Retenir", "Écarter", "Absent"], RES_P = ["Absent", "À rappeler", "Intéressé", "RDV pris", "Pas intéressé"], RES_R = ["RDV réalisé", "Reporté", "Annulé"];
   const stops = t ? [...t.arrets].sort((a, b) => a.ordre - b.ordre || a.id - b.id) : [];
-  const info = stops.map(a => { const s = stopInfo(a); return s ? { a, s, m: motifVisite(s.kind, s.ref, t.date) } : null; }).filter(Boolean);
+  const info = stops.map(a => { const s = stopInfo(a); return s ? { a, s, m: motifVisite(s.kind, s.ref, day) } : null; }).filter(Boolean);
   const rdvOrder = info.filter(x => x.m.k === "rdv").map(x => x.m.rdv.rdv), horsOrdre = rdvOrder.some((r, i) => i && r < rdvOrder[i - 1]);
   const stop = ({ a, s, m }, k) => {
-    const hj = horairesDuJour(s.horaires, t.date), cr = CRENEAUX[s.type], rdv = m.k === "rdv";
+    const hj = horairesDuJour(s.horaires, day), cr = CRENEAUX[s.type], rdv = m.k === "rdv";
     const sub = rdv ? `RDV ${m.rdv.rdvObjet || "commercial"} · heure fixe ${heureTxt(m.rdv.rdv)}` : `${s.sub}${s.kind === "p" && s.step ? ` · prochaine étape : ${s.step.label}` : ""}`;
     return `<li class="stop kind-${s.kind} mot-${m.k}"><span class="stop-n">${k + 1}</span><div class="stop-b">
       <div class="stop-h">${motifBadge(m)}<span class="badge ${s.kind === "c" ? "b-amber" : "b-sage"}">${s.kind === "c" ? "Candidat" : "Prospect"}</span>${s.kind === "p" ? `<button class="ens" data-open="${s.ref.id}">${esc(s.nom)}</button>` : `<b>${esc(s.nom)}</b>`}${a.resultat ? `<span class="badge b-solid">${esc(a.resultat)}</span>` : ""}</div>
@@ -1711,45 +1710,54 @@ function viewTournees() {
         <button class="iconbtn" data-tmove="${a.id}:-1" type="button" title="Monter" ${k === 0 ? "disabled" : ""}>${ms("arrow_upward")}</button><button class="iconbtn" data-tmove="${a.id}:1" type="button" title="Descendre" ${k === info.length - 1 ? "disabled" : ""}>${ms("arrow_downward")}</button><button class="iconbtn" data-tdel="${a.id}" type="button" title="Retirer de la tournée">${ms("close")}</button></div>
     </div></li>`; };
   const inT = new Set(stops.map(a => a.commerceId).filter(Boolean));
-  const rdvJour = t ? rdvsDuJour(t.date).filter(i => !inT.has(i.commerceId)) : [];
+  const rdvJour = rdvsDuJour(day).filter(i => !inT.has(i.commerceId)) ;
   /* Recherche + liste de tous les prospects, 20 par page */
   const q = (ui.tq || "").trim().toLowerCase(), PER = 20;
-  const pool = t ? S.commerces.filter(c => !stopped(c) && !inT.has(c.id) && c.statut !== "Signé")
+  const pool = S.commerces.filter(c => !stopped(c) && !inT.has(c.id) && c.statut !== "Signé")
     .filter(c => !q || [c.enseigne, c.ville, c.type, c.statut, c.cp].some(v => String(v || "").toLowerCase().includes(q)))
-    .map(c => ({ c, m: motifVisite("p", c, t.date), s: nextStep(c) }))
-    .sort((a, b) => (b.m.k === "rdv") - (a.m.k === "rdv") || (b.s.label === "Visite sur place") - (a.s.label === "Visite sur place") || a.c.enseigne.localeCompare(b.c.enseigne)) : [];
+    .map(c => ({ c, m: motifVisite("p", c, day), s: nextStep(c) }))
+    .sort((a, b) => (b.m.k === "rdv") - (a.m.k === "rdv") || (b.s.label === "Visite sur place") - (a.s.label === "Visite sur place") || a.c.enseigne.localeCompare(b.c.enseigne));
   const pages = Math.max(1, Math.ceil(pool.length / PER)), pg = Math.min(Math.max(1, ui.tpage || 1), pages), slice = pool.slice((pg - 1) * PER, pg * PER);
   const url = t && itineraire(t);
   return `
   <div class="page-head"><div><h1>Tournées</h1><p>Prospection terrain : candidats issus de tes recherches, prospects à revoir et RDV commerciaux, dans l'ordre que tu choisis.</p></div></div>
-  <section class="card card-pad tour-new"><b>Nouvelle tournée</b><label class="field"><span>Date</span><input class="input" type="date" id="t-date" min="${TODAY}" value="${addOuvres(TODAY, 1)}"></label><label class="field" style="flex:1;min-width:180px"><span>Nom (facultatif)</span><input class="input" id="t-nom" placeholder="ex. Roubaix centre"></label><button class="btn primary" data-action="tour-create" type="button">${ms("add")}Créer</button></section>
-  ${ts.length ? `<div class="tour-chips">${list}</div>` : `<p class="muted">Aucune tournée pour l'instant : crée-la, puis ajoute des commerces depuis Recherche (« Tournée ») ou depuis une fiche prospect.</p>`}
-  ${t ? `<section class="card">
-    <div class="card-head"><h2>${esc(tourName(t))} · ${fmtLong(t.date)}</h2><div class="tour-tools"><span class="hint"><span class="kind-c">${stops.filter(a => a.candidatId).length} candidat(s)</span> · <span class="kind-p">${stops.filter(a => a.commerceId).length} prospect(s)</span></span>
-      <button class="btn sm secondary" data-action="tour-edit" type="button">${ms("edit")}Modifier</button><button class="btn sm secondary" data-action="tour-askdel" type="button">${ms("delete")}Supprimer</button></div></div>
-    ${ui.tourEdit === t.id ? `<div class="tour-edit"><label class="field"><span>Date</span><input class="input" type="date" id="te-date" value="${t.date}"></label><label class="field" style="flex:1;min-width:180px"><span>Nom (facultatif)</span><input class="input" id="te-nom" value="${esc(t.nom || "")}" placeholder="ex. Roubaix centre"></label><button class="btn primary" data-action="tour-save" type="button">Enregistrer</button><button class="btn" data-action="tour-cancel" type="button">Annuler</button></div>` : ""}
-    ${ui.tourDel === t.id ? `<div class="tour-del">${ms("warning")}<span style="flex:1;min-width:200px">Supprimer « ${esc(tourName(t))} » et ses ${stops.length} arrêt${stops.length > 1 ? "s" : ""} ? Les échanges déjà enregistrés restent sur les fiches.</span><button class="btn sm danger" data-action="tour-del" type="button">Supprimer la tournée</button><button class="btn sm" data-action="tour-cancel" type="button">Annuler</button></div>` : ""}
+  <section class="card">
+    <div class="card-head"><h2>${t && t.nom ? `${esc(t.nom)} · ${fmtLong(day)}` : `Tournée du ${fmtLong(day).toLowerCase()}`}</h2><div class="tour-tools"><span class="hint"><span class="kind-c">${stops.filter(a => a.candidatId).length} candidat(s)</span> · <span class="kind-p">${stops.filter(a => a.commerceId).length} prospect(s)</span></span>
+      ${t ? `<button class="btn sm secondary" data-action="tour-edit" type="button">${ms("edit")}Modifier</button><button class="btn sm secondary" data-action="tour-askdel" type="button">${ms("delete")}Supprimer</button>` : ""}</div></div>
+    ${t && ui.tourEdit === t.id ? `<div class="tour-edit"><label class="field"><span>Date</span><input class="input" type="date" id="te-date" value="${t.date}"></label><label class="field" style="flex:1;min-width:180px"><span>Nom (facultatif)</span><input class="input" id="te-nom" value="${esc(t.nom || "")}" placeholder="ex. Roubaix centre"></label><button class="btn primary" data-action="tour-save" type="button">Enregistrer</button><button class="btn" data-action="tour-cancel" type="button">Annuler</button></div>` : ""}
+    ${t && ui.tourDel === t.id ? `<div class="tour-del">${ms("warning")}<span style="flex:1;min-width:200px">Supprimer « ${esc(tourName(t))} » et ses ${stops.length} arrêt${stops.length > 1 ? "s" : ""} ? Les échanges déjà enregistrés restent sur les fiches.</span><button class="btn sm danger" data-action="tour-del" type="button">Supprimer la tournée</button><button class="btn sm" data-action="tour-cancel" type="button">Annuler</button></div>` : ""}
     <div class="card-body">${url ? `<a class="btn secondary" href="${url}" target="_blank" rel="noopener">${ms("map")}Itinéraire dans Google Maps</a>` : ""}
+      ${autres.length ? `<div class="tour-del" style="border-radius:8px;margin-top:12px">${ms("call_merge")}<span style="flex:1;min-width:200px">${autres.length + 1} tournées existent ce jour-là (${autres.reduce((n, x) => n + x.arrets.length, 0)} autre${autres.reduce((n, x) => n + x.arrets.length, 0) > 1 ? "s" : ""} arrêt${autres.reduce((n, x) => n + x.arrets.length, 0) > 1 ? "s" : ""}) : regroupe-les pour n'en garder qu'une.</span><button class="btn sm danger" data-action="tour-merge" type="button">Regrouper</button></div>` : ""}
       ${horsOrdre ? `<p class="warn-txt" style="margin:12px 0 0">${ms("warning")}Les RDV commerciaux ne sont pas dans l'ordre de leurs heures : vérifie l'ordre de passage.</p>` : ""}
-      <ol class="stops">${info.map(stop).join("") || `<li class="muted" style="list-style:none">Aucun arrêt. Ajoute des candidats depuis Recherche, ou un prospect ci-dessous.</li>`}</ol>
+      <ol class="stops">${info.map(stop).join("") || `<li class="muted" style="list-style:none">Aucun arrêt ce jour-là. Ajoute un prospect ci-dessous, ou des candidats depuis Recherche (« Tournée ») : la tournée se crée au premier arrêt.</li>`}</ol>
       ${rdvJour.length ? `<div class="rdv-day"><b>${ms("event")}RDV commerciaux ce jour-là, hors tournée</b>${rdvJour.map(i => { const c = commerce(i.commerceId); return `<div class="pick-row" style="border:0;padding:4px 0"><div><b>${heureTxt(i.rdv)} · ${esc(c.enseigne)}</b><small>RDV ${esc(i.rdvObjet || "commercial")} · ${esc(c.ville || "")}</small></div><button class="btn sm primary" data-tourp="${c.id}" type="button">${ms("add")}Ajouter à la tournée</button></div>`; }).join("")}</div>` : ""}
-      <div class="tour-add"><label class="field"><span>Ajouter un prospect</span><input class="input" id="t-q" type="search" value="${esc(ui.tq || "")}" placeholder="Rechercher par nom, ville, type ou statut" autocomplete="off"></label>
+      <div class="tour-add"><b>Ajouter un prospect</b><div class="tour-pick"><label class="field"><span>Date de la tournée</span><input class="input" type="date" id="t-day" min="${TODAY}" value="${day}"></label><label class="field" style="flex:1;min-width:200px"><span>Rechercher</span><input class="input" id="t-q" type="search" value="${esc(ui.tq || "")}" placeholder="Nom, ville, type ou statut" autocomplete="off"></label></div>
         <ul class="pick-list">${slice.map(({ c, m, s }) => `<li class="pick-row"><div><b>${esc(c.enseigne)}</b><small>${esc([c.type, c.ville, c.statut].filter(Boolean).join(" · "))}${m.k !== "rdv" && s.label ? ` · prochaine étape : ${esc(s.label)}` : ""}</small></div>${motifBadge(m)}<button class="btn sm" data-tourp="${c.id}" type="button">${ms("add")}Ajouter</button></li>`).join("") || `<li class="pick-row muted">Aucun prospect ne correspond${q ? ` à « ${esc(ui.tq)} »` : ""}.</li>`}</ul>
         ${pool.length > PER ? `<div class="pick-nav"><span>${(pg - 1) * PER + 1}–${Math.min(pg * PER, pool.length)} sur ${pool.length}</span><button class="btn sm" data-tpage="${pg - 1}" type="button" ${pg <= 1 ? "disabled" : ""}>Précédent</button><button class="btn sm" data-tpage="${pg + 1}" type="button" ${pg >= pages ? "disabled" : ""}>Suivant</button></div>` : pool.length ? `<div class="pick-nav"><span>${pool.length} prospect${pool.length > 1 ? "s" : ""}</span></div>` : ""}
       </div>
-    </div></section>` : ""}`;
+    </div></section>`;
+}
+async function mergeTournees() {
+  const [t, ...autres] = tourneesDuJour(tourDay()); if (!t || !autres.length) return;
+  let ordre = t.arrets.reduce((m, a) => Math.max(m, a.ordre), 0);
+  if (LIVE.on && !S.demo) {
+    const ids = autres.map(x => Number(x.id)).join(", ");
+    return tourSql(`update public.tournee_arret set tournee_id = ${Number(t.id)}, ordre = ordre + ${ordre} where tournee_id in (${ids}); delete from public.tournee where id in (${ids});`, "Tournées regroupées");
+  }
+  autres.forEach(x => x.arrets.forEach(a => { a.ordre = ++ordre; t.arrets.push(a); }));
+  S.tournees = S.tournees.filter(x => !autres.includes(x)); save(); toast("Tournées regroupées", "route"); render();
 }
 async function updateTournee() {
   const t = curTournee(); if (!t) return;
   const date = $("#te-date").value, nom = $("#te-nom").value.trim() || null;
   if (!date) return toast("Choisis la date de la tournée", "event");
-  ui.tourEdit = null;
+  ui.tourEdit = null; ui.tourDate = date;
   if (LIVE.on && !S.demo) return tourSql(`update public.tournee set date_tournee = ${sqlTxt(date)}, nom = ${sqlTxt(nom)} where id = ${Number(t.id)};`, "Tournée modifiée");
   t.date = date; t.nom = nom; save(); toast("Tournée modifiée", "route"); render();
 }
 async function deleteTournee() {
   const t = curTournee(); if (!t) return;
-  ui.tourDel = null; ui.tourId = null;
+  ui.tourDel = null;
   if (LIVE.on && !S.demo) return tourSql(`delete from public.tournee_arret where tournee_id = ${Number(t.id)}; delete from public.tournee where id = ${Number(t.id)};`, `${tourName(t)} supprimée`);
   S.tournees = S.tournees.filter(x => x.id !== t.id); save(); toast(`${tourName(t)} supprimée`, "delete"); render();
 }

@@ -64,6 +64,15 @@ async function ouvrir(mode = "live", hash = "") {
           data.candidats.find(c => c[0] === id)[9] = st;
           return { content: [{ type: "text", text: JSON.stringify({ result: `<untrusted-data-x1>\n${JSON.stringify([{ id, statut_tri: st, commerce_id: 999, code_commerce: "Co-999" }])}\n</untrusted-data-x1>` }) }] };
         }
+        if (q.startsWith("with t as (insert into public.tournee")) {
+          const id = 70 + data.tournees.length, day = /'(\d{4}-\d\d-\d\d)'/.exec(q)[1], m = /select id, 1, (\d+) from t/.exec(q), cand = /candidat_id\)/.test(q);
+          data.tournees.push([id, day, null, "Planifiée", 2, [[800 + id, 1, cand ? +m[1] : null, cand ? null : +m[1], null, null]]]); return { content: [] };
+        }
+        if (q.startsWith("update public.tournee_arret set tournee_id")) {
+          const to = +/tournee_id = (\d+)/.exec(q)[1], add = +/ordre \+ (\d+)/.exec(q)[1], ids = /in \(([\d, ]+)\)/.exec(q)[1].split(",").map(Number), tr = data.tournees.find(x => x[0] === to);
+          for (const x of data.tournees.filter(x => ids.includes(x[0]))) for (const a of x[5]) tr[5].push([a[0], a[1] + add, a[2], a[3], a[4], a[5]]);
+          data.tournees = data.tournees.filter(x => !ids.includes(x[0])); return { content: [] };
+        }
         if (q.startsWith("insert into public.tournee (")) {
           const id = 70 + data.tournees.length; data.tournees.push([id, /'(\d{4}-\d\d-\d\d)'/.exec(q)[1], /'(\d{4}-\d\d-\d\d)', (null|'([^']*)')/.exec(q)[3] || null, "Planifiée", 2, []]);
           return { content: [{ type: "text", text: JSON.stringify({ result: `<untrusted-data-x1>\n[{"id":${id}}]\n</untrusted-data-x1>` }) }] };
@@ -305,11 +314,14 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
 /* P13 */ test("P13 · Tournée terrain : date choisie, candidat + prospect distingués, ordre choisi, itinéraire, résultat de visite", async () => {
   const m = await ouvrir("live");
   m.click("[data-go=tournees]");
-  m.change("#t-date", "2026-10-20"); m.d.querySelector("#t-nom").value = "Roubaix centre";
-  m.click('[data-action="tour-create"]'); await m.wait(80);
-  assert.ok(m.calls.some(c => /insert into public\.tournee \(commercial_id, date_tournee, nom\) values \(2, '2026-10-20', 'Roubaix centre'\)/.test(c.input.query || "")));
+  assert.equal(m.d.querySelector(".tour-chip"), null, "plus de liste de tournées");
+  assert.equal(m.d.querySelector("#t-nom"), null, "plus de formulaire « Nouvelle tournée »");
+  m.change("#t-day", "2026-10-20");
+  assert.match(m.d.querySelector(".card-head h2").textContent, /Tournée du mardi 20 octobre/);
+  assert.ok(!m.calls.some(c => /insert into public\.tournee/.test(c.input.query || "")), "aucune tournée vide créée");
   m.click("[data-go=recherches]");
   m.click("[data-tour='501']"); await m.wait(80);
+  assert.ok(m.calls.some(c => /with t as \(insert into public\.tournee \(commercial_id, date_tournee\) values \(2, '2026-10-20'\) returning id\) insert into public\.tournee_arret \(tournee_id, ordre, candidat_id\) select id, 1, 501 from t;/.test(c.input.query || "")), "la tournée se crée au premier arrêt");
   m.w.eval("go('fiche', 170)");
   m.click("[data-tourp='170']"); await m.wait(80);
   m.click("[data-go=tournees]");
@@ -327,7 +339,7 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
   assert.ok(m.calls.some(c => /update public\.tournee_arret set resultat = 'À rappeler'/.test(c.input.query || "")));
   assert.ok(m.calls.some(c => /insert into public\.interaction.*'Visite', 'À rappeler'/s.test(c.input.query || "")), "la visite doit être enregistrée comme échange");
   m.click("[data-go=dashboard]"); m.click("[data-todo=todo]");
-  assert.match(m.d.querySelector("#view").textContent, /Ma prochaine tournée.*Roubaix centre.*2 arrêts.*1 candidat.*1 prospect/s);
+  assert.match(m.d.querySelector("#view").textContent, /Ma prochaine tournée.*Tournée du 20\/10\/2026.*2 arrêts.*1 candidat.*1 prospect/s);
   assert.deepEqual(m.errs, []);
 });
 
@@ -336,8 +348,7 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
   for (let k = 0; k < 23; k++) m.data.commerces.push(COM(200 + k, `Commerce test ${String(k).padStart(2, "0")}`, { ville: "Lille" }));
   m.click('[data-action="live"]'); await m.wait(80);
   m.click("[data-go=tournees]");
-  m.change("#t-date", "2026-10-20"); m.d.querySelector("#t-nom").value = "Roubaix centre";
-  m.click('[data-action="tour-create"]'); await m.wait(80);
+  m.change("#t-day", "2026-10-20");
   // RDV du jour hors tournée : proposé avec un bouton, pas ajouté d'office
   const box = m.d.querySelector(".rdv-day");
   assert.ok(box, "les RDV commerciaux du jour doivent être proposés");
@@ -375,7 +386,8 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
   assert.match(m.d.querySelector(".tour-del").textContent, /Supprimer « Lille sud » et ses 2 arrêts/);
   m.click('[data-action="tour-del"]'); await m.wait(80);
   assert.ok(m.calls.some(c => /delete from public\.tournee_arret where tournee_id = 70; delete from public\.tournee where id = 70;/.test(c.input.query || "")));
-  assert.equal(m.d.querySelectorAll(".tour-chip").length, 0);
+  assert.equal(m.d.querySelectorAll(".stop").length, 0);
+  assert.match(m.d.querySelector(".stops").textContent, /Aucun arrêt ce jour-là/);
   assert.deepEqual(m.errs, []);
 });
 
@@ -398,5 +410,19 @@ test("P9 · Données d'illustration du tableau de bord : aucun prospect « Pas i
   assert.match(v, /Ma (prochaine )?tournée/);
   assert.match(v, /Mes 5 prochains RDV/);
   assert.ok(m.d.querySelectorAll("#todo .todo li").length <= 5, "pas plus de 5 RDV");
+  assert.deepEqual(m.errs, []);
+});
+
+/* P16 */ test("P16 · Plusieurs tournées le même jour : signalées et regroupées en une seule", async () => {
+  const m = await ouvrir("live");
+  m.data.tournees.push([60, "2026-10-15", null, "Planifiée", 2, [[601, 1, null, 160, null, null]]], [61, "2026-10-15", null, "Planifiée", 2, [[611, 1, null, 170, null, null]]], [62, "2026-10-15", null, "Planifiée", 2, []]);
+  m.click('[data-action="live"]'); await m.wait(80);
+  m.click("[data-go=tournees]");
+  m.change("#t-day", "2026-10-15");
+  assert.match(m.d.querySelector("#view").textContent, /3 tournées existent ce jour-là \(1 autre arrêt\)/);
+  m.click('[data-action="tour-merge"]'); await m.wait(80);
+  assert.ok(m.calls.some(c => /update public\.tournee_arret set tournee_id = 60, ordre = ordre \+ 1 where tournee_id in \(61, 62\); delete from public\.tournee where id in \(61, 62\);/.test(c.input.query || "")));
+  assert.equal(m.d.querySelectorAll(".stop").length, 2);
+  assert.doesNotMatch(m.d.querySelector("#view").textContent, /tournées existent ce jour-là/);
   assert.deepEqual(m.errs, []);
 });
